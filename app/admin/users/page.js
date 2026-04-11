@@ -55,8 +55,8 @@ export default function AdminUsers() {
           <button key={t} onClick={() => setTab(t)} style={{
             padding: '10px 24px', border: 'none', background: 'none', cursor: 'pointer',
             fontSize: '15px', fontWeight: tab === t ? '600' : '400',
-            color: tab === t ? '#7c3aed' : '#666',
-            borderBottom: tab === t ? '2px solid #7c3aed' : '2px solid transparent',
+            color: tab === t ? '#2563eb' : '#666',
+            borderBottom: tab === t ? '2px solid #2563eb' : '2px solid transparent',
             marginBottom: '-2px', textTransform: 'capitalize'
           }}>
             {t}
@@ -96,7 +96,7 @@ export default function AdminUsers() {
         <div>
           {Object.entries(activityByUser).map(([email, acts]) => (
             <div key={email} style={{ marginBottom: '24px' }}>
-              <h3 style={{ fontSize: '15px', color: '#7c3aed', marginBottom: '8px' }}>{email} ({acts.length} actions)</h3>
+              <h3 style={{ fontSize: '15px', color: '#2563eb', marginBottom: '8px' }}>{email} ({acts.length} actions)</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 {acts.map(a => (
                   <div key={a.id} style={{ fontSize: '14px', padding: '8px 12px', background: '#f9fafb', borderRadius: '6px', display: 'flex', justifyContent: 'space-between' }}>

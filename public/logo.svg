@@ -1,38 +1,62 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
-  <!-- Grand Piano Body -->
-  <ellipse cx="60" cy="65" rx="45" ry="30" fill="#1a1a1a" stroke="#333" stroke-width="1.5"/>
-  <rect x="15" y="50" width="90" height="15" rx="2" fill="#1a1a1a"/>
-  <!-- Piano Lid -->
-  <path d="M 18 50 Q 60 20 102 50" fill="none" stroke="#444" stroke-width="2"/>
-  <path d="M 18 50 Q 60 25 102 50 L 102 50 Q 60 30 18 50 Z" fill="#2a2a2a"/>
-  <!-- Piano Keys -->
-  <rect x="25" y="52" width="70" height="10" rx="1" fill="#fff"/>
-  <rect x="33" y="52" width="4" height="6" fill="#1a1a1a"/>
-  <rect x="41" y="52" width="4" height="6" fill="#1a1a1a"/>
-  <rect x="53" y="52" width="4" height="6" fill="#1a1a1a"/>
-  <rect x="61" y="52" width="4" height="6" fill="#1a1a1a"/>
-  <rect x="69" y="52" width="4" height="6" fill="#1a1a1a"/>
-  <rect x="81" y="52" width="4" height="6" fill="#1a1a1a"/>
-  <!-- Piano Legs -->
-  <line x1="25" y1="80" x2="22" y2="100" stroke="#1a1a1a" stroke-width="3" stroke-linecap="round"/>
-  <line x1="95" y1="80" x2="98" y2="100" stroke="#1a1a1a" stroke-width="3" stroke-linecap="round"/>
-  <line x1="60" y1="82" x2="60" y2="102" stroke="#1a1a1a" stroke-width="3" stroke-linecap="round"/>
-  <!-- Music Notes floating out -->
-  <g fill="#7c3aed" opacity="0.9">
-    <!-- Note 1 -->
-    <ellipse cx="78" cy="28" rx="4" ry="3" transform="rotate(-15 78 28)"/>
-    <line x1="82" y1="28" x2="82" y2="12" stroke="#7c3aed" stroke-width="1.5"/>
-    <path d="M 82 12 Q 88 14 86 18" fill="none" stroke="#7c3aed" stroke-width="1.5"/>
-    <!-- Note 2 -->
-    <ellipse cx="95" cy="20" rx="3.5" ry="2.5" transform="rotate(-15 95 20)"/>
-    <line x1="98.5" y1="20" x2="98.5" y2="6" stroke="#7c3aed" stroke-width="1.5"/>
-    <!-- Note 3 -->
-    <ellipse cx="88" cy="38" rx="3" ry="2.2" transform="rotate(-10 88 38)"/>
-    <line x1="91" y1="38" x2="91" y2="25" stroke="#7c3aed" stroke-width="1.5"/>
-    <path d="M 91 25 Q 96 27 94 30" fill="none" stroke="#7c3aed" stroke-width="1.5"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 120" width="140" height="120">
+  <!-- Grand Piano - Side/diagonal perspective -->
+  <!-- Piano body (curved side profile) -->
+  <path d="M 20 75 C 20 55, 35 35, 75 30 C 100 27, 115 35, 118 50 L 118 78 C 118 82, 115 85, 110 85 L 25 85 C 22 85, 20 82, 20 78 Z" fill="#1a1a1a" stroke="#333" stroke-width="1"/>
+
+  <!-- Piano lid (open, angled back) -->
+  <path d="M 20 75 C 20 55, 35 35, 75 30 C 100 27, 115 35, 118 50" fill="none" stroke="#444" stroke-width="1.5"/>
+  <path d="M 75 30 C 100 27, 115 35, 118 50 L 120 28 C 117 15, 102 8, 78 12 Z" fill="#2a2a2a" stroke="#444" stroke-width="1"/>
+  <!-- Lid prop stick -->
+  <line x1="105" y1="48" x2="112" y2="22" stroke="#555" stroke-width="1.5"/>
+
+  <!-- Keyboard area (front face) -->
+  <rect x="20" y="75" width="98" height="10" rx="1" fill="#2a2a2a" stroke="#333" stroke-width="0.5"/>
+  <!-- White keys -->
+  <rect x="22" y="76" width="94" height="7" rx="0.5" fill="#f5f5f5"/>
+  <!-- Black keys -->
+  <rect x="30" y="76" width="3" height="4.5" rx="0.3" fill="#1a1a1a"/>
+  <rect x="37" y="76" width="3" height="4.5" rx="0.3" fill="#1a1a1a"/>
+  <rect x="48" y="76" width="3" height="4.5" rx="0.3" fill="#1a1a1a"/>
+  <rect x="55" y="76" width="3" height="4.5" rx="0.3" fill="#1a1a1a"/>
+  <rect x="62" y="76" width="3" height="4.5" rx="0.3" fill="#1a1a1a"/>
+  <rect x="73" y="76" width="3" height="4.5" rx="0.3" fill="#1a1a1a"/>
+  <rect x="80" y="76" width="3" height="4.5" rx="0.3" fill="#1a1a1a"/>
+  <rect x="91" y="76" width="3" height="4.5" rx="0.3" fill="#1a1a1a"/>
+  <rect x="98" y="76" width="3" height="4.5" rx="0.3" fill="#1a1a1a"/>
+  <rect x="105" y="76" width="3" height="4.5" rx="0.3" fill="#1a1a1a"/>
+
+  <!-- Piano legs -->
+  <rect x="24" y="85" width="4" height="18" rx="1" fill="#1a1a1a"/>
+  <rect x="24" y="101" width="6" height="3" rx="1" fill="#1a1a1a"/>
+  <rect x="65" y="85" width="4" height="18" rx="1" fill="#1a1a1a"/>
+  <rect x="65" y="101" width="6" height="3" rx="1" fill="#1a1a1a"/>
+  <rect x="110" y="85" width="4" height="18" rx="1" fill="#1a1a1a"/>
+  <rect x="110" y="101" width="6" height="3" rx="1" fill="#1a1a1a"/>
+
+  <!-- Pedals -->
+  <rect x="60" y="103" width="3" height="4" rx="0.5" fill="#555"/>
+  <rect x="66" y="103" width="3" height="4" rx="0.5" fill="#555"/>
+  <rect x="72" y="103" width="3" height="4" rx="0.5" fill="#555"/>
+
+  <!-- Music notes floating out from the open lid -->
+  <g fill="#2563eb" opacity="0.85">
+    <!-- Eighth note 1 -->
+    <ellipse cx="108" cy="18" rx="4" ry="3" transform="rotate(-20 108 18)"/>
+    <line x1="112" y1="18" x2="112" y2="4" stroke="#2563eb" stroke-width="1.5"/>
+    <path d="M 112 4 Q 118 6 116 10" fill="none" stroke="#2563eb" stroke-width="1.5"/>
+
+    <!-- Quarter note 2 -->
+    <ellipse cx="125" cy="10" rx="3.5" ry="2.5" transform="rotate(-15 125 10)"/>
+    <line x1="128.5" y1="10" x2="128.5" y2="-2" stroke="#2563eb" stroke-width="1.5"/>
+
+    <!-- Eighth note 3 -->
+    <ellipse cx="118" cy="30" rx="3" ry="2.2" transform="rotate(-10 118 30)"/>
+    <line x1="121" y1="30" x2="121" y2="18" stroke="#2563eb" stroke-width="1.5"/>
+    <path d="M 121 18 Q 126 20 124 23" fill="none" stroke="#2563eb" stroke-width="1.5"/>
   </g>
-  <!-- Small sparkle dots -->
-  <circle cx="105" cy="15" r="1.5" fill="#7c3aed" opacity="0.5"/>
-  <circle cx="100" cy="32" r="1" fill="#7c3aed" opacity="0.4"/>
-  <circle cx="75" cy="15" r="1" fill="#7c3aed" opacity="0.3"/>
+
+  <!-- Sparkle dots -->
+  <circle cx="132" cy="5" r="1.5" fill="#2563eb" opacity="0.5"/>
+  <circle cx="130" cy="22" r="1" fill="#2563eb" opacity="0.4"/>
+  <circle cx="105" cy="8" r="1" fill="#2563eb" opacity="0.3"/>
 </svg>

@@ -27,6 +27,7 @@ export default function PieceDetail({ params }) {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [factLoading, setFactLoading] = useState(false)
+  const [bioLoading, setBioLoading] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   const supabase = createBrowserClient(
@@ -111,7 +112,10 @@ export default function PieceDetail({ params }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           pieceId: id, title: piece.title, composer: piece.composer,
-          bookTitle: piece.book_title, bookEditor: piece.book_editor, period: piece.period
+          bookTitle: piece.book_title, bookEditor: piece.book_editor, period: piece.period,
+          existingFacts: facts.map(f => f.fact),
+          aiSummary: piece.ai_summary,
+          composerBio: piece.composer_bio
         })
       })
       const data = await res.json()
@@ -123,6 +127,26 @@ export default function PieceDetail({ params }) {
       addToast('Failed to get fact', 'error')
     }
     setFactLoading(false)
+  }
+
+  async function generateBio() {
+    if (!piece.composer) return
+    setBioLoading(true)
+    try {
+      const res = await fetch('/api/composer-bio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pieceId: id, composer: piece.composer, aiSummary: piece.ai_summary })
+      })
+      const data = await res.json()
+      if (data.bio) {
+        setPiece(prev => ({ ...prev, composer_bio: data.bio }))
+        addToast('Composer bio generated!', 'success')
+      }
+    } catch {
+      addToast('Failed to generate bio', 'error')
+    }
+    setBioLoading(false)
   }
 
   async function handleImageUpload(e, imageType) {
@@ -144,7 +168,7 @@ export default function PieceDetail({ params }) {
   if (loading || userLoading) return <div style={{ padding: '24px', textAlign: 'center', color: '#666' }}>Loading...</div>
   if (!piece) return <div style={{ padding: '24px', textAlign: 'center' }}>Piece not found. <Link href="/pieces">Back to pieces</Link></div>
 
-  const noteTypeColors = { practice: '#059669', lesson: '#2563eb', general: '#7c3aed' }
+  const noteTypeColors = { practice: '#059669', lesson: '#2563eb', general: '#2563eb' }
 
   return (
     <main style={{ padding: '24px', maxWidth: '800px', margin: '0 auto' }}>
@@ -156,14 +180,14 @@ export default function PieceDetail({ params }) {
           <h1 style={{ fontSize: '26px' }}>{piece.title || 'Untitled'}</h1>
           {piece.composer && <p style={{ fontSize: '16px', color: '#666', marginTop: '4px' }}>{piece.composer}</p>}
           {piece.categories?.name && (
-            <span style={{ display: 'inline-block', marginTop: '8px', fontSize: '12px', padding: '4px 12px', background: '#ede9fe', color: '#7c3aed', borderRadius: '12px', fontWeight: '500' }}>
+            <span style={{ display: 'inline-block', marginTop: '8px', fontSize: '12px', padding: '4px 12px', background: '#dbeafe', color: '#2563eb', borderRadius: '12px', fontWeight: '500' }}>
               {piece.categories.name}
             </span>
           )}
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
           {!editing ? (
-            <button onClick={() => setEditing(true)} style={{ padding: '8px 16px', background: '#7c3aed', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>
+            <button onClick={() => setEditing(true)} style={{ padding: '8px 16px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>
               Edit
             </button>
           ) : (
@@ -206,13 +230,40 @@ export default function PieceDetail({ params }) {
         <EditForm form={form} setForm={setForm} categories={categories} />
       ) : (
         <div style={{ background: '#fff', borderRadius: '12px', padding: '24px', border: '1px solid #e5e7eb', marginBottom: '24px' }}>
-          <h2 style={{ fontSize: '18px', color: '#7c3aed', marginBottom: '16px' }}>Details</h2>
+          <h2 style={{ fontSize: '18px', color: '#2563eb', marginBottom: '16px' }}>Details</h2>
           <DetailGrid piece={piece} />
           {piece.ai_summary && (
-            <div style={{ background: '#ede9fe', borderRadius: '10px', padding: '14px', marginTop: '16px' }}>
-              <span style={{ fontSize: '12px', fontWeight: '600', color: '#7c3aed' }}>AI Summary</span>
+            <div style={{ background: '#dbeafe', borderRadius: '10px', padding: '14px', marginTop: '16px' }}>
+              <span style={{ fontSize: '12px', fontWeight: '600', color: '#2563eb' }}>AI Summary</span>
               <p style={{ fontSize: '14px', marginTop: '6px', lineHeight: '1.5' }}>{piece.ai_summary}</p>
             </div>
+          )}
+        </div>
+      )}
+
+      {/* About the Composer */}
+      {piece.composer && (
+        <div style={{ background: '#fff', borderRadius: '12px', padding: '24px', border: '1px solid #e5e7eb', marginBottom: '24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h2 style={{ fontSize: '18px', color: '#2563eb' }}>About {piece.composer}</h2>
+            {!piece.composer_bio && (
+              <button onClick={generateBio} disabled={bioLoading} style={{
+                padding: '8px 16px', background: '#dbeafe', color: '#2563eb', border: 'none',
+                borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer'
+              }}>
+                {bioLoading ? (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ display: 'inline-block', width: '12px', height: '12px', border: '2px solid #2563eb', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.6s linear infinite' }} />
+                    Generating...
+                  </span>
+                ) : 'Generate Bio'}
+              </button>
+            )}
+          </div>
+          {piece.composer_bio ? (
+            <p style={{ fontSize: '14px', lineHeight: '1.6', color: '#374151' }}>{piece.composer_bio}</p>
+          ) : (
+            <p style={{ fontSize: '14px', color: '#999' }}>Click "Generate Bio" to learn about this composer.</p>
           )}
         </div>
       )}
@@ -220,14 +271,14 @@ export default function PieceDetail({ params }) {
       {/* Interesting Facts */}
       <div style={{ background: '#fff', borderRadius: '12px', padding: '24px', border: '1px solid #e5e7eb', marginBottom: '24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <h2 style={{ fontSize: '18px', color: '#7c3aed' }}>Interesting Facts</h2>
+          <h2 style={{ fontSize: '18px', color: '#2563eb' }}>Interesting Facts</h2>
           <button onClick={requestFact} disabled={factLoading} style={{
-            padding: '8px 16px', background: '#ede9fe', color: '#7c3aed', border: 'none',
+            padding: '8px 16px', background: '#dbeafe', color: '#2563eb', border: 'none',
             borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer'
           }}>
             {factLoading ? (
               <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ display: 'inline-block', width: '12px', height: '12px', border: '2px solid #7c3aed', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.6s linear infinite' }} />
+                <span style={{ display: 'inline-block', width: '12px', height: '12px', border: '2px solid #2563eb', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.6s linear infinite' }} />
                 Thinking...
               </span>
             ) : 'Tell me something interesting'}
@@ -238,7 +289,7 @@ export default function PieceDetail({ params }) {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {facts.map(f => (
-              <div key={f.id} style={{ padding: '12px', background: '#faf5ff', borderRadius: '8px', fontSize: '14px', lineHeight: '1.5' }}>
+              <div key={f.id} style={{ padding: '12px', background: '#eff6ff', borderRadius: '8px', fontSize: '14px', lineHeight: '1.5' }}>
                 {f.fact}
                 <div style={{ fontSize: '11px', color: '#999', marginTop: '6px' }}>{new Date(f.created_at).toLocaleDateString()}</div>
               </div>
@@ -249,7 +300,7 @@ export default function PieceDetail({ params }) {
 
       {/* Notes */}
       <div style={{ background: '#fff', borderRadius: '12px', padding: '24px', border: '1px solid #e5e7eb', marginBottom: '24px' }}>
-        <h2 style={{ fontSize: '18px', color: '#7c3aed', marginBottom: '16px' }}>Notes</h2>
+        <h2 style={{ fontSize: '18px', color: '#2563eb', marginBottom: '16px' }}>Notes</h2>
 
         <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
           {['practice', 'lesson', 'general'].map(t => (
@@ -353,7 +404,7 @@ function EditForm({ form, setForm, categories }) {
   }
   return (
     <div style={{ background: '#fff', borderRadius: '12px', padding: '24px', border: '1px solid #e5e7eb', marginBottom: '24px' }}>
-      <h2 style={{ fontSize: '18px', color: '#7c3aed', marginBottom: '16px' }}>Edit Details</h2>
+      <h2 style={{ fontSize: '18px', color: '#2563eb', marginBottom: '16px' }}>Edit Details</h2>
       {[
         ['Title', 'title'], ['Composer', 'composer'], ['Book Title', 'book_title'], ['Book Editor', 'book_editor'],
         ['Key Signature', 'key_signature'], ['Time Signature', 'time_signature'],

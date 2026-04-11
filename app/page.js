@@ -49,10 +49,10 @@ export default function Dashboard() {
 
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '16px', marginBottom: '32px' }}>
-        <StatCard label="Total Pieces" value={pieces.length} color="#7c3aed" />
-        <StatCard label="Categories" value={Object.keys(byCategory).length} color="#2563eb" />
-        <StatCard label="Today's Practice" value={todaySchedule.length} color="#059669" />
-        <StatCard label="Completed Today" value={todaySchedule.filter(s => s.completed).length} color="#d97706" />
+        <StatCard label="Total Pieces" value={pieces.length} color="#2563eb" href="/pieces" />
+        <StatCard label="Categories" value={Object.keys(byCategory).length} color="#1d4ed8" href="/pieces" />
+        <StatCard label="Today's Practice" value={todaySchedule.length} color="#059669" href="/schedule" />
+        <StatCard label="Completed Today" value={todaySchedule.filter(s => s.completed).length} color="#d97706" href="/schedule" />
       </div>
 
       {/* Today's Practice */}
@@ -98,7 +98,7 @@ export default function Dashboard() {
         ) : (
           Object.entries(byCategory).map(([cat, items]) => (
             <div key={cat} style={{ marginBottom: '16px' }}>
-              <h3 style={{ fontSize: '15px', color: '#7c3aed', marginBottom: '8px' }}>{cat} ({items.length})</h3>
+              <h3 style={{ fontSize: '15px', color: '#2563eb', marginBottom: '8px' }}>{cat} ({items.length})</h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '10px' }}>
                 {items.slice(0, 4).map(p => (
                   <Link key={p.id} href={`/piece/${p.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
@@ -119,12 +119,12 @@ export default function Dashboard() {
         <h2 style={{ fontSize: '20px', marginBottom: '16px' }}>Quick Actions</h2>
         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
           <Link href="/add" style={{ textDecoration: 'none' }}>
-            <button style={{ padding: '12px 24px', background: '#7c3aed', color: '#fff', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: '500', cursor: 'pointer' }}>
+            <button style={{ padding: '12px 24px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: '500', cursor: 'pointer' }}>
               + Add New Piece
             </button>
           </Link>
           <Link href="/schedule" style={{ textDecoration: 'none' }}>
-            <button style={{ padding: '12px 24px', background: '#fff', color: '#7c3aed', border: '1px solid #7c3aed', borderRadius: '10px', fontSize: '15px', fontWeight: '500', cursor: 'pointer' }}>
+            <button style={{ padding: '12px 24px', background: '#fff', color: '#2563eb', border: '1px solid #2563eb', borderRadius: '10px', fontSize: '15px', fontWeight: '500', cursor: 'pointer' }}>
               Plan Practice Week
             </button>
           </Link>
@@ -134,13 +134,15 @@ export default function Dashboard() {
   )
 }
 
-function StatCard({ label, value, color }) {
-  return (
-    <div style={{ background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e5e7eb' }}>
+function StatCard({ label, value, color, href }) {
+  const inner = (
+    <div style={{ background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e5e7eb', cursor: href ? 'pointer' : 'default', transition: 'box-shadow 0.15s' }}>
       <div style={{ fontSize: '28px', fontWeight: '700', color }}>{value}</div>
       <div style={{ fontSize: '13px', color: '#666', marginTop: '4px' }}>{label}</div>
     </div>
   )
+  if (href) return <Link href={href} style={{ textDecoration: 'none', color: 'inherit' }}>{inner}</Link>
+  return inner
 }
 
 function LoadingSkeleton() {

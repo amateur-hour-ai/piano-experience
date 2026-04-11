@@ -20,7 +20,7 @@ export default function ToastProvider({ children }) {
   const colors = {
     success: { bg: '#f0fdf4', border: '#86efac', text: '#166534' },
     error: { bg: '#fef2f2', border: '#fca5a5', text: '#991b1b' },
-    info: { bg: '#ede9fe', border: '#c4b5fd', text: '#5b21b6' },
+    info: { bg: '#dbeafe', border: '#93c5fd', text: '#1e40af' },
   }
 
   return (

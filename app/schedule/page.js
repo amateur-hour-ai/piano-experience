@@ -118,13 +118,13 @@ export default function PracticeSchedule() {
             const isToday = idx === todayIdx
             return (
               <div key={day} style={{
-                background: isToday ? '#faf5ff' : '#fff',
-                borderRadius: '12px', padding: '20px', border: `1px solid ${isToday ? '#c4b5fd' : '#e5e7eb'}`,
+                background: isToday ? '#eff6ff' : '#fff',
+                borderRadius: '12px', padding: '20px', border: `1px solid ${isToday ? '#93c5fd' : '#e5e7eb'}`,
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                   <h3 style={{ fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     {day}
-                    {isToday && <span style={{ fontSize: '11px', background: '#7c3aed', color: '#fff', padding: '2px 8px', borderRadius: '8px' }}>Today</span>}
+                    {isToday && <span style={{ fontSize: '11px', background: '#2563eb', color: '#fff', padding: '2px 8px', borderRadius: '8px' }}>Today</span>}
                   </h3>
                   <button onClick={() => setAddingDay(addingDay === idx ? null : idx)} style={{
                     padding: '4px 12px', background: 'none', border: '1px solid #d1d5db', borderRadius: '6px',
@@ -144,7 +144,7 @@ export default function PracticeSchedule() {
                     <input value={focusNotes} onChange={e => setFocusNotes(e.target.value)} placeholder="Focus notes (optional)..."
                       style={{ padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px' }} />
                     <div style={{ display: 'flex', gap: '8px' }}>
-                      <button onClick={() => addToSchedule(idx)} style={{ padding: '8px 16px', background: '#7c3aed', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '13px', cursor: 'pointer' }}>
+                      <button onClick={() => addToSchedule(idx)} style={{ padding: '8px 16px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '13px', cursor: 'pointer' }}>
                         Add to {day}
                       </button>
                       <button onClick={() => setAddingDay(null)} style={{ padding: '8px 16px', background: '#fff', color: '#666', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px', cursor: 'pointer' }}>

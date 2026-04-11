@@ -13,7 +13,7 @@ export default function RootLayout({ children }) {
       <body>
         <ToastProvider>
           <NavBar />
-          <div style={{ minHeight: '100vh', background: '#faf5ff' }}>
+          <div style={{ minHeight: '100vh', background: '#eff6ff' }}>
             {children}
           </div>
         </ToastProvider>

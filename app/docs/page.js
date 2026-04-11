@@ -21,8 +21,8 @@ export default function Docs() {
             style={{
               padding: '10px 24px', border: 'none', background: 'none', cursor: 'pointer',
               fontSize: '15px', fontWeight: tab === t ? '600' : '400',
-              color: tab === t ? '#7c3aed' : '#666',
-              borderBottom: tab === t ? '2px solid #7c3aed' : '2px solid transparent',
+              color: tab === t ? '#2563eb' : '#666',
+              borderBottom: tab === t ? '2px solid #2563eb' : '2px solid transparent',
               marginBottom: '-2px'
             }}
           >
@@ -40,7 +40,7 @@ export default function Docs() {
 function Section({ title, children }) {
   return (
     <section style={{ marginBottom: '36px' }}>
-      <h2 style={{ fontSize: '18px', color: '#7c3aed', borderBottom: '1px solid #ede9fe', paddingBottom: '8px', marginBottom: '16px' }}>{title}</h2>
+      <h2 style={{ fontSize: '18px', color: '#2563eb', borderBottom: '1px solid #dbeafe', paddingBottom: '8px', marginBottom: '16px' }}>{title}</h2>
       {children}
     </section>
   )
@@ -49,7 +49,7 @@ function Section({ title, children }) {
 function Step({ n, children }) {
   return (
     <div style={{ display: 'flex', gap: '12px', marginBottom: '12px', alignItems: 'flex-start' }}>
-      <span style={{ background: '#7c3aed', color: '#fff', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: '700', flexShrink: 0, marginTop: '1px' }}>{n}</span>
+      <span style={{ background: '#2563eb', color: '#fff', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: '700', flexShrink: 0, marginTop: '1px' }}>{n}</span>
       <p style={{ margin: 0, fontSize: '15px', lineHeight: '1.6', color: '#333' }}>{children}</p>
     </div>
   )
@@ -57,7 +57,7 @@ function Step({ n, children }) {
 
 function Note({ children }) {
   return (
-    <div style={{ background: '#faf5ff', border: '1px solid #c4b5fd', borderRadius: '8px', padding: '12px 16px', fontSize: '14px', color: '#5b21b6', marginTop: '12px' }}>
+    <div style={{ background: '#eff6ff', border: '1px solid #93c5fd', borderRadius: '8px', padding: '12px 16px', fontSize: '14px', color: '#1e40af', marginTop: '12px' }}>
       {children}
     </div>
   )
@@ -69,6 +69,9 @@ function UserGuide() {
       <Section title="Overview">
         <p style={{ fontSize: '15px', lineHeight: '1.7', color: '#333' }}>
           Piano Experience is your personal practice companion. Track the pieces you're working on, organize your practice schedule, capture photos of sheet music, and discover interesting facts about your repertoire with AI.
+        </p>
+        <p style={{ fontSize: '15px', lineHeight: '1.7', color: '#333', marginTop: '12px' }}>
+          The dashboard shows your stats at a glance — tap any stat card to navigate to the relevant page (pieces, schedule, etc.).
         </p>
       </Section>
 
@@ -98,6 +101,12 @@ function UserGuide() {
         </p>
       </Section>
 
+      <Section title="About the Composer">
+        <p style={{ fontSize: '15px', lineHeight: '1.7', color: '#333' }}>
+          Each piece with a known composer has a dedicated "About the Composer" section. When you add a piece with a composer name, AI automatically generates a brief biography. If the bio wasn't auto-generated, tap <strong>Generate Bio</strong> on the piece detail page.
+        </p>
+      </Section>
+
       <Section title="Practice Notes">
         <p style={{ fontSize: '15px', lineHeight: '1.7', color: '#333' }}>
           On each piece's detail page, add timestamped notes in three types: <strong>Practice</strong> (for daily practice observations), <strong>Lesson</strong> (for teacher feedback), and <strong>General</strong> (for anything else). Notes are shown newest first with their date and time.
@@ -114,7 +123,7 @@ function UserGuide() {
 
       <Section title="Interesting Facts">
         <p style={{ fontSize: '15px', lineHeight: '1.7', color: '#333' }}>
-          On any piece's detail page, tap <strong>Tell me something interesting</strong> to have AI share a fun fact about the piece, composer, musical period, or related works. Each fact is saved so you can revisit them.
+          On any piece's detail page, tap <strong>Tell me something interesting</strong> to have AI share a fun fact about the piece, composer, musical period, or related works. Each fact is saved so you can revisit them. The AI avoids repeating information from previous facts, the piece summary, and the composer bio.
         </p>
       </Section>
 
@@ -129,6 +138,18 @@ function UserGuide() {
 
 function ReleaseNotes() {
   const releases = [
+    {
+      version: '1.2',
+      date: '2026-04-11',
+      changes: [
+        'New "About the Composer" section on each piece — auto-generated bio when a composer is known',
+        'Blue color theme throughout the app (replacing purple)',
+        'Redesigned logo — side-view grand piano with music notes',
+        'Dashboard stat cards are now clickable — tap to navigate to pieces, schedule, etc.',
+        'Interesting facts no longer repeat — AI avoids overlap with previous facts, piece summary, and composer bio',
+        'Fixed formatting issue where interesting facts started with a # symbol',
+      ]
+    },
     {
       version: '1.1',
       date: '2026-04-11',
@@ -163,7 +184,7 @@ function ReleaseNotes() {
       {releases.map(({ version, date, changes }) => (
         <div key={version} style={{ marginBottom: '40px' }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px', marginBottom: '12px' }}>
-            <h2 style={{ margin: 0, fontSize: '20px', color: '#7c3aed' }}>Version {version}</h2>
+            <h2 style={{ margin: 0, fontSize: '20px', color: '#2563eb' }}>Version {version}</h2>
             <span style={{ fontSize: '14px', color: '#999' }}>{date}</span>
           </div>
           <ul style={{ margin: 0, paddingLeft: '20px' }}>

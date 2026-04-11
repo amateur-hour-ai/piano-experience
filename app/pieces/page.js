@@ -46,7 +46,7 @@ export default function Pieces() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '16px 0 24px' }}>
         <h1 style={{ fontSize: '24px' }}>My Pieces ({filtered.length})</h1>
         <Link href="/add">
-          <button style={{ padding: '10px 20px', background: '#7c3aed', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '500', cursor: 'pointer' }}>
+          <button style={{ padding: '10px 20px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '500', cursor: 'pointer' }}>
             + Add Piece
           </button>
         </Link>
@@ -97,7 +97,7 @@ export default function Pieces() {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   {p.categories?.name && (
-                    <span style={{ fontSize: '12px', padding: '4px 10px', background: '#ede9fe', color: '#7c3aed', borderRadius: '12px', fontWeight: '500' }}>
+                    <span style={{ fontSize: '12px', padding: '4px 10px', background: '#dbeafe', color: '#2563eb', borderRadius: '12px', fontWeight: '500' }}>
                       {p.categories.name}
                     </span>
                   )}

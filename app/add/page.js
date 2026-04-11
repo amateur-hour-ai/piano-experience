@@ -166,6 +166,15 @@ export default function AddPiece() {
         await fetch('/api/upload-image', { method: 'POST', body: formData })
       }
 
+      // Auto-generate composer bio in background (don't block navigation)
+      if (form.composer) {
+        fetch('/api/composer-bio', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pieceId: piece.id, composer: form.composer, aiSummary: form.ai_summary })
+        }).catch(() => {})
+      }
+
       await logActivity({
         action: 'add_piece',
         piece_id: piece.id,
@@ -228,8 +237,8 @@ export default function AddPiece() {
                 <div style={{ textAlign: 'center' }}>
                   <img src={photoPreview} alt="Sheet music" style={{ maxWidth: '100%', maxHeight: '300px', borderRadius: '12px', border: '1px solid #e5e7eb' }} />
                   {analyzing && (
-                    <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: '#7c3aed' }}>
-                      <span style={{ display: 'inline-block', width: '16px', height: '16px', border: '2px solid #7c3aed', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.6s linear infinite' }} />
+                    <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: '#2563eb' }}>
+                      <span style={{ display: 'inline-block', width: '16px', height: '16px', border: '2px solid #2563eb', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.6s linear infinite' }} />
                       AI is analyzing the music...
                     </div>
                   )}
@@ -246,7 +255,7 @@ export default function AddPiece() {
 
           {/* Form Fields */}
           <div style={{ background: '#fff', borderRadius: '12px', padding: '24px', border: '1px solid #e5e7eb' }}>
-            <h2 style={{ fontSize: '18px', marginBottom: '20px', color: '#7c3aed' }}>Piece Details</h2>
+            <h2 style={{ fontSize: '18px', marginBottom: '20px', color: '#2563eb' }}>Piece Details</h2>
 
             <FormField label="Title *" value={form.title} onChange={v => updateForm('title', v)} />
             <FormField label="Composer" value={form.composer} onChange={v => updateForm('composer', v)} />
@@ -285,7 +294,7 @@ export default function AddPiece() {
               <div style={{ display: 'flex', gap: '8px' }}>
                 <input value={newCategoryName} onChange={e => setNewCategoryName(e.target.value)} placeholder="New category name..."
                   style={{ flex: 1, padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px' }} />
-                <button onClick={addCategory} style={{ padding: '8px 16px', background: '#ede9fe', color: '#7c3aed', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer' }}>
+                <button onClick={addCategory} style={{ padding: '8px 16px', background: '#dbeafe', color: '#2563eb', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer' }}>
                   Add
                 </button>
               </div>
@@ -295,15 +304,15 @@ export default function AddPiece() {
             <FormField label="Goals" value={form.goals} onChange={v => updateForm('goals', v)} multiline placeholder="e.g. Memorize by end of month, perform at recital" />
 
             {form.ai_summary && (
-              <div style={{ background: '#ede9fe', borderRadius: '10px', padding: '14px', marginBottom: '16px' }}>
-                <div style={{ fontSize: '12px', fontWeight: '600', color: '#7c3aed', marginBottom: '6px' }}>AI Summary</div>
+              <div style={{ background: '#dbeafe', borderRadius: '10px', padding: '14px', marginBottom: '16px' }}>
+                <div style={{ fontSize: '12px', fontWeight: '600', color: '#2563eb', marginBottom: '6px' }}>AI Summary</div>
                 <p style={{ fontSize: '14px', color: '#374151', lineHeight: '1.5' }}>{form.ai_summary}</p>
               </div>
             )}
 
             <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
               <button onClick={handleSave} disabled={saving || analyzing} style={{
-                flex: 1, padding: '12px', background: '#7c3aed', color: '#fff', border: 'none',
+                flex: 1, padding: '12px', background: '#2563eb', color: '#fff', border: 'none',
                 borderRadius: '8px', fontSize: '16px', fontWeight: '500', cursor: 'pointer'
               }}>
                 {saving ? 'Saving...' : 'Save Piece'}

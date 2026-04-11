@@ -58,7 +58,7 @@ export default function Login() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: '#7c3aed',
+      background: '#2563eb',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
@@ -82,13 +82,13 @@ export default function Login() {
         <div style={{ display: 'flex', marginBottom: '24px', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e5e7eb' }}>
           <button
             onClick={() => { setMode('login'); setError(''); setMessage('') }}
-            style={{ flex: 1, padding: '10px', background: mode === 'login' ? '#7c3aed' : '#fff', color: mode === 'login' ? '#fff' : '#666', border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: '500' }}
+            style={{ flex: 1, padding: '10px', background: mode === 'login' ? '#2563eb' : '#fff', color: mode === 'login' ? '#fff' : '#666', border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: '500' }}
           >
             Sign In
           </button>
           <button
             onClick={() => { setMode('signup'); setError(''); setMessage('') }}
-            style={{ flex: 1, padding: '10px', background: mode === 'signup' ? '#7c3aed' : '#fff', color: mode === 'signup' ? '#fff' : '#666', border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: '500' }}
+            style={{ flex: 1, padding: '10px', background: mode === 'signup' ? '#2563eb' : '#fff', color: mode === 'signup' ? '#fff' : '#666', border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: '500' }}
           >
             Sign Up
           </button>
@@ -132,7 +132,7 @@ export default function Login() {
         <button
           onClick={mode === 'login' ? handleLogin : handleSignup}
           disabled={loading}
-          style={{ width: '100%', padding: '12px', background: '#7c3aed', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '16px', fontWeight: '500', cursor: 'pointer' }}
+          style={{ width: '100%', padding: '12px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '16px', fontWeight: '500', cursor: 'pointer' }}
         >
           {loading ? 'Please wait...' : mode === 'login' ? 'Sign In' : 'Sign Up'}
         </button>
