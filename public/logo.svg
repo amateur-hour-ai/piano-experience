@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <!-- Grand Piano Body -->
+  <ellipse cx="60" cy="65" rx="45" ry="30" fill="#1a1a1a" stroke="#333" stroke-width="1.5"/>
+  <rect x="15" y="50" width="90" height="15" rx="2" fill="#1a1a1a"/>
+  <!-- Piano Lid -->
+  <path d="M 18 50 Q 60 20 102 50" fill="none" stroke="#444" stroke-width="2"/>
+  <path d="M 18 50 Q 60 25 102 50 L 102 50 Q 60 30 18 50 Z" fill="#2a2a2a"/>
+  <!-- Piano Keys -->
+  <rect x="25" y="52" width="70" height="10" rx="1" fill="#fff"/>
+  <rect x="33" y="52" width="4" height="6" fill="#1a1a1a"/>
+  <rect x="41" y="52" width="4" height="6" fill="#1a1a1a"/>
+  <rect x="53" y="52" width="4" height="6" fill="#1a1a1a"/>
+  <rect x="61" y="52" width="4" height="6" fill="#1a1a1a"/>
+  <rect x="69" y="52" width="4" height="6" fill="#1a1a1a"/>
+  <rect x="81" y="52" width="4" height="6" fill="#1a1a1a"/>
+  <!-- Piano Legs -->
+  <line x1="25" y1="80" x2="22" y2="100" stroke="#1a1a1a" stroke-width="3" stroke-linecap="round"/>
+  <line x1="95" y1="80" x2="98" y2="100" stroke="#1a1a1a" stroke-width="3" stroke-linecap="round"/>
+  <line x1="60" y1="82" x2="60" y2="102" stroke="#1a1a1a" stroke-width="3" stroke-linecap="round"/>
+  <!-- Music Notes floating out -->
+  <g fill="#7c3aed" opacity="0.9">
+    <!-- Note 1 -->
+    <ellipse cx="78" cy="28" rx="4" ry="3" transform="rotate(-15 78 28)"/>
+    <line x1="82" y1="28" x2="82" y2="12" stroke="#7c3aed" stroke-width="1.5"/>
+    <path d="M 82 12 Q 88 14 86 18" fill="none" stroke="#7c3aed" stroke-width="1.5"/>
+    <!-- Note 2 -->
+    <ellipse cx="95" cy="20" rx="3.5" ry="2.5" transform="rotate(-15 95 20)"/>
+    <line x1="98.5" y1="20" x2="98.5" y2="6" stroke="#7c3aed" stroke-width="1.5"/>
+    <!-- Note 3 -->
+    <ellipse cx="88" cy="38" rx="3" ry="2.2" transform="rotate(-10 88 38)"/>
+    <line x1="91" y1="38" x2="91" y2="25" stroke="#7c3aed" stroke-width="1.5"/>
+    <path d="M 91 25 Q 96 27 94 30" fill="none" stroke="#7c3aed" stroke-width="1.5"/>
+  </g>
+  <!-- Small sparkle dots -->
+  <circle cx="105" cy="15" r="1.5" fill="#7c3aed" opacity="0.5"/>
+  <circle cx="100" cy="32" r="1" fill="#7c3aed" opacity="0.4"/>
+  <circle cx="75" cy="15" r="1" fill="#7c3aed" opacity="0.3"/>
+</svg>

@@ -1,0 +1,386 @@
+'use client'
+
+import { useState, useEffect, useRef, use } from 'react'
+import { createBrowserClient } from '@supabase/ssr'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { useCurrentUser } from '@/lib/useCurrentUser'
+import { useToast } from '@/app/ToastProvider'
+import { logActivity } from '@/lib/logActivity'
+
+export default function PieceDetail({ params }) {
+  const { id } = use(params)
+  const router = useRouter()
+  const { user, loading: userLoading } = useCurrentUser()
+  const { addToast } = useToast()
+  const fileInputRef = useRef(null)
+
+  const [piece, setPiece] = useState(null)
+  const [images, setImages] = useState([])
+  const [notes, setNotes] = useState([])
+  const [facts, setFacts] = useState([])
+  const [categories, setCategories] = useState([])
+  const [editing, setEditing] = useState(false)
+  const [form, setForm] = useState({})
+  const [newNote, setNewNote] = useState('')
+  const [noteType, setNoteType] = useState('practice')
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [factLoading, setFactLoading] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  )
+
+  useEffect(() => {
+    if (userLoading || !user) return
+    loadPiece()
+  }, [userLoading, user, id])
+
+  async function loadPiece() {
+    const [pieceRes, imagesRes, notesRes, factsRes, catsRes] = await Promise.all([
+      supabase.from('pieces').select('*, categories(name)').eq('id', id).single(),
+      supabase.from('piece_images').select('*').eq('piece_id', id).order('created_at'),
+      supabase.from('piece_notes').select('*').eq('piece_id', id).order('created_at', { ascending: false }),
+      supabase.from('interesting_facts').select('*').eq('piece_id', id).order('created_at', { ascending: false }),
+      supabase.from('categories').select('*').or(`user_id.eq.${user.email},user_id.is.null`).order('sort_order'),
+    ])
+    if (pieceRes.data) {
+      setPiece(pieceRes.data)
+      setForm(pieceRes.data)
+    }
+    setImages(imagesRes.data || [])
+    setNotes(notesRes.data || [])
+    setFacts(factsRes.data || [])
+    setCategories(catsRes.data || [])
+    setLoading(false)
+  }
+
+  async function handleSave() {
+    setSaving(true)
+    const { error } = await supabase.from('pieces').update({
+      title: form.title, composer: form.composer, book_title: form.book_title,
+      book_editor: form.book_editor, key_signature: form.key_signature,
+      time_signature: form.time_signature, tempo_marking: form.tempo_marking,
+      difficulty_level: form.difficulty_level, period: form.period,
+      metronome_marking: form.metronome_marking, areas_of_focus: form.areas_of_focus,
+      goals: form.goals, category_id: form.category_id || null,
+    }).eq('id', id)
+
+    if (error) {
+      addToast('Failed to save: ' + error.message, 'error')
+    } else {
+      await logActivity({ action: 'edit_piece', piece_id: id, piece_title: form.title, details: 'Updated piece details', user_email: user.email })
+      addToast('Changes saved!', 'success')
+      setEditing(false)
+      loadPiece()
+    }
+    setSaving(false)
+  }
+
+  async function handleDelete() {
+    await supabase.from('piece_notes').delete().eq('piece_id', id)
+    await supabase.from('piece_images').delete().eq('piece_id', id)
+    await supabase.from('interesting_facts').delete().eq('piece_id', id)
+    await supabase.from('practice_schedule').delete().eq('piece_id', id)
+    await supabase.from('pieces').delete().eq('id', id)
+    await logActivity({ action: 'delete_piece', piece_id: id, piece_title: piece.title, details: 'Deleted piece', user_email: user.email })
+    addToast('Piece deleted', 'info')
+    router.push('/pieces')
+  }
+
+  async function addNote() {
+    if (!newNote.trim()) return
+    const { error } = await supabase.from('piece_notes').insert([{
+      piece_id: id, user_id: user.email, note_type: noteType, note: newNote.trim()
+    }])
+    if (error) { addToast('Failed to add note', 'error'); return }
+    await logActivity({ action: 'add_note', piece_id: id, piece_title: piece.title, details: `Added ${noteType} note`, user_email: user.email })
+    setNewNote('')
+    addToast('Note added!', 'success')
+    loadPiece()
+  }
+
+  async function requestFact() {
+    setFactLoading(true)
+    try {
+      const res = await fetch('/api/interesting-fact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pieceId: id, title: piece.title, composer: piece.composer,
+          bookTitle: piece.book_title, bookEditor: piece.book_editor, period: piece.period
+        })
+      })
+      const data = await res.json()
+      if (data.fact) {
+        setFacts(prev => [{ id: Date.now(), fact: data.fact, created_at: new Date().toISOString() }, ...prev])
+        addToast('New fact discovered!', 'success')
+      }
+    } catch {
+      addToast('Failed to get fact', 'error')
+    }
+    setFactLoading(false)
+  }
+
+  async function handleImageUpload(e, imageType) {
+    const file = e.target.files[0]
+    if (!file) return
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('piece_id', id)
+    formData.append('image_type', imageType)
+    const res = await fetch('/api/upload-image', { method: 'POST', body: formData })
+    if (res.ok) {
+      addToast('Image uploaded!', 'success')
+      loadPiece()
+    } else {
+      addToast('Upload failed', 'error')
+    }
+  }
+
+  if (loading || userLoading) return <div style={{ padding: '24px', textAlign: 'center', color: '#666' }}>Loading...</div>
+  if (!piece) return <div style={{ padding: '24px', textAlign: 'center' }}>Piece not found. <Link href="/pieces">Back to pieces</Link></div>
+
+  const noteTypeColors = { practice: '#059669', lesson: '#2563eb', general: '#7c3aed' }
+
+  return (
+    <main style={{ padding: '24px', maxWidth: '800px', margin: '0 auto' }}>
+      <Link href="/pieces" style={{ textDecoration: 'none', color: '#666', fontSize: '14px' }}>← My Pieces</Link>
+
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', margin: '16px 0 24px' }}>
+        <div>
+          <h1 style={{ fontSize: '26px' }}>{piece.title || 'Untitled'}</h1>
+          {piece.composer && <p style={{ fontSize: '16px', color: '#666', marginTop: '4px' }}>{piece.composer}</p>}
+          {piece.categories?.name && (
+            <span style={{ display: 'inline-block', marginTop: '8px', fontSize: '12px', padding: '4px 12px', background: '#ede9fe', color: '#7c3aed', borderRadius: '12px', fontWeight: '500' }}>
+              {piece.categories.name}
+            </span>
+          )}
+        </div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {!editing ? (
+            <button onClick={() => setEditing(true)} style={{ padding: '8px 16px', background: '#7c3aed', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>
+              Edit
+            </button>
+          ) : (
+            <>
+              <button onClick={handleSave} disabled={saving} style={{ padding: '8px 16px', background: '#059669', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>
+                {saving ? 'Saving...' : 'Save'}
+              </button>
+              <button onClick={() => { setEditing(false); setForm(piece) }} style={{ padding: '8px 16px', background: '#f9fafb', color: '#666', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>
+                Cancel
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Images */}
+      {images.length > 0 && (
+        <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', overflowX: 'auto' }}>
+          {images.map(img => (
+            <div key={img.id} style={{ flexShrink: 0 }}>
+              <img src={img.image_url} alt={img.image_type} style={{ height: '200px', borderRadius: '10px', border: '1px solid #e5e7eb' }} />
+              <div style={{ fontSize: '12px', color: '#666', textAlign: 'center', marginTop: '4px' }}>{img.image_type.replace('_', ' ')}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Upload more images */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap' }}>
+        {['first_page', 'full_piece', 'book_cover'].map(type => (
+          <label key={type} style={{ padding: '8px 14px', background: '#f9fafb', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', color: '#666' }}>
+            📷 Upload {type.replace('_', ' ')}
+            <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handleImageUpload(e, type)} />
+          </label>
+        ))}
+      </div>
+
+      {/* Details */}
+      {editing ? (
+        <EditForm form={form} setForm={setForm} categories={categories} />
+      ) : (
+        <div style={{ background: '#fff', borderRadius: '12px', padding: '24px', border: '1px solid #e5e7eb', marginBottom: '24px' }}>
+          <h2 style={{ fontSize: '18px', color: '#7c3aed', marginBottom: '16px' }}>Details</h2>
+          <DetailGrid piece={piece} />
+          {piece.ai_summary && (
+            <div style={{ background: '#ede9fe', borderRadius: '10px', padding: '14px', marginTop: '16px' }}>
+              <span style={{ fontSize: '12px', fontWeight: '600', color: '#7c3aed' }}>AI Summary</span>
+              <p style={{ fontSize: '14px', marginTop: '6px', lineHeight: '1.5' }}>{piece.ai_summary}</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Interesting Facts */}
+      <div style={{ background: '#fff', borderRadius: '12px', padding: '24px', border: '1px solid #e5e7eb', marginBottom: '24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <h2 style={{ fontSize: '18px', color: '#7c3aed' }}>Interesting Facts</h2>
+          <button onClick={requestFact} disabled={factLoading} style={{
+            padding: '8px 16px', background: '#ede9fe', color: '#7c3aed', border: 'none',
+            borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer'
+          }}>
+            {factLoading ? (
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ display: 'inline-block', width: '12px', height: '12px', border: '2px solid #7c3aed', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.6s linear infinite' }} />
+                Thinking...
+              </span>
+            ) : 'Tell me something interesting'}
+          </button>
+        </div>
+        {facts.length === 0 ? (
+          <p style={{ color: '#666', fontSize: '14px' }}>No facts yet. Click the button to discover something!</p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {facts.map(f => (
+              <div key={f.id} style={{ padding: '12px', background: '#faf5ff', borderRadius: '8px', fontSize: '14px', lineHeight: '1.5' }}>
+                {f.fact}
+                <div style={{ fontSize: '11px', color: '#999', marginTop: '6px' }}>{new Date(f.created_at).toLocaleDateString()}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Notes */}
+      <div style={{ background: '#fff', borderRadius: '12px', padding: '24px', border: '1px solid #e5e7eb', marginBottom: '24px' }}>
+        <h2 style={{ fontSize: '18px', color: '#7c3aed', marginBottom: '16px' }}>Notes</h2>
+
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+          {['practice', 'lesson', 'general'].map(t => (
+            <button key={t} onClick={() => setNoteType(t)} style={{
+              padding: '6px 14px', borderRadius: '16px', fontSize: '13px', fontWeight: '500', cursor: 'pointer',
+              background: noteType === t ? noteTypeColors[t] : '#f9fafb',
+              color: noteType === t ? '#fff' : '#666',
+              border: noteType === t ? 'none' : '1px solid #d1d5db',
+            }}>
+              {t.charAt(0).toUpperCase() + t.slice(1)}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+          <textarea value={newNote} onChange={e => setNewNote(e.target.value)} placeholder={`Add a ${noteType} note...`}
+            rows={2} style={{ flex: 1, padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', resize: 'vertical' }} />
+          <button onClick={addNote} style={{ padding: '10px 18px', background: noteTypeColors[noteType], color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', cursor: 'pointer', alignSelf: 'flex-end' }}>
+            Add
+          </button>
+        </div>
+
+        {notes.length === 0 ? (
+          <p style={{ color: '#666', fontSize: '14px' }}>No notes yet.</p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {notes.map(n => (
+              <div key={n.id} style={{ padding: '12px', background: '#f9fafb', borderRadius: '8px', borderLeft: `3px solid ${noteTypeColors[n.note_type] || '#999'}` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <span style={{ fontSize: '12px', fontWeight: '600', color: noteTypeColors[n.note_type] || '#666', textTransform: 'capitalize' }}>{n.note_type}</span>
+                  <span style={{ fontSize: '12px', color: '#999' }}>{new Date(n.created_at).toLocaleString()}</span>
+                </div>
+                <p style={{ fontSize: '14px', lineHeight: '1.5' }}>{n.note}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Delete */}
+      <div style={{ borderTop: '1px solid #fca5a5', paddingTop: '20px' }}>
+        {!confirmDelete ? (
+          <button onClick={() => setConfirmDelete(true)} style={{ padding: '10px 20px', background: '#fff', color: '#dc2626', border: '1px solid #fca5a5', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>
+            Delete This Piece
+          </button>
+        ) : (
+          <div style={{ background: '#fef2f2', borderRadius: '10px', padding: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '14px', color: '#991b1b' }}>Are you sure? This cannot be undone.</span>
+            <button onClick={handleDelete} style={{ padding: '8px 16px', background: '#dc2626', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>
+              Yes, delete
+            </button>
+            <button onClick={() => setConfirmDelete(false)} style={{ padding: '8px 16px', background: '#fff', color: '#666', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>
+              Cancel
+            </button>
+          </div>
+        )}
+      </div>
+    </main>
+  )
+}
+
+function DetailGrid({ piece }) {
+  const fields = [
+    ['Book', piece.book_title], ['Editor', piece.book_editor],
+    ['Key', piece.key_signature], ['Time', piece.time_signature],
+    ['Tempo', piece.tempo_marking], ['Metronome', piece.metronome_marking],
+    ['Difficulty', piece.difficulty_level], ['Period', piece.period],
+  ].filter(([, v]) => v)
+
+  return (
+    <div>
+      {fields.length > 0 && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '12px', marginBottom: '12px' }}>
+          {fields.map(([label, value]) => (
+            <div key={label}>
+              <div style={{ fontSize: '12px', color: '#999', marginBottom: '2px' }}>{label}</div>
+              <div style={{ fontSize: '14px', fontWeight: '500' }}>{value}</div>
+            </div>
+          ))}
+        </div>
+      )}
+      {piece.areas_of_focus && (
+        <div style={{ marginTop: '12px' }}>
+          <div style={{ fontSize: '12px', color: '#999', marginBottom: '4px' }}>Areas of Focus</div>
+          <p style={{ fontSize: '14px', lineHeight: '1.5' }}>{piece.areas_of_focus}</p>
+        </div>
+      )}
+      {piece.goals && (
+        <div style={{ marginTop: '12px' }}>
+          <div style={{ fontSize: '12px', color: '#999', marginBottom: '4px' }}>Goals</div>
+          <p style={{ fontSize: '14px', lineHeight: '1.5' }}>{piece.goals}</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function EditForm({ form, setForm, categories }) {
+  function update(field, value) {
+    setForm(prev => ({ ...prev, [field]: value }))
+  }
+  return (
+    <div style={{ background: '#fff', borderRadius: '12px', padding: '24px', border: '1px solid #e5e7eb', marginBottom: '24px' }}>
+      <h2 style={{ fontSize: '18px', color: '#7c3aed', marginBottom: '16px' }}>Edit Details</h2>
+      {[
+        ['Title', 'title'], ['Composer', 'composer'], ['Book Title', 'book_title'], ['Book Editor', 'book_editor'],
+        ['Key Signature', 'key_signature'], ['Time Signature', 'time_signature'],
+        ['Tempo Marking', 'tempo_marking'], ['Metronome', 'metronome_marking'],
+        ['Difficulty', 'difficulty_level'], ['Period', 'period'],
+      ].map(([label, field]) => (
+        <div key={field} style={{ marginBottom: '12px' }}>
+          <label style={{ display: 'block', fontSize: '13px', color: '#666', marginBottom: '4px' }}>{label}</label>
+          <input value={form[field] || ''} onChange={e => update(field, e.target.value)}
+            style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px' }} />
+        </div>
+      ))}
+      <div style={{ marginBottom: '12px' }}>
+        <label style={{ display: 'block', fontSize: '13px', color: '#666', marginBottom: '4px' }}>Category</label>
+        <select value={form.category_id || ''} onChange={e => update('category_id', e.target.value)}
+          style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', background: '#fff' }}>
+          <option value="">None</option>
+          {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+      </div>
+      {['areas_of_focus', 'goals'].map(field => (
+        <div key={field} style={{ marginBottom: '12px' }}>
+          <label style={{ display: 'block', fontSize: '13px', color: '#666', marginBottom: '4px' }}>{field.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase())}</label>
+          <textarea value={form[field] || ''} onChange={e => update(field, e.target.value)} rows={3}
+            style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', resize: 'vertical' }} />
+        </div>
+      ))}
+    </div>
+  )
+}
