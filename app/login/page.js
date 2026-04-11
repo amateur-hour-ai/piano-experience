@@ -35,7 +35,12 @@ export default function Login() {
     setLoading(true)
     setError('')
 
-    const { data, error } = await supabase.auth.signUp({ email, password })
+    const redirectUrl = `${window.location.origin}/auth/callback`
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: redirectUrl }
+    })
 
     if (error) {
       setError(error.message)
@@ -50,8 +55,7 @@ export default function Login() {
       body: JSON.stringify({ email, userId: data.user.id })
     })
 
-    setMessage('Account created! You can now sign in.')
-    setMode('login')
+    setMessage('Account created! Please check your email and click the confirmation link to complete signup.')
     setLoading(false)
   }
 

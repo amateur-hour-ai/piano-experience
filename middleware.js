@@ -25,10 +25,11 @@ export async function middleware(req) {
   const { data: { user } } = await supabase.auth.getUser()
 
   const isLoginPage = req.nextUrl.pathname === '/login'
+  const isAuthRoute = req.nextUrl.pathname.startsWith('/auth')
   const isApiRoute = req.nextUrl.pathname.startsWith('/api')
   const isPublicFile = req.nextUrl.pathname.startsWith('/_next') || req.nextUrl.pathname.includes('.')
 
-  if (isPublicFile || isApiRoute) return res
+  if (isPublicFile || isApiRoute || isAuthRoute) return res
 
   if (!user && !isLoginPage) {
     return NextResponse.redirect(new URL('/login', req.url))
