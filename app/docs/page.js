@@ -130,6 +130,14 @@ function UserGuide() {
 function ReleaseNotes() {
   const releases = [
     {
+      version: '1.1',
+      date: '2026-04-11',
+      changes: [
+        'Faster photo analysis — images are now compressed before sending to AI, reducing upload time significantly',
+        'Fixed email confirmation link — clicking "Confirm" in the signup email now opens the app correctly',
+      ]
+    },
+    {
       version: '1.0',
       date: '2026-04-11',
       changes: [

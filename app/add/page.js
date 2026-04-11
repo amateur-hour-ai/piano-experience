@@ -47,6 +47,28 @@ export default function AddPiece() {
     setForm(prev => ({ ...prev, [field]: value }))
   }
 
+  function resizeImage(file, maxDim = 1200) {
+    return new Promise((resolve) => {
+      const img = new Image()
+      img.onload = () => {
+        let { width, height } = img
+        if (width > maxDim || height > maxDim) {
+          const scale = maxDim / Math.max(width, height)
+          width = Math.round(width * scale)
+          height = Math.round(height * scale)
+        }
+        const canvas = document.createElement('canvas')
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext('2d')
+        ctx.drawImage(img, 0, 0, width, height)
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.8)
+        resolve(dataUrl.split(',')[1])
+      }
+      img.src = URL.createObjectURL(file)
+    })
+  }
+
   async function handlePhoto(e) {
     const file = e.target.files[0]
     if (!file) return
@@ -56,37 +78,33 @@ export default function AddPiece() {
     setAnalyzing(true)
 
     try {
-      const reader = new FileReader()
-      reader.onload = async () => {
-        const base64 = reader.result.split(',')[1]
-        const res = await fetch('/api/analyze-piece', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ imageBase64: base64, imageMediaType: file.type })
-        })
-        const data = await res.json()
-        if (data.analysis) {
-          const a = data.analysis
-          setForm(prev => ({
-            ...prev,
-            title: a.title || prev.title,
-            composer: a.composer || prev.composer,
-            book_title: a.book_title || prev.book_title,
-            book_editor: a.book_editor || prev.book_editor,
-            key_signature: a.key_signature || prev.key_signature,
-            time_signature: a.time_signature || prev.time_signature,
-            tempo_marking: a.tempo_marking || prev.tempo_marking,
-            difficulty_level: a.difficulty_level || prev.difficulty_level,
-            period: a.period || prev.period,
-            ai_summary: a.ai_summary || prev.ai_summary,
-          }))
-          addToast('AI analysis complete!', 'success')
-        } else {
-          setError('AI could not analyze the image. Fill in details manually.')
-        }
-        setAnalyzing(false)
+      const base64 = await resizeImage(file)
+      const res = await fetch('/api/analyze-piece', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64: base64, imageMediaType: 'image/jpeg' })
+      })
+      const data = await res.json()
+      if (data.analysis) {
+        const a = data.analysis
+        setForm(prev => ({
+          ...prev,
+          title: a.title || prev.title,
+          composer: a.composer || prev.composer,
+          book_title: a.book_title || prev.book_title,
+          book_editor: a.book_editor || prev.book_editor,
+          key_signature: a.key_signature || prev.key_signature,
+          time_signature: a.time_signature || prev.time_signature,
+          tempo_marking: a.tempo_marking || prev.tempo_marking,
+          difficulty_level: a.difficulty_level || prev.difficulty_level,
+          period: a.period || prev.period,
+          ai_summary: a.ai_summary || prev.ai_summary,
+        }))
+        addToast('AI analysis complete!', 'success')
+      } else {
+        setError('AI could not analyze the image. Fill in details manually.')
       }
-      reader.readAsDataURL(file)
+      setAnalyzing(false)
     } catch {
       setError('Failed to analyze photo.')
       setAnalyzing(false)
