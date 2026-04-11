@@ -31,7 +31,7 @@ export default function NavBar() {
   return (
     <nav style={{ background: '#2563eb', padding: '12px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative' }}>
       <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}>
-        <img src="/logo.svg" alt="Piano Experience" style={{ height: '36px' }} />
+        <img src="/logo.png" alt="Piano Experience" style={{ height: '40px', borderRadius: '6px' }} />
         <span style={{ color: '#fff', fontSize: '18px', fontWeight: '600' }}>Piano Experience</span>
       </Link>
 

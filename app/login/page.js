@@ -74,7 +74,7 @@ export default function Login() {
         boxShadow: '0 20px 60px rgba(0,0,0,0.2)'
       }}>
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <img src="/logo.svg" alt="Piano Experience" style={{ width: '80px', height: '80px' }} />
+          <img src="/logo.png" alt="Piano Experience" style={{ width: '100px', height: '100px', objectFit: 'contain' }} />
           <h1 style={{ fontSize: '22px', marginTop: '12px', color: '#1a1a1a' }}>Piano Experience</h1>
           <p style={{ color: '#666', marginTop: '4px', fontSize: '14px' }}>Your practice companion</p>
         </div>
