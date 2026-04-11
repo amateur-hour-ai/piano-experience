@@ -158,6 +158,8 @@ function ReleaseNotes() {
         'Visual indicator banner when viewing someone else\'s profile',
         'View-only mode hides edit controls entirely for a clean read-only experience',
         'Sharing & Permissions page — grant, revoke, and manage access levels',
+        'AI Summary now visible and editable on the Edit Piece page',
+        'Practice and lesson notes can now be edited after they are created',
       ]
     },
     {

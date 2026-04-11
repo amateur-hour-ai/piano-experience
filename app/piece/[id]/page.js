@@ -34,6 +34,8 @@ export default function PieceDetail({ params }) {
   const [editingBio, setEditingBio] = useState(false)
   const [summaryDraft, setSummaryDraft] = useState('')
   const [bioDraft, setBioDraft] = useState('')
+  const [editingNoteId, setEditingNoteId] = useState(null)
+  const [editingNoteText, setEditingNoteText] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   const supabase = createBrowserClient(
@@ -79,7 +81,7 @@ export default function PieceDetail({ params }) {
       time_signature: form.time_signature, tempo_marking: form.tempo_marking,
       difficulty_level: form.difficulty_level, period: form.period,
       metronome_marking: form.metronome_marking, areas_of_focus: form.areas_of_focus,
-      goals: form.goals, category_id: form.category_id || null,
+      goals: form.goals, category_id: form.category_id || null, ai_summary: form.ai_summary,
     }).eq('id', id)
 
     if (error) {
@@ -113,6 +115,16 @@ export default function PieceDetail({ params }) {
     await logActivity({ action: 'add_note', piece_id: id, piece_title: piece.title, details: `Added ${noteType} note`, user_email: user.email })
     setNewNote('')
     addToast('Note added!', 'success')
+    loadPiece()
+  }
+
+  async function updateNote(noteId) {
+    if (!editingNoteText.trim()) return
+    const { error } = await supabase.from('piece_notes').update({ note: editingNoteText.trim() }).eq('id', noteId)
+    if (error) { addToast('Failed to update note', 'error'); return }
+    setEditingNoteId(null)
+    setEditingNoteText('')
+    addToast('Note updated!', 'success')
     loadPiece()
   }
 
@@ -396,9 +408,28 @@ export default function PieceDetail({ params }) {
               <div key={n.id} style={{ padding: '12px', background: '#f9fafb', borderRadius: '8px', borderLeft: `3px solid ${noteTypeColors[n.note_type] || '#999'}` }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                   <span style={{ fontSize: '12px', fontWeight: '600', color: noteTypeColors[n.note_type] || '#666', textTransform: 'capitalize' }}>{n.note_type}</span>
-                  <span style={{ fontSize: '12px', color: '#999' }}>{new Date(n.created_at).toLocaleString()}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '12px', color: '#999' }}>{new Date(n.created_at).toLocaleString()}</span>
+                    {canEdit && editingNoteId !== n.id && (
+                      <button onClick={() => { setEditingNoteId(n.id); setEditingNoteText(n.note) }}
+                        style={{ fontSize: '12px', color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
+                        Edit
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <p style={{ fontSize: '14px', lineHeight: '1.5' }}>{n.note}</p>
+                {editingNoteId === n.id ? (
+                  <div>
+                    <textarea value={editingNoteText} onChange={e => setEditingNoteText(e.target.value)} rows={3}
+                      style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', lineHeight: '1.5', resize: 'vertical', marginBottom: '8px' }} />
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button onClick={() => updateNote(n.id)} style={{ padding: '6px 14px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' }}>Save</button>
+                      <button onClick={() => setEditingNoteId(null)} style={{ padding: '6px 14px', background: '#fff', color: '#666', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' }}>Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <p style={{ fontSize: '14px', lineHeight: '1.5' }}>{n.note}</p>
+                )}
               </div>
             ))}
           </div>
@@ -521,6 +552,13 @@ function EditForm({ form, setForm, categories }) {
             style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', resize: 'vertical' }} />
         </div>
       ))}
+      {form.ai_summary && (
+        <div style={{ marginBottom: '12px' }}>
+          <label style={{ display: 'block', fontSize: '13px', color: '#666', marginBottom: '4px' }}>AI Summary</label>
+          <textarea value={form.ai_summary || ''} onChange={e => update('ai_summary', e.target.value)} rows={4}
+            style={{ width: '100%', padding: '8px 12px', border: '1px solid #93c5fd', borderRadius: '8px', fontSize: '14px', resize: 'vertical', background: '#eff6ff' }} />
+        </div>
+      )}
     </div>
   )
 }
