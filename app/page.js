@@ -21,7 +21,7 @@ export default function Dashboard() {
     async function load() {
       const [piecesRes, scheduleRes] = await Promise.all([
         supabase.from('pieces').select('*, categories(name)').eq('user_id', user.email).order('updated_at', { ascending: false }),
-        supabase.from('practice_schedule').select('*, pieces(title, composer)').eq('user_id', user.email).gte('week_start_date', getWeekStart()).order('day_of_week').order('sort_order'),
+        supabase.from('practice_schedule').select('*, pieces(title, composer)').eq('user_id', user.email).order('day_of_week').order('sort_order'),
       ])
       setPieces(piecesRes.data || [])
       setSchedule(scheduleRes.data || [])
@@ -52,7 +52,7 @@ export default function Dashboard() {
         <StatCard label="Total Pieces" value={pieces.length} color="#2563eb" href="/pieces" />
         <StatCard label="Categories" value={Object.keys(byCategory).length} color="#1d4ed8" href="/pieces" />
         <StatCard label="Today's Practice" value={todaySchedule.length} color="#059669" href="/schedule" />
-        <StatCard label="Completed Today" value={todaySchedule.filter(s => s.completed).length} color="#d97706" href="/schedule" />
+        <StatCard label="Completed Today" value={todaySchedule.filter(s => isCompletedToday(s)).length} color="#d97706" href="/schedule" />
       </div>
 
       {/* Today's Practice */}
@@ -67,10 +67,12 @@ export default function Dashboard() {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {todaySchedule.map(s => (
+            {todaySchedule.map(s => {
+              const done = isCompletedToday(s)
+              return (
               <div key={s.id} style={{
-                background: s.completed ? '#f0fdf4' : '#fff',
-                borderRadius: '10px', padding: '14px 18px', border: `1px solid ${s.completed ? '#86efac' : '#e5e7eb'}`,
+                background: done ? '#f0fdf4' : '#fff',
+                borderRadius: '10px', padding: '14px 18px', border: `1px solid ${done ? '#86efac' : '#e5e7eb'}`,
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center'
               }}>
                 <div>
@@ -78,9 +80,9 @@ export default function Dashboard() {
                   {s.pieces?.composer && <span style={{ color: '#666', marginLeft: '8px' }}>— {s.pieces.composer}</span>}
                   {s.focus_notes && <p style={{ fontSize: '13px', color: '#888', marginTop: '4px' }}>{s.focus_notes}</p>}
                 </div>
-                {s.completed && <span style={{ color: '#059669', fontWeight: '600' }}>✓</span>}
+                {done && <span style={{ color: '#059669', fontWeight: '600' }}>✓</span>}
               </div>
-            ))}
+            )})}
           </div>
         )}
       </section>
@@ -134,6 +136,13 @@ export default function Dashboard() {
   )
 }
 
+function isCompletedToday(item) {
+  if (!item.completed_at) return false
+  const completedDate = new Date(item.completed_at).toLocaleDateString()
+  const today = new Date().toLocaleDateString()
+  return completedDate === today
+}
+
 function StatCard({ label, value, color, href }) {
   const inner = (
     <div style={{ background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e5e7eb', cursor: href ? 'pointer' : 'default', transition: 'box-shadow 0.15s' }}>
@@ -155,12 +164,4 @@ function LoadingSkeleton() {
   )
 }
 
-function getWeekStart() {
-  const now = new Date()
-  const day = now.getDay()
-  const diff = day === 0 ? 6 : day - 1
-  const monday = new Date(now)
-  monday.setDate(now.getDate() - diff)
-  monday.setHours(0, 0, 0, 0)
-  return monday.toISOString().split('T')[0]
-}
+

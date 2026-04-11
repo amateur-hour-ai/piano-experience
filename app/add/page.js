@@ -117,7 +117,6 @@ export default function AddPiece() {
           composer: a.composer || prev.composer,
           book_title: a.book_title || prev.book_title,
           book_editor: a.book_editor || prev.book_editor,
-          key_signature: a.key_signature || prev.key_signature,
           time_signature: a.time_signature || prev.time_signature,
           tempo_marking: a.tempo_marking || prev.tempo_marking,
           difficulty_level: a.difficulty_level || prev.difficulty_level,

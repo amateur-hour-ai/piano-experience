@@ -24,8 +24,6 @@ export default function PracticeSchedule() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   )
 
-  const weekStart = getWeekStart()
-
   useEffect(() => {
     if (userLoading || !user) return
     loadData()
@@ -36,7 +34,6 @@ export default function PracticeSchedule() {
       supabase.from('practice_schedule')
         .select('*, pieces(title, composer)')
         .eq('user_id', user.email)
-        .eq('week_start_date', weekStart)
         .order('day_of_week')
         .order('sort_order'),
       supabase.from('pieces').select('id, title, composer').eq('user_id', user.email).order('title'),
@@ -44,6 +41,13 @@ export default function PracticeSchedule() {
     setSchedule(schedRes.data || [])
     setPieces(piecesRes.data || [])
     setLoading(false)
+  }
+
+  function isCompletedToday(item) {
+    if (!item.completed_at) return false
+    const completedDate = new Date(item.completed_at).toLocaleDateString()
+    const today = new Date().toLocaleDateString()
+    return completedDate === today
   }
 
   async function addToSchedule(dayIdx) {
@@ -55,7 +59,7 @@ export default function PracticeSchedule() {
       day_of_week: dayIdx,
       focus_notes: focusNotes || null,
       sort_order: dayItems.length,
-      week_start_date: weekStart,
+      week_start_date: '2026-01-01',
       completed: false,
     }])
     if (error) { addToast('Failed to add: ' + error.message, 'error'); return }
@@ -67,13 +71,15 @@ export default function PracticeSchedule() {
   }
 
   async function toggleComplete(item) {
-    const newVal = !item.completed
+    const doneToday = isCompletedToday(item)
+    const newCompleted = !doneToday
+    const newCompletedAt = newCompleted ? new Date().toISOString() : null
     await supabase.from('practice_schedule').update({
-      completed: newVal,
-      completed_at: newVal ? new Date().toISOString() : null
+      completed: newCompleted,
+      completed_at: newCompletedAt
     }).eq('id', item.id)
 
-    if (newVal) {
+    if (newCompleted) {
       await logActivity({
         action: 'practice_complete',
         piece_id: item.piece_id,
@@ -83,7 +89,7 @@ export default function PracticeSchedule() {
       })
     }
 
-    setSchedule(prev => prev.map(s => s.id === item.id ? { ...s, completed: newVal, completed_at: newVal ? new Date().toISOString() : null } : s))
+    setSchedule(prev => prev.map(s => s.id === item.id ? { ...s, completed: newCompleted, completed_at: newCompletedAt } : s))
   }
 
   async function removeItem(itemId) {
@@ -105,7 +111,7 @@ export default function PracticeSchedule() {
     <main style={{ padding: '24px', maxWidth: '900px', margin: '0 auto' }}>
       <Link href="/" style={{ textDecoration: 'none', color: '#666', fontSize: '14px' }}>← Dashboard</Link>
       <h1 style={{ margin: '16px 0 8px' }}>Practice Schedule</h1>
-      <p style={{ color: '#666', fontSize: '14px', marginBottom: '24px' }}>Week of {new Date(weekStart + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+      <p style={{ color: '#666', fontSize: '14px', marginBottom: '24px' }}>Your weekly plan — stays until you change it. Checkmarks reset each day.</p>
 
       {pieces.length === 0 ? (
         <div style={{ background: '#fff', borderRadius: '12px', padding: '40px', textAlign: 'center', color: '#666', border: '1px solid #e5e7eb' }}>
@@ -158,20 +164,22 @@ export default function PracticeSchedule() {
                   <p style={{ fontSize: '14px', color: '#999' }}>No pieces scheduled</p>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    {dayItems.map(item => (
+                    {dayItems.map(item => {
+                      const done = isCompletedToday(item)
+                      return (
                       <div key={item.id} style={{
                         display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px',
-                        background: item.completed ? '#f0fdf4' : '#fff', borderRadius: '8px', border: '1px solid #e5e7eb'
+                        background: done ? '#f0fdf4' : '#fff', borderRadius: '8px', border: '1px solid #e5e7eb'
                       }}>
                         <button onClick={() => toggleComplete(item)} style={{
-                          width: '22px', height: '22px', borderRadius: '6px', border: `2px solid ${item.completed ? '#059669' : '#d1d5db'}`,
-                          background: item.completed ? '#059669' : '#fff', color: '#fff', display: 'flex', alignItems: 'center',
+                          width: '22px', height: '22px', borderRadius: '6px', border: `2px solid ${done ? '#059669' : '#d1d5db'}`,
+                          background: done ? '#059669' : '#fff', color: '#fff', display: 'flex', alignItems: 'center',
                           justifyContent: 'center', cursor: 'pointer', fontSize: '12px', flexShrink: 0
                         }}>
-                          {item.completed && '✓'}
+                          {done && '✓'}
                         </button>
                         <div style={{ flex: 1 }}>
-                          <span style={{ fontWeight: '500', fontSize: '14px', textDecoration: item.completed ? 'line-through' : 'none', color: item.completed ? '#059669' : '#1a1a1a' }}>
+                          <span style={{ fontWeight: '500', fontSize: '14px', textDecoration: done ? 'line-through' : 'none', color: done ? '#059669' : '#1a1a1a' }}>
                             {item.pieces?.title || 'Unknown'}
                           </span>
                           {item.pieces?.composer && <span style={{ color: '#888', fontSize: '13px', marginLeft: '6px' }}>— {item.pieces.composer}</span>}
@@ -181,7 +189,7 @@ export default function PracticeSchedule() {
                           ×
                         </button>
                       </div>
-                    ))}
+                    )})}
                   </div>
                 )}
               </div>

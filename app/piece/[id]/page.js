@@ -28,6 +28,10 @@ export default function PieceDetail({ params }) {
   const [saving, setSaving] = useState(false)
   const [factLoading, setFactLoading] = useState(false)
   const [bioLoading, setBioLoading] = useState(false)
+  const [editingSummary, setEditingSummary] = useState(false)
+  const [editingBio, setEditingBio] = useState(false)
+  const [summaryDraft, setSummaryDraft] = useState('')
+  const [bioDraft, setBioDraft] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   const supabase = createBrowserClient(
@@ -149,6 +153,22 @@ export default function PieceDetail({ params }) {
     setBioLoading(false)
   }
 
+  async function saveSummary() {
+    const { error } = await supabase.from('pieces').update({ ai_summary: summaryDraft }).eq('id', id)
+    if (error) { addToast('Failed to save', 'error'); return }
+    setPiece(prev => ({ ...prev, ai_summary: summaryDraft }))
+    setEditingSummary(false)
+    addToast('Summary updated!', 'success')
+  }
+
+  async function saveBio() {
+    const { error } = await supabase.from('pieces').update({ composer_bio: bioDraft }).eq('id', id)
+    if (error) { addToast('Failed to save', 'error'); return }
+    setPiece(prev => ({ ...prev, composer_bio: bioDraft }))
+    setEditingBio(false)
+    addToast('Composer bio updated!', 'success')
+  }
+
   async function handleImageUpload(e, imageType) {
     const file = e.target.files[0]
     if (!file) return
@@ -234,8 +254,24 @@ export default function PieceDetail({ params }) {
           <DetailGrid piece={piece} />
           {piece.ai_summary && (
             <div style={{ background: '#dbeafe', borderRadius: '10px', padding: '14px', marginTop: '16px' }}>
-              <span style={{ fontSize: '12px', fontWeight: '600', color: '#2563eb' }}>AI Summary</span>
-              <p style={{ fontSize: '14px', marginTop: '6px', lineHeight: '1.5' }}>{piece.ai_summary}</p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '12px', fontWeight: '600', color: '#2563eb' }}>AI Summary</span>
+                {!editingSummary && (
+                  <button onClick={() => { setEditingSummary(true); setSummaryDraft(piece.ai_summary) }} style={{ fontSize: '12px', color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Edit</button>
+                )}
+              </div>
+              {editingSummary ? (
+                <div style={{ marginTop: '6px' }}>
+                  <textarea value={summaryDraft} onChange={e => setSummaryDraft(e.target.value)} rows={4}
+                    style={{ width: '100%', padding: '8px', border: '1px solid #93c5fd', borderRadius: '6px', fontSize: '14px', lineHeight: '1.5', resize: 'vertical', background: '#fff' }} />
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                    <button onClick={saveSummary} style={{ padding: '6px 14px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' }}>Save</button>
+                    <button onClick={() => setEditingSummary(false)} style={{ padding: '6px 14px', background: '#fff', color: '#666', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' }}>Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <p style={{ fontSize: '14px', marginTop: '6px', lineHeight: '1.5' }}>{piece.ai_summary}</p>
+              )}
             </div>
           )}
         </div>
@@ -261,7 +297,26 @@ export default function PieceDetail({ params }) {
             )}
           </div>
           {piece.composer_bio ? (
-            <p style={{ fontSize: '14px', lineHeight: '1.6', color: '#374151' }}>{piece.composer_bio}</p>
+            <div style={{ background: '#dbeafe', borderRadius: '10px', padding: '14px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '12px', fontWeight: '600', color: '#2563eb' }}>AI Composer Bio</span>
+                {!editingBio && (
+                  <button onClick={() => { setEditingBio(true); setBioDraft(piece.composer_bio) }} style={{ fontSize: '12px', color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Edit</button>
+                )}
+              </div>
+              {editingBio ? (
+                <div style={{ marginTop: '6px' }}>
+                  <textarea value={bioDraft} onChange={e => setBioDraft(e.target.value)} rows={4}
+                    style={{ width: '100%', padding: '8px', border: '1px solid #93c5fd', borderRadius: '6px', fontSize: '14px', lineHeight: '1.5', resize: 'vertical', background: '#fff' }} />
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                    <button onClick={saveBio} style={{ padding: '6px 14px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' }}>Save</button>
+                    <button onClick={() => setEditingBio(false)} style={{ padding: '6px 14px', background: '#fff', color: '#666', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' }}>Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <p style={{ fontSize: '14px', marginTop: '6px', lineHeight: '1.5' }}>{piece.composer_bio}</p>
+              )}
+            </div>
           ) : (
             <p style={{ fontSize: '14px', color: '#999' }}>Click "Generate Bio" to learn about this composer.</p>
           )}
