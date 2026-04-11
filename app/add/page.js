@@ -225,7 +225,7 @@ export default function AddPiece() {
   if (userLoading) return null
 
   return (
-    <main style={{ padding: '24px', maxWidth: '700px', margin: '0 auto' }}>
+    <main style={{ padding: '24px', maxWidth: '700px', margin: '0 auto', paddingBottom: mode ? '100px' : '24px' }}>
       <Link href="/" style={{ textDecoration: 'none', color: '#666', fontSize: '14px' }}>← Dashboard</Link>
       <h1 style={{ margin: '16px 0 24px' }}>Add New Piece</h1>
 
@@ -380,21 +380,31 @@ export default function AddPiece() {
               </div>
             )}
 
-            <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
-              <button onClick={handleSave} disabled={saving || analyzing} style={{
-                flex: 1, padding: '12px', background: '#2563eb', color: '#fff', border: 'none',
-                borderRadius: '8px', fontSize: '16px', fontWeight: '500', cursor: 'pointer'
-              }}>
-                {saving ? 'Saving...' : 'Save Piece'}
-              </button>
-              <button onClick={() => { setMode(null); setPhotoPreview(null); setPhotoFile(null); setCoverPreview(null); setCoverFile(null); setAwaitingCover(false); setError('') }} style={{
-                padding: '12px 24px', background: '#f9fafb', color: '#666', border: '1px solid #d1d5db',
-                borderRadius: '8px', fontSize: '14px', cursor: 'pointer'
-              }}>
-                Cancel
-              </button>
-            </div>
           </div>
+        </div>
+      )}
+
+      {/* Sticky footer with Save/Cancel */}
+      {mode && !awaitingCover && (
+        <div style={{
+          position: 'fixed', bottom: 0, left: 0, right: 0,
+          background: '#fff', borderTop: '1px solid #e5e7eb',
+          padding: '12px 24px', display: 'flex', gap: '12px',
+          justifyContent: 'center', zIndex: 50,
+          boxShadow: '0 -2px 10px rgba(0,0,0,0.05)'
+        }}>
+          <button onClick={handleSave} disabled={saving || analyzing} style={{
+            flex: 1, maxWidth: '400px', padding: '14px', background: '#2563eb', color: '#fff', border: 'none',
+            borderRadius: '10px', fontSize: '16px', fontWeight: '600', cursor: 'pointer'
+          }}>
+            {saving ? 'Saving...' : 'Save Piece'}
+          </button>
+          <button onClick={() => { setMode(null); setPhotoPreview(null); setPhotoFile(null); setCoverPreview(null); setCoverFile(null); setAwaitingCover(false); setError('') }} style={{
+            padding: '14px 24px', background: '#f9fafb', color: '#666', border: '1px solid #d1d5db',
+            borderRadius: '10px', fontSize: '14px', cursor: 'pointer'
+          }}>
+            Cancel
+          </button>
         </div>
       )}
     </main>

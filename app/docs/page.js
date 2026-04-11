@@ -144,6 +144,7 @@ function ReleaseNotes() {
       date: '2026-04-11',
       changes: [
         'Optional book cover photo when adding a piece — AI uses both images for richer analysis, especially helpful for beginner pieces',
+        'Persistent Save/Cancel footer on Add Piece and Edit Piece pages — always visible while scrolling',
         'New "About the Composer" section on each piece — auto-generated bio when a composer is known',
         'Blue color theme throughout the app (replacing purple)',
         'Redesigned logo — side-view grand piano with music notes',

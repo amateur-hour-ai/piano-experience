@@ -171,7 +171,7 @@ export default function PieceDetail({ params }) {
   const noteTypeColors = { practice: '#059669', lesson: '#2563eb', general: '#2563eb' }
 
   return (
-    <main style={{ padding: '24px', maxWidth: '800px', margin: '0 auto' }}>
+    <main style={{ padding: '24px', maxWidth: '800px', margin: '0 auto', paddingBottom: editing ? '100px' : '24px' }}>
       <Link href="/pieces" style={{ textDecoration: 'none', color: '#666', fontSize: '14px' }}>← My Pieces</Link>
 
       {/* Header */}
@@ -358,6 +358,30 @@ export default function PieceDetail({ params }) {
           </div>
         )}
       </div>
+
+      {/* Sticky footer when editing */}
+      {editing && (
+        <div style={{
+          position: 'fixed', bottom: 0, left: 0, right: 0,
+          background: '#fff', borderTop: '1px solid #e5e7eb',
+          padding: '12px 24px', display: 'flex', gap: '12px',
+          justifyContent: 'center', zIndex: 50,
+          boxShadow: '0 -2px 10px rgba(0,0,0,0.05)'
+        }}>
+          <button onClick={handleSave} disabled={saving} style={{
+            flex: 1, maxWidth: '400px', padding: '14px', background: '#059669', color: '#fff', border: 'none',
+            borderRadius: '10px', fontSize: '16px', fontWeight: '600', cursor: 'pointer'
+          }}>
+            {saving ? 'Saving...' : 'Save Changes'}
+          </button>
+          <button onClick={() => { setEditing(false); setForm(piece) }} style={{
+            padding: '14px 24px', background: '#f9fafb', color: '#666', border: '1px solid #d1d5db',
+            borderRadius: '10px', fontSize: '14px', cursor: 'pointer'
+          }}>
+            Cancel
+          </button>
+        </div>
+      )}
     </main>
   )
 }
