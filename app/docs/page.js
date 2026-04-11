@@ -128,6 +128,16 @@ function UserGuide() {
         </p>
       </Section>
 
+      <Section title="Sharing & Permissions">
+        <p style={{ fontSize: '15px', lineHeight: '1.7', color: '#333', marginBottom: '16px' }}>
+          Share your profile with family members, teachers, or practice partners. Go to <strong>Sharing</strong> from the menu.
+        </p>
+        <Step n="1">Enter the email address of the person you want to share with (they must have a Piano Experience account).</Step>
+        <Step n="2">Choose <strong>View Only</strong> (they can see but not change anything) or <strong>Full Edit</strong> (they can add pieces, edit details, and manage your schedule).</Step>
+        <Step n="3">Tap <strong>Share</strong>. They'll see your profile in their profile switcher in the nav bar.</Step>
+        <Note>You can change the access level or revoke access at any time from the Sharing page. The profile switcher in the nav bar shows all profiles you have access to — tap to switch between them.</Note>
+      </Section>
+
       <Section title="Account">
         <p style={{ fontSize: '15px', lineHeight: '1.7', color: '#333' }}>
           Sign up with your email and password. Your account is automatically approved — no waiting required. To sign out, tap the menu in the top right and select <strong>Sign Out</strong>.
@@ -139,6 +149,27 @@ function UserGuide() {
 
 function ReleaseNotes() {
   const releases = [
+    {
+      version: '1.4',
+      date: '2026-04-11',
+      changes: [
+        'Profile sharing — share your profile with family, teachers, or practice partners with view-only or full edit access',
+        'Profile switcher in nav bar — quickly switch between your profile and profiles shared with you',
+        'Visual indicator banner when viewing someone else\'s profile',
+        'View-only mode hides edit controls entirely for a clean read-only experience',
+        'Sharing & Permissions page — grant, revoke, and manage access levels',
+      ]
+    },
+    {
+      version: '1.3',
+      date: '2026-04-11',
+      changes: [
+        'AI Summary and Composer Bio are now editable — tap Edit to correct inaccuracies',
+        'Practice schedule persists until changed — no more weekly reset. Checkmarks reset daily.',
+        'Key signature no longer auto-filled by AI (too often incorrect)',
+        'Redesigned logo',
+      ]
+    },
     {
       version: '1.2',
       date: '2026-04-11',

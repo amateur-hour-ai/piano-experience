@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import Link from 'next/link'
 import { useCurrentUser } from '@/lib/useCurrentUser'
+import { useActiveProfile } from '@/lib/useActiveProfile'
 import { useToast } from '@/app/ToastProvider'
 import { logActivity } from '@/lib/logActivity'
 
@@ -11,6 +12,7 @@ const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
 
 export default function PracticeSchedule() {
   const { user, loading: userLoading } = useCurrentUser()
+  const { activeProfile, isOwnProfile, canEdit, profileDisplayName } = useActiveProfile()
   const { addToast } = useToast()
   const [schedule, setSchedule] = useState([])
   const [pieces, setPieces] = useState([])
@@ -25,21 +27,31 @@ export default function PracticeSchedule() {
   )
 
   useEffect(() => {
-    if (userLoading || !user) return
+    if (userLoading || !user || !activeProfile) return
+    setLoading(true)
     loadData()
-  }, [userLoading, user])
+  }, [userLoading, user, activeProfile])
 
   async function loadData() {
-    const [schedRes, piecesRes] = await Promise.all([
-      supabase.from('practice_schedule')
-        .select('*, pieces(title, composer)')
-        .eq('user_id', user.email)
-        .order('day_of_week')
-        .order('sort_order'),
-      supabase.from('pieces').select('id, title, composer').eq('user_id', user.email).order('title'),
-    ])
-    setSchedule(schedRes.data || [])
-    setPieces(piecesRes.data || [])
+    if (isOwnProfile) {
+      const [schedRes, piecesRes] = await Promise.all([
+        supabase.from('practice_schedule')
+          .select('*, pieces(title, composer)')
+          .eq('user_id', user.email)
+          .order('day_of_week')
+          .order('sort_order'),
+        supabase.from('pieces').select('id, title, composer').eq('user_id', user.email).order('title'),
+      ])
+      setSchedule(schedRes.data || [])
+      setPieces(piecesRes.data || [])
+    } else {
+      const [schedRes, piecesRes] = await Promise.all([
+        fetch(`/api/profile/${encodeURIComponent(activeProfile)}/schedule`).then(r => r.json()),
+        fetch(`/api/profile/${encodeURIComponent(activeProfile)}/pieces`).then(r => r.json()),
+      ])
+      setSchedule(schedRes.schedule || [])
+      setPieces(piecesRes.pieces || [])
+    }
     setLoading(false)
   }
 
@@ -110,7 +122,7 @@ export default function PracticeSchedule() {
   return (
     <main style={{ padding: '24px', maxWidth: '900px', margin: '0 auto' }}>
       <Link href="/" style={{ textDecoration: 'none', color: '#666', fontSize: '14px' }}>← Dashboard</Link>
-      <h1 style={{ margin: '16px 0 8px' }}>Practice Schedule</h1>
+      <h1 style={{ margin: '16px 0 8px' }}>{isOwnProfile ? 'Practice Schedule' : `${profileDisplayName(activeProfile)}'s Schedule`}</h1>
       <p style={{ color: '#666', fontSize: '14px', marginBottom: '24px' }}>Your weekly plan — stays until you change it. Checkmarks reset each day.</p>
 
       {pieces.length === 0 ? (
@@ -132,12 +144,14 @@ export default function PracticeSchedule() {
                     {day}
                     {isToday && <span style={{ fontSize: '11px', background: '#2563eb', color: '#fff', padding: '2px 8px', borderRadius: '8px' }}>Today</span>}
                   </h3>
-                  <button onClick={() => setAddingDay(addingDay === idx ? null : idx)} style={{
-                    padding: '4px 12px', background: 'none', border: '1px solid #d1d5db', borderRadius: '6px',
-                    fontSize: '13px', color: '#666', cursor: 'pointer'
-                  }}>
-                    + Add
-                  </button>
+                  {canEdit && (
+                    <button onClick={() => setAddingDay(addingDay === idx ? null : idx)} style={{
+                      padding: '4px 12px', background: 'none', border: '1px solid #d1d5db', borderRadius: '6px',
+                      fontSize: '13px', color: '#666', cursor: 'pointer'
+                    }}>
+                      + Add
+                    </button>
+                  )}
                 </div>
 
                 {addingDay === idx && (

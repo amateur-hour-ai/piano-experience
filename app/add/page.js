@@ -5,12 +5,14 @@ import { createBrowserClient } from '@supabase/ssr'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useCurrentUser } from '@/lib/useCurrentUser'
+import { useActiveProfile } from '@/lib/useActiveProfile'
 import { useToast } from '@/app/ToastProvider'
 import { logActivity } from '@/lib/logActivity'
 
 export default function AddPiece() {
   const router = useRouter()
   const { user, loading: userLoading } = useCurrentUser()
+  const { activeProfile, isOwnProfile, canEdit } = useActiveProfile()
   const { addToast } = useToast()
   const fileInputRef = useRef(null)
   const coverInputRef = useRef(null)
@@ -160,8 +162,7 @@ export default function AddPiece() {
     setError('')
 
     try {
-      const { data: piece, error: insertError } = await supabase.from('pieces').insert([{
-        user_id: user.email,
+      const pieceData = {
         title: form.title.trim(),
         composer: form.composer || null,
         book_title: form.book_title || null,
@@ -176,9 +177,25 @@ export default function AddPiece() {
         areas_of_focus: form.areas_of_focus || null,
         goals: form.goals || null,
         category_id: form.category_id || null,
-      }]).select().single()
+      }
 
-      if (insertError) throw insertError
+      let piece
+      if (isOwnProfile) {
+        const { data, error: insertError } = await supabase.from('pieces').insert([{
+          ...pieceData, user_id: user.email,
+        }]).select().single()
+        if (insertError) throw insertError
+        piece = data
+      } else {
+        const res = await fetch(`/api/profile/${encodeURIComponent(activeProfile)}/pieces`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(pieceData)
+        })
+        const data = await res.json()
+        if (data.error) throw new Error(data.error)
+        piece = data.piece
+      }
 
       // Upload photos if taken
       if (photoFile) {
@@ -222,6 +239,12 @@ export default function AddPiece() {
   }
 
   if (userLoading) return null
+  if (!canEdit) return (
+    <main style={{ padding: '24px', maxWidth: '700px', margin: '0 auto', textAlign: 'center' }}>
+      <p style={{ color: '#666', marginTop: '40px' }}>You don't have edit access to this profile.</p>
+      <Link href="/" style={{ color: '#2563eb' }}>← Back to Dashboard</Link>
+    </main>
+  )
 
   return (
     <main style={{ padding: '24px', maxWidth: '700px', margin: '0 auto', paddingBottom: mode ? '100px' : '24px' }}>

@@ -4,9 +4,11 @@ import { useState, useEffect } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import Link from 'next/link'
 import { useCurrentUser } from '@/lib/useCurrentUser'
+import { useActiveProfile } from '@/lib/useActiveProfile'
 
 export default function Dashboard() {
   const { user, loading: userLoading } = useCurrentUser()
+  const { activeProfile, isOwnProfile, canEdit, profileDisplayName } = useActiveProfile()
   const [pieces, setPieces] = useState([])
   const [schedule, setSchedule] = useState([])
   const [loading, setLoading] = useState(true)
@@ -17,18 +19,28 @@ export default function Dashboard() {
   )
 
   useEffect(() => {
-    if (userLoading || !user) return
+    if (userLoading || !user || !activeProfile) return
+    setLoading(true)
     async function load() {
-      const [piecesRes, scheduleRes] = await Promise.all([
-        supabase.from('pieces').select('*, categories(name)').eq('user_id', user.email).order('updated_at', { ascending: false }),
-        supabase.from('practice_schedule').select('*, pieces(title, composer)').eq('user_id', user.email).order('day_of_week').order('sort_order'),
-      ])
-      setPieces(piecesRes.data || [])
-      setSchedule(scheduleRes.data || [])
+      if (isOwnProfile) {
+        const [piecesRes, scheduleRes] = await Promise.all([
+          supabase.from('pieces').select('*, categories(name)').eq('user_id', user.email).order('updated_at', { ascending: false }),
+          supabase.from('practice_schedule').select('*, pieces(title, composer)').eq('user_id', user.email).order('day_of_week').order('sort_order'),
+        ])
+        setPieces(piecesRes.data || [])
+        setSchedule(scheduleRes.data || [])
+      } else {
+        const [piecesRes, scheduleRes] = await Promise.all([
+          fetch(`/api/profile/${encodeURIComponent(activeProfile)}/pieces`).then(r => r.json()),
+          fetch(`/api/profile/${encodeURIComponent(activeProfile)}/schedule`).then(r => r.json()),
+        ])
+        setPieces(piecesRes.pieces || [])
+        setSchedule(scheduleRes.schedule || [])
+      }
       setLoading(false)
     }
     load()
-  }, [userLoading, user])
+  }, [userLoading, user, activeProfile])
 
   if (userLoading || loading) return <LoadingSkeleton />
 
@@ -40,12 +52,14 @@ export default function Dashboard() {
   })
 
   const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-  const todayIdx = (new Date().getDay() + 6) % 7 // Monday = 0
+  const todayIdx = (new Date().getDay() + 6) % 7
   const todaySchedule = schedule.filter(s => s.day_of_week === todayIdx)
 
   return (
     <main style={{ padding: '24px', maxWidth: '900px', margin: '0 auto' }}>
-      <h1 style={{ fontSize: '28px', marginBottom: '24px' }}>Welcome back!</h1>
+      <h1 style={{ fontSize: '28px', marginBottom: '24px' }}>
+        {isOwnProfile ? 'Welcome back!' : `${profileDisplayName(activeProfile)}'s Dashboard`}
+      </h1>
 
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '16px', marginBottom: '32px' }}>
@@ -63,7 +77,7 @@ export default function Dashboard() {
         </div>
         {todaySchedule.length === 0 ? (
           <div style={{ background: '#fff', borderRadius: '12px', padding: '24px', textAlign: 'center', color: '#666', border: '1px solid #e5e7eb' }}>
-            No pieces scheduled for today. <Link href="/schedule">Set up your practice schedule</Link>
+            No pieces scheduled for today. {canEdit && <Link href="/schedule">Set up your practice schedule</Link>}
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -90,12 +104,12 @@ export default function Dashboard() {
       {/* Pieces by Category */}
       <section style={{ marginBottom: '32px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <h2 style={{ fontSize: '20px' }}>My Pieces</h2>
+          <h2 style={{ fontSize: '20px' }}>{isOwnProfile ? 'My Pieces' : 'Pieces'}</h2>
           <Link href="/pieces" style={{ fontSize: '14px' }}>View all →</Link>
         </div>
         {pieces.length === 0 ? (
           <div style={{ background: '#fff', borderRadius: '12px', padding: '24px', textAlign: 'center', color: '#666', border: '1px solid #e5e7eb' }}>
-            No pieces yet. <Link href="/add">Add your first piece</Link>
+            No pieces yet. {canEdit && <Link href="/add">Add your first piece</Link>}
           </div>
         ) : (
           Object.entries(byCategory).map(([cat, items]) => (
@@ -116,22 +130,24 @@ export default function Dashboard() {
         )}
       </section>
 
-      {/* Quick Actions */}
-      <section>
-        <h2 style={{ fontSize: '20px', marginBottom: '16px' }}>Quick Actions</h2>
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-          <Link href="/add" style={{ textDecoration: 'none' }}>
-            <button style={{ padding: '12px 24px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: '500', cursor: 'pointer' }}>
-              + Add New Piece
-            </button>
-          </Link>
-          <Link href="/schedule" style={{ textDecoration: 'none' }}>
-            <button style={{ padding: '12px 24px', background: '#fff', color: '#2563eb', border: '1px solid #2563eb', borderRadius: '10px', fontSize: '15px', fontWeight: '500', cursor: 'pointer' }}>
-              Plan Practice Week
-            </button>
-          </Link>
-        </div>
-      </section>
+      {/* Quick Actions — only for own profile or edit access */}
+      {canEdit && (
+        <section>
+          <h2 style={{ fontSize: '20px', marginBottom: '16px' }}>Quick Actions</h2>
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+            <Link href="/add" style={{ textDecoration: 'none' }}>
+              <button style={{ padding: '12px 24px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: '500', cursor: 'pointer' }}>
+                + Add New Piece
+              </button>
+            </Link>
+            <Link href="/schedule" style={{ textDecoration: 'none' }}>
+              <button style={{ padding: '12px 24px', background: '#fff', color: '#2563eb', border: '1px solid #2563eb', borderRadius: '10px', fontSize: '15px', fontWeight: '500', cursor: 'pointer' }}>
+                Plan Practice Week
+              </button>
+            </Link>
+          </div>
+        </section>
+      )}
     </main>
   )
 }
@@ -163,5 +179,3 @@ function LoadingSkeleton() {
     </main>
   )
 }
-
-

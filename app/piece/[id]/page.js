@@ -5,11 +5,13 @@ import { createBrowserClient } from '@supabase/ssr'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useCurrentUser } from '@/lib/useCurrentUser'
+import { useActiveProfile } from '@/lib/useActiveProfile'
 import { useToast } from '@/app/ToastProvider'
 import { logActivity } from '@/lib/logActivity'
 
 export default function PieceDetail({ params }) {
   const { id } = use(params)
+  const { activeProfile, isOwnProfile, canEdit } = useActiveProfile()
   const router = useRouter()
   const { user, loading: userLoading } = useCurrentUser()
   const { addToast } = useToast()
@@ -40,26 +42,32 @@ export default function PieceDetail({ params }) {
   )
 
   useEffect(() => {
-    if (userLoading || !user) return
+    if (userLoading || !user || !activeProfile) return
     loadPiece()
-  }, [userLoading, user, id])
+  }, [userLoading, user, id, activeProfile])
 
   async function loadPiece() {
-    const [pieceRes, imagesRes, notesRes, factsRes, catsRes] = await Promise.all([
-      supabase.from('pieces').select('*, categories(name)').eq('id', id).single(),
-      supabase.from('piece_images').select('*').eq('piece_id', id).order('created_at'),
-      supabase.from('piece_notes').select('*').eq('piece_id', id).order('created_at', { ascending: false }),
-      supabase.from('interesting_facts').select('*').eq('piece_id', id).order('created_at', { ascending: false }),
-      supabase.from('categories').select('*').or(`user_id.eq.${user.email},user_id.is.null`).order('sort_order'),
-    ])
-    if (pieceRes.data) {
-      setPiece(pieceRes.data)
-      setForm(pieceRes.data)
+    if (isOwnProfile) {
+      const [pieceRes, imagesRes, notesRes, factsRes, catsRes] = await Promise.all([
+        supabase.from('pieces').select('*, categories(name)').eq('id', id).single(),
+        supabase.from('piece_images').select('*').eq('piece_id', id).order('created_at'),
+        supabase.from('piece_notes').select('*').eq('piece_id', id).order('created_at', { ascending: false }),
+        supabase.from('interesting_facts').select('*').eq('piece_id', id).order('created_at', { ascending: false }),
+        supabase.from('categories').select('*').or(`user_id.eq.${user.email},user_id.is.null`).order('sort_order'),
+      ])
+      if (pieceRes.data) { setPiece(pieceRes.data); setForm(pieceRes.data) }
+      setImages(imagesRes.data || [])
+      setNotes(notesRes.data || [])
+      setFacts(factsRes.data || [])
+      setCategories(catsRes.data || [])
+    } else {
+      const res = await fetch(`/api/profile/${encodeURIComponent(activeProfile)}/piece/${id}`).then(r => r.json())
+      if (res.piece) { setPiece(res.piece); setForm(res.piece) }
+      setImages(res.images || [])
+      setNotes(res.notes || [])
+      setFacts(res.facts || [])
+      setCategories(res.categories || [])
     }
-    setImages(imagesRes.data || [])
-    setNotes(notesRes.data || [])
-    setFacts(factsRes.data || [])
-    setCategories(catsRes.data || [])
     setLoading(false)
   }
 
@@ -205,22 +213,24 @@ export default function PieceDetail({ params }) {
             </span>
           )}
         </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          {!editing ? (
-            <button onClick={() => setEditing(true)} style={{ padding: '8px 16px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>
-              Edit
-            </button>
-          ) : (
-            <>
-              <button onClick={handleSave} disabled={saving} style={{ padding: '8px 16px', background: '#059669', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>
-                {saving ? 'Saving...' : 'Save'}
+        {canEdit && (
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {!editing ? (
+              <button onClick={() => setEditing(true)} style={{ padding: '8px 16px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>
+                Edit
               </button>
-              <button onClick={() => { setEditing(false); setForm(piece) }} style={{ padding: '8px 16px', background: '#f9fafb', color: '#666', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>
-                Cancel
-              </button>
-            </>
-          )}
-        </div>
+            ) : (
+              <>
+                <button onClick={handleSave} disabled={saving} style={{ padding: '8px 16px', background: '#059669', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>
+                  {saving ? 'Saving...' : 'Save'}
+                </button>
+                <button onClick={() => { setEditing(false); setForm(piece) }} style={{ padding: '8px 16px', background: '#f9fafb', color: '#666', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>
+                  Cancel
+                </button>
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Images */}
@@ -395,8 +405,8 @@ export default function PieceDetail({ params }) {
         )}
       </div>
 
-      {/* Delete */}
-      <div style={{ borderTop: '1px solid #fca5a5', paddingTop: '20px' }}>
+      {/* Delete — only for edit access */}
+      {canEdit && <div style={{ borderTop: '1px solid #fca5a5', paddingTop: '20px' }}>
         {!confirmDelete ? (
           <button onClick={() => setConfirmDelete(true)} style={{ padding: '10px 20px', background: '#fff', color: '#dc2626', border: '1px solid #fca5a5', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>
             Delete This Piece
@@ -412,7 +422,7 @@ export default function PieceDetail({ params }) {
             </button>
           </div>
         )}
-      </div>
+      </div>}
 
       {/* Sticky footer when editing */}
       {editing && (

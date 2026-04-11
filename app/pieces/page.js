@@ -4,9 +4,11 @@ import { useState, useEffect } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import Link from 'next/link'
 import { useCurrentUser } from '@/lib/useCurrentUser'
+import { useActiveProfile } from '@/lib/useActiveProfile'
 
 export default function Pieces() {
   const { user, loading: userLoading } = useCurrentUser()
+  const { activeProfile, isOwnProfile, canEdit, profileDisplayName } = useActiveProfile()
   const [pieces, setPieces] = useState([])
   const [categories, setCategories] = useState([])
   const [search, setSearch] = useState('')
@@ -19,18 +21,28 @@ export default function Pieces() {
   )
 
   useEffect(() => {
-    if (userLoading || !user) return
+    if (userLoading || !user || !activeProfile) return
+    setLoading(true)
     async function load() {
-      const [piecesRes, catsRes] = await Promise.all([
-        supabase.from('pieces').select('*, categories(name)').eq('user_id', user.email).order('updated_at', { ascending: false }),
-        supabase.from('categories').select('*').or(`user_id.eq.${user.email},user_id.is.null`).order('sort_order'),
-      ])
-      setPieces(piecesRes.data || [])
-      setCategories(catsRes.data || [])
+      if (isOwnProfile) {
+        const [piecesRes, catsRes] = await Promise.all([
+          supabase.from('pieces').select('*, categories(name)').eq('user_id', user.email).order('updated_at', { ascending: false }),
+          supabase.from('categories').select('*').or(`user_id.eq.${user.email},user_id.is.null`).order('sort_order'),
+        ])
+        setPieces(piecesRes.data || [])
+        setCategories(catsRes.data || [])
+      } else {
+        const res = await fetch(`/api/profile/${encodeURIComponent(activeProfile)}/pieces`).then(r => r.json())
+        setPieces(res.pieces || [])
+        // Extract unique categories from pieces
+        const cats = {}
+        res.pieces?.forEach(p => { if (p.categories?.name) cats[p.category_id] = { id: p.category_id, name: p.categories.name } })
+        setCategories(Object.values(cats))
+      }
       setLoading(false)
     }
     load()
-  }, [userLoading, user])
+  }, [userLoading, user, activeProfile])
 
   const filtered = pieces.filter(p => {
     const matchSearch = !search || [p.title, p.composer, p.book_title].some(f => f?.toLowerCase().includes(search.toLowerCase()))
@@ -44,12 +56,14 @@ export default function Pieces() {
     <main style={{ padding: '24px', maxWidth: '900px', margin: '0 auto' }}>
       <Link href="/" style={{ textDecoration: 'none', color: '#666', fontSize: '14px' }}>← Dashboard</Link>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '16px 0 24px' }}>
-        <h1 style={{ fontSize: '24px' }}>My Pieces ({filtered.length})</h1>
-        <Link href="/add">
-          <button style={{ padding: '10px 20px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '500', cursor: 'pointer' }}>
-            + Add Piece
-          </button>
-        </Link>
+        <h1 style={{ fontSize: '24px' }}>{isOwnProfile ? 'My Pieces' : `${profileDisplayName(activeProfile)}'s Pieces`} ({filtered.length})</h1>
+        {canEdit && (
+          <Link href="/add">
+            <button style={{ padding: '10px 20px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '500', cursor: 'pointer' }}>
+              + Add Piece
+            </button>
+          </Link>
+        )}
       </div>
 
       {/* Filters */}
