@@ -81,8 +81,9 @@ function UserGuide() {
         </p>
         <p style={{ fontSize: '15px', fontWeight: '600', color: '#333', marginBottom: '8px' }}>Take a Photo</p>
         <Step n="1">Take or upload a photo of the first page of sheet music.</Step>
-        <Step n="2">AI analyzes the image and auto-fills the piece title, composer, key, and more.</Step>
-        <Step n="3">Review and edit the details, then save.</Step>
+        <Step n="2">Optionally add a photo of the book cover — this helps AI identify the book, editor, and more context (especially useful for beginner pieces). You can skip this step.</Step>
+        <Step n="3">AI analyzes the image(s) and auto-fills the piece title, composer, key, and more.</Step>
+        <Step n="4">Review and edit the details, then save.</Step>
         <p style={{ fontSize: '15px', fontWeight: '600', color: '#333', margin: '16px 0 8px' }}>Enter Manually</p>
         <Step n="1">Type in the piece title, composer, and any other details you know.</Step>
         <Step n="2">Add your focus areas and goals, then save.</Step>
@@ -142,6 +143,7 @@ function ReleaseNotes() {
       version: '1.2',
       date: '2026-04-11',
       changes: [
+        'Optional book cover photo when adding a piece — AI uses both images for richer analysis, especially helpful for beginner pieces',
         'New "About the Composer" section on each piece — auto-generated bio when a composer is known',
         'Blue color theme throughout the app (replacing purple)',
         'Redesigned logo — side-view grand piano with music notes',

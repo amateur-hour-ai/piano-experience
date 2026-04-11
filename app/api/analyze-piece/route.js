@@ -3,7 +3,27 @@ import Anthropic from '@anthropic-ai/sdk'
 export async function POST(request) {
   try {
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-    const { imageBase64, imageMediaType } = await request.json()
+    const body = await request.json()
+
+    // Support both old single-image format and new multi-image format
+    const images = body.images || [{ base64: body.imageBase64, mediaType: body.imageMediaType || 'image/jpeg', label: 'sheet music' }]
+
+    const imageContent = images.map(img => ([
+      {
+        type: 'image',
+        source: {
+          type: 'base64',
+          media_type: img.mediaType || 'image/jpeg',
+          data: img.base64,
+        },
+      },
+      {
+        type: 'text',
+        text: `(This is a photo of the ${img.label || 'sheet music'})`
+      }
+    ])).flat()
+
+    const hasBookCover = images.some(img => img.label === 'book cover')
 
     const response = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
@@ -12,17 +32,10 @@ export async function POST(request) {
         {
           role: 'user',
           content: [
-            {
-              type: 'image',
-              source: {
-                type: 'base64',
-                media_type: imageMediaType || 'image/jpeg',
-                data: imageBase64,
-              },
-            },
+            ...imageContent,
             {
               type: 'text',
-              text: `Analyze this sheet music image. Return a JSON object with these fields (use null for anything you can't determine):
+              text: `Analyze ${images.length > 1 ? 'these images' : 'this sheet music image'}. ${hasBookCover ? 'One image is of the sheet music and the other is the book cover — use both to extract as much information as possible about the piece, the book, and the editor.' : ''} Return a JSON object with these fields (use null for anything you can't determine):
 {
   "title": "piece title",
   "composer": "composer full name",
@@ -43,7 +56,6 @@ Return ONLY the JSON, no other text.`
     })
 
     const text = response.content[0].text
-    // Try to parse JSON from the response
     const jsonMatch = text.match(/\{[\s\S]*\}/)
     if (!jsonMatch) {
       return Response.json({ error: 'Could not parse AI response' }, { status: 500 })

@@ -13,6 +13,7 @@ export default function AddPiece() {
   const { user, loading: userLoading } = useCurrentUser()
   const { addToast } = useToast()
   const fileInputRef = useRef(null)
+  const coverInputRef = useRef(null)
 
   const [categories, setCategories] = useState([])
   const [mode, setMode] = useState(null) // 'photo' or 'manual'
@@ -21,6 +22,9 @@ export default function AddPiece() {
   const [error, setError] = useState('')
   const [photoPreview, setPhotoPreview] = useState(null)
   const [photoFile, setPhotoFile] = useState(null)
+  const [coverPreview, setCoverPreview] = useState(null)
+  const [coverFile, setCoverFile] = useState(null)
+  const [awaitingCover, setAwaitingCover] = useState(false) // true after first photo, before analyze
   const [newCategoryName, setNewCategoryName] = useState('')
 
   const [form, setForm] = useState({
@@ -69,20 +73,40 @@ export default function AddPiece() {
     })
   }
 
-  async function handlePhoto(e) {
+  function handlePhoto(e) {
     const file = e.target.files[0]
     if (!file) return
     setPhotoFile(file)
     setPhotoPreview(URL.createObjectURL(file))
     setError('')
+    setAwaitingCover(true)
+  }
+
+  function handleCoverPhoto(e) {
+    const file = e.target.files[0]
+    if (!file) return
+    setCoverFile(file)
+    setCoverPreview(URL.createObjectURL(file))
+  }
+
+  async function runAnalysis() {
+    setAwaitingCover(false)
     setAnalyzing(true)
 
     try {
-      const base64 = await resizeImage(file)
+      const images = []
+      const base64 = await resizeImage(photoFile)
+      images.push({ base64, mediaType: 'image/jpeg', label: 'sheet music' })
+
+      if (coverFile) {
+        const coverBase64 = await resizeImage(coverFile)
+        images.push({ base64: coverBase64, mediaType: 'image/jpeg', label: 'book cover' })
+      }
+
       const res = await fetch('/api/analyze-piece', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageBase64: base64, imageMediaType: 'image/jpeg' })
+        body: JSON.stringify({ images })
       })
       const data = await res.json()
       if (data.analysis) {
@@ -157,13 +181,20 @@ export default function AddPiece() {
 
       if (insertError) throw insertError
 
-      // Upload photo if one was taken
+      // Upload photos if taken
       if (photoFile) {
         const formData = new FormData()
         formData.append('file', photoFile)
         formData.append('piece_id', piece.id)
         formData.append('image_type', 'first_page')
         await fetch('/api/upload-image', { method: 'POST', body: formData })
+      }
+      if (coverFile) {
+        const coverFormData = new FormData()
+        coverFormData.append('file', coverFile)
+        coverFormData.append('piece_id', piece.id)
+        coverFormData.append('image_type', 'book_cover')
+        await fetch('/api/upload-image', { method: 'POST', body: coverFormData })
       }
 
       // Auto-generate composer bio in background (don't block navigation)
@@ -233,13 +264,52 @@ export default function AddPiece() {
                     📷 Take or upload a photo of the sheet music
                   </button>
                 </div>
+              ) : awaitingCover ? (
+                <div>
+                  <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+                    <div style={{ flex: 1, textAlign: 'center' }}>
+                      <img src={photoPreview} alt="Sheet music" style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '12px', border: '1px solid #e5e7eb' }} />
+                      <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>Sheet music</div>
+                    </div>
+                    {coverPreview && (
+                      <div style={{ flex: 1, textAlign: 'center' }}>
+                        <img src={coverPreview} alt="Book cover" style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '12px', border: '1px solid #e5e7eb' }} />
+                        <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>Book cover</div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ background: '#dbeafe', borderRadius: '10px', padding: '16px', marginBottom: '16px' }}>
+                    <p style={{ fontSize: '14px', color: '#1e40af', marginBottom: '12px', fontWeight: '500' }}>
+                      Want to add a photo of the book cover? This helps AI identify the book, editor, and more context — especially useful for beginner pieces.
+                    </p>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      <input type="file" accept="image/*" capture="environment" ref={coverInputRef} onChange={handleCoverPhoto} style={{ display: 'none' }} />
+                      <button onClick={() => coverInputRef.current?.click()} style={{
+                        padding: '10px 20px', background: '#2563eb', color: '#fff', border: 'none',
+                        borderRadius: '8px', fontSize: '14px', fontWeight: '500', cursor: 'pointer'
+                      }}>
+                        {coverPreview ? '📷 Retake Cover Photo' : '📷 Add Book Cover'}
+                      </button>
+                      <button onClick={runAnalysis} style={{
+                        padding: '10px 20px', background: '#fff', color: '#2563eb', border: '1px solid #2563eb',
+                        borderRadius: '8px', fontSize: '14px', fontWeight: '500', cursor: 'pointer'
+                      }}>
+                        {coverPreview ? 'Analyze Both Photos' : 'Skip — Analyze Sheet Music Only'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
               ) : (
                 <div style={{ textAlign: 'center' }}>
-                  <img src={photoPreview} alt="Sheet music" style={{ maxWidth: '100%', maxHeight: '300px', borderRadius: '12px', border: '1px solid #e5e7eb' }} />
+                  <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginBottom: '8px' }}>
+                    <img src={photoPreview} alt="Sheet music" style={{ maxHeight: '200px', borderRadius: '12px', border: '1px solid #e5e7eb' }} />
+                    {coverPreview && <img src={coverPreview} alt="Book cover" style={{ maxHeight: '200px', borderRadius: '12px', border: '1px solid #e5e7eb' }} />}
+                  </div>
                   {analyzing && (
                     <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: '#2563eb' }}>
                       <span style={{ display: 'inline-block', width: '16px', height: '16px', border: '2px solid #2563eb', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.6s linear infinite' }} />
-                      AI is analyzing the music...
+                      AI is analyzing {coverPreview ? 'both images' : 'the music'}...
                     </div>
                   )}
                 </div>
@@ -317,7 +387,7 @@ export default function AddPiece() {
               }}>
                 {saving ? 'Saving...' : 'Save Piece'}
               </button>
-              <button onClick={() => { setMode(null); setPhotoPreview(null); setPhotoFile(null); setError('') }} style={{
+              <button onClick={() => { setMode(null); setPhotoPreview(null); setPhotoFile(null); setCoverPreview(null); setCoverFile(null); setAwaitingCover(false); setError('') }} style={{
                 padding: '12px 24px', background: '#f9fafb', color: '#666', border: '1px solid #d1d5db',
                 borderRadius: '8px', fontSize: '14px', cursor: 'pointer'
               }}>
