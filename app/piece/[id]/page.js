@@ -168,33 +168,69 @@ export default function PieceDetail({ params }) {
     loadPiece()
   }
 
+  const pieceApiBase = `/api/profile/${encodeURIComponent(activeProfile)}/piece/${id}`
+
   async function updateNote(noteId) {
     if (!editingNoteText.trim()) return
-    const { error } = await supabase.from('piece_notes').update({ note: editingNoteText.trim() }).eq('id', noteId)
-    if (error) { addToast('Failed to update note', 'error'); return }
+    if (isOwnProfile) {
+      const { error } = await supabase.from('piece_notes').update({ note: editingNoteText.trim() }).eq('id', noteId)
+      if (error) { addToast('Failed to update note', 'error'); return }
+    } else {
+      await fetch(pieceApiBase, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'update_note', noteId, note: editingNoteText.trim() }) })
+    }
     setEditingNoteId(null)
     setEditingNoteText('')
     addToast('Note updated!', 'success')
     loadPiece()
   }
 
+  async function deleteNote(noteId) {
+    if (isOwnProfile) {
+      await supabase.from('piece_notes').delete().eq('id', noteId)
+    } else {
+      await fetch(pieceApiBase, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete_note', noteId }) })
+    }
+    setDeletingNoteId(null)
+    addToast('Note deleted', 'info')
+    loadPiece()
+  }
+
   async function addGoal() {
     if (!newGoalText.trim()) return
-    const { data, error } = await supabase.from('piece_goals').insert([{
-      piece_id: id, text: newGoalText.trim(), sort_order: goals.length
-    }]).select().single()
-    if (error) { addToast('Failed to add goal', 'error'); return }
-    setGoals(prev => [...prev, data])
+    if (isOwnProfile) {
+      const { data, error } = await supabase.from('piece_goals').insert([{
+        piece_id: id, text: newGoalText.trim(), sort_order: goals.length
+      }]).select().single()
+      if (error) { addToast('Failed to add goal', 'error'); return }
+      setGoals(prev => [...prev, data])
+    } else {
+      const res = await fetch(pieceApiBase, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'add_goal', text: newGoalText.trim(), sort_order: goals.length }) })
+      const data = await res.json()
+      if (data.goal) setGoals(prev => [...prev, data.goal])
+    }
     setNewGoalText('')
   }
 
   async function toggleGoal(goalId, completed) {
-    await supabase.from('piece_goals').update({ completed: !completed }).eq('id', goalId)
+    if (isOwnProfile) {
+      await supabase.from('piece_goals').update({ completed: !completed }).eq('id', goalId)
+    } else {
+      await fetch(pieceApiBase, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'toggle_goal', goalId, completed: !completed }) })
+    }
     setGoals(prev => prev.map(g => g.id === goalId ? { ...g, completed: !completed } : g))
   }
 
   async function deleteGoal(goalId) {
-    await supabase.from('piece_goals').delete().eq('id', goalId)
+    if (isOwnProfile) {
+      await supabase.from('piece_goals').delete().eq('id', goalId)
+    } else {
+      await fetch(pieceApiBase, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete_goal', goalId }) })
+    }
     setGoals(prev => prev.filter(g => g.id !== goalId))
   }
 
@@ -274,16 +310,26 @@ export default function PieceDetail({ params }) {
   }
 
   async function saveSummary() {
-    const { error } = await supabase.from('pieces').update({ ai_summary: summaryDraft }).eq('id', id)
-    if (error) { addToast('Failed to save', 'error'); return }
+    if (isOwnProfile) {
+      const { error } = await supabase.from('pieces').update({ ai_summary: summaryDraft }).eq('id', id)
+      if (error) { addToast('Failed to save', 'error'); return }
+    } else {
+      await fetch(pieceApiBase, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'update_field', field: 'ai_summary', value: summaryDraft }) })
+    }
     setPiece(prev => ({ ...prev, ai_summary: summaryDraft }))
     setEditingSummary(false)
     addToast('Summary updated!', 'success')
   }
 
   async function saveBio() {
-    const { error } = await supabase.from('pieces').update({ composer_bio: bioDraft }).eq('id', id)
-    if (error) { addToast('Failed to save', 'error'); return }
+    if (isOwnProfile) {
+      const { error } = await supabase.from('pieces').update({ composer_bio: bioDraft }).eq('id', id)
+      if (error) { addToast('Failed to save', 'error'); return }
+    } else {
+      await fetch(pieceApiBase, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'update_field', field: 'composer_bio', value: bioDraft }) })
+    }
     setPiece(prev => ({ ...prev, composer_bio: bioDraft }))
     setEditingBio(false)
     addToast('Composer bio updated!', 'success')
@@ -537,7 +583,7 @@ export default function PieceDetail({ params }) {
                 {deletingNoteId === n.id && (
                   <div style={{ background: '#fef2f2', borderRadius: '6px', padding: '8px 12px', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
                     <span style={{ color: '#991b1b' }}>Delete this note?</span>
-                    <button onClick={async () => { await supabase.from('piece_notes').delete().eq('id', n.id); setDeletingNoteId(null); addToast('Note deleted', 'info'); loadPiece() }}
+                    <button onClick={() => deleteNote(n.id)}
                       style={{ padding: '4px 10px', background: '#dc2626', color: '#fff', border: 'none', borderRadius: '4px', fontSize: '12px', cursor: 'pointer' }}>Yes</button>
                     <button onClick={() => setDeletingNoteId(null)}
                       style={{ padding: '4px 10px', background: '#fff', color: '#666', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '12px', cursor: 'pointer' }}>No</button>

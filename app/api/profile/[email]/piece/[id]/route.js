@@ -105,5 +105,42 @@ export async function POST(request, { params }) {
     return Response.json({ success: true })
   }
 
+  if (action === 'update_note') {
+    const { error } = await supabase.from('piece_notes').update({ note: body.note }).eq('id', body.noteId)
+    if (error) return Response.json({ error: error.message }, { status: 500 })
+    return Response.json({ success: true })
+  }
+
+  if (action === 'delete_note') {
+    await supabase.from('piece_notes').delete().eq('id', body.noteId)
+    return Response.json({ success: true })
+  }
+
+  if (action === 'add_goal') {
+    const { data, error } = await supabase.from('piece_goals').insert([{
+      piece_id: id, text: body.text, sort_order: body.sort_order || 0
+    }]).select().single()
+    if (error) return Response.json({ error: error.message }, { status: 500 })
+    return Response.json({ goal: data })
+  }
+
+  if (action === 'toggle_goal') {
+    await supabase.from('piece_goals').update({ completed: body.completed }).eq('id', body.goalId)
+    return Response.json({ success: true })
+  }
+
+  if (action === 'delete_goal') {
+    await supabase.from('piece_goals').delete().eq('id', body.goalId)
+    return Response.json({ success: true })
+  }
+
+  if (action === 'update_field') {
+    const update = {}
+    update[body.field] = body.value
+    const { error } = await supabase.from('pieces').update(update).eq('id', id)
+    if (error) return Response.json({ error: error.message }, { status: 500 })
+    return Response.json({ success: true })
+  }
+
   return Response.json({ error: 'Unknown action' }, { status: 400 })
 }

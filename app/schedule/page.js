@@ -67,19 +67,30 @@ export default function PracticeSchedule() {
     return completedDate === today
   }
 
+  const profileApiBase = `/api/profile/${encodeURIComponent(activeProfile)}/schedule`
+
   async function addToSchedule(dayIdx) {
     if (!selectedPiece) return
     const dayItems = schedule.filter(s => s.day_of_week === dayIdx)
-    const { error } = await supabase.from('practice_schedule').insert([{
-      user_id: user.email,
+    const itemData = {
       piece_id: selectedPiece,
       day_of_week: dayIdx,
       focus_notes: focusNotes || null,
       sort_order: dayItems.length,
       week_start_date: '2026-01-01',
       completed: false,
-    }])
-    if (error) { addToast('Failed to add: ' + error.message, 'error'); return }
+    }
+    if (isOwnProfile) {
+      const { error } = await supabase.from('practice_schedule').insert([{ ...itemData, user_id: user.email }])
+      if (error) { addToast('Failed to add: ' + error.message, 'error'); return }
+    } else {
+      const res = await fetch(profileApiBase, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'add', ...itemData })
+      })
+      const data = await res.json()
+      if (data.error) { addToast('Failed to add: ' + data.error, 'error'); return }
+    }
     addToast('Added to schedule!', 'success')
     setAddingDay(null)
     setSelectedPiece('')
@@ -91,10 +102,14 @@ export default function PracticeSchedule() {
     const doneToday = isCompletedToday(item)
     const newCompleted = !doneToday
     const newCompletedAt = newCompleted ? new Date().toISOString() : null
-    await supabase.from('practice_schedule').update({
-      completed: newCompleted,
-      completed_at: newCompletedAt
-    }).eq('id', item.id)
+    if (isOwnProfile) {
+      await supabase.from('practice_schedule').update({ completed: newCompleted, completed_at: newCompletedAt }).eq('id', item.id)
+    } else {
+      await fetch(profileApiBase, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'toggle', id: item.id, completed: newCompleted, completed_at: newCompletedAt })
+      })
+    }
 
     if (newCompleted) {
       await logActivity({
@@ -110,13 +125,27 @@ export default function PracticeSchedule() {
   }
 
   async function removeItem(itemId) {
-    await supabase.from('practice_schedule').delete().eq('id', itemId)
+    if (isOwnProfile) {
+      await supabase.from('practice_schedule').delete().eq('id', itemId)
+    } else {
+      await fetch(profileApiBase, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'remove', id: itemId })
+      })
+    }
     setSchedule(prev => prev.filter(s => s.id !== itemId))
     addToast('Removed from schedule', 'info')
   }
 
   async function updateFocus(itemId, newFocus) {
-    await supabase.from('practice_schedule').update({ focus_notes: newFocus || null }).eq('id', itemId)
+    if (isOwnProfile) {
+      await supabase.from('practice_schedule').update({ focus_notes: newFocus || null }).eq('id', itemId)
+    } else {
+      await fetch(profileApiBase, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'update_focus', id: itemId, focus_notes: newFocus })
+      })
+    }
     setSchedule(prev => prev.map(s => s.id === itemId ? { ...s, focus_notes: newFocus } : s))
   }
 

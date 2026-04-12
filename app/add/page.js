@@ -140,7 +140,7 @@ export default function AddPiece() {
     if (!newCategoryName.trim()) return
     const { data, error } = await supabase.from('categories').insert([{
       name: newCategoryName.trim(),
-      user_id: user.email,
+      user_id: isOwnProfile ? user.email : activeProfile,
       sort_order: categories.length
     }]).select().single()
     if (error) {

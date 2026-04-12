@@ -89,5 +89,14 @@ export async function POST(request, { params }) {
     return Response.json({ success: true })
   }
 
+  if (action === 'update_focus') {
+    const { error } = await supabase
+      .from('practice_schedule')
+      .update({ focus_notes: body.focus_notes || null })
+      .eq('id', body.id)
+    if (error) return Response.json({ error: error.message }, { status: 500 })
+    return Response.json({ success: true })
+  }
+
   return Response.json({ error: 'Unknown action' }, { status: 400 })
 }
