@@ -11,10 +11,13 @@ export async function GET(request) {
   const url = new URL(request.url)
   const limit = parseInt(url.searchParams.get('limit')) || 20
   const pieceId = url.searchParams.get('piece_id')
+  const userEmail = url.searchParams.get('user_email')
+  const all = url.searchParams.get('all') === 'true'
 
   const supabase = adminSupabase()
   let q = supabase.from('activity_log').select('*').order('created_at', { ascending: false }).limit(limit)
   if (pieceId) q = q.eq('piece_id', pieceId)
+  if (userEmail) q = q.eq('user_email', userEmail)
 
   const { data, error } = await q
   if (error) return Response.json({ error: error.message }, { status: 500 })

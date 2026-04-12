@@ -27,7 +27,7 @@ export default function Dashboard() {
         const [piecesRes, scheduleRes, actRes] = await Promise.all([
           supabase.from('pieces').select('*, categories(name)').eq('user_id', user.email).order('updated_at', { ascending: false }),
           supabase.from('practice_schedule').select('*, pieces(title, composer)').eq('user_id', user.email).order('day_of_week').order('sort_order'),
-          fetch('/api/activity?limit=8').then(r => r.json()),
+          fetch(`/api/activity?limit=8&user_email=${encodeURIComponent(user.email)}`).then(r => r.json()),
         ])
         setPieces(piecesRes.data || [])
         setSchedule(scheduleRes.data || [])
