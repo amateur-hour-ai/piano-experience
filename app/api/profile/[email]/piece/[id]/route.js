@@ -36,12 +36,14 @@ export async function GET(request, { params }) {
   const access = await checkPermission(supabase, decodedEmail, myEmail)
   if (!access) return Response.json({ error: 'No access to this profile' }, { status: 403 })
 
-  const [pieceRes, imagesRes, notesRes, factsRes, catsRes] = await Promise.all([
+  const [pieceRes, imagesRes, notesRes, factsRes, catsRes, goalsRes, tempoRes] = await Promise.all([
     supabase.from('pieces').select('*, categories(name)').eq('id', id).eq('user_id', decodedEmail).single(),
     supabase.from('piece_images').select('*').eq('piece_id', id).order('created_at'),
     supabase.from('piece_notes').select('*').eq('piece_id', id).order('created_at', { ascending: false }),
     supabase.from('interesting_facts').select('*').eq('piece_id', id).order('created_at', { ascending: false }),
     supabase.from('categories').select('*').or(`user_id.eq.${decodedEmail},user_id.is.null`).order('sort_order'),
+    supabase.from('piece_goals').select('*').eq('piece_id', id).order('sort_order'),
+    supabase.from('tempo_log').select('*').eq('piece_id', id).order('created_at', { ascending: false }),
   ])
 
   if (!pieceRes.data) return Response.json({ error: 'Piece not found' }, { status: 404 })
@@ -52,6 +54,8 @@ export async function GET(request, { params }) {
     notes: notesRes.data || [],
     facts: factsRes.data || [],
     categories: catsRes.data || [],
+    goals: goalsRes.data || [],
+    tempoLog: tempoRes.data || [],
     accessLevel: access,
   })
 }
@@ -70,6 +74,15 @@ export async function POST(request, { params }) {
   const { action, ...body } = await request.json()
 
   if (action === 'update') {
+    // Log tempo change if metronome marking changed
+    const newBpm = body.fields?.metronome_marking
+    const oldBpm = body.oldMetronome
+    if (newBpm && newBpm !== oldBpm) {
+      const bpmNum = parseInt(newBpm.replace(/[^\d]/g, ''))
+      if (bpmNum > 0) {
+        await supabase.from('tempo_log').insert([{ piece_id: id, bpm: bpmNum }])
+      }
+    }
     const { error } = await supabase.from('pieces').update(body.fields).eq('id', id)
     if (error) return Response.json({ error: error.message }, { status: 500 })
     return Response.json({ success: true })

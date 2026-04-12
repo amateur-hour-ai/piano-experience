@@ -95,12 +95,14 @@ export default function PieceDetail({ params }) {
       goals: form.goals, category_id: form.category_id || null, ai_summary: form.ai_summary,
     }
 
+    // Include old metronome marking so API can detect changes for tempo logging
+    const oldMetronome = piece.metronome_marking
+
     let error
     if (isOwnProfile) {
       // Log tempo change
-      const oldBpm = piece.metronome_marking
       const newBpm = form.metronome_marking
-      if (newBpm && newBpm !== oldBpm) {
+      if (newBpm && newBpm !== oldMetronome) {
         const bpmNum = parseInt(newBpm.replace(/[^\d]/g, ''))
         if (bpmNum > 0) await supabase.from('tempo_log').insert([{ piece_id: id, bpm: bpmNum }])
       }
@@ -110,7 +112,7 @@ export default function PieceDetail({ params }) {
       const res = await fetch(`/api/profile/${encodeURIComponent(activeProfile)}/piece/${id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'update', fields })
+        body: JSON.stringify({ action: 'update', fields, oldMetronome })
       })
       const data = await res.json()
       if (data.error) error = { message: data.error }
