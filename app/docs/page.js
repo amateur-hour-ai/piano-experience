@@ -122,6 +122,16 @@ function UserGuide() {
         <Note>The dashboard shows today's practice items so you can jump right in.</Note>
       </Section>
 
+      <Section title="Practice Strategies">
+        <p style={{ fontSize: '15px', lineHeight: '1.7', color: '#333', marginBottom: '16px' }}>
+          Go to <strong>Practice Strategies</strong> from the menu. You'll find a set of practice strategies organized by heading, each with detailed bullet points.
+        </p>
+        <Step n="1">Tap any heading to expand and read the strategy details.</Step>
+        <Step n="2">Tap <strong>Edit</strong> to customize — change headings, edit bullets, add new ones, or remove ones that don't apply to you.</Step>
+        <Step n="3">Tap <strong>Done Editing</strong> when finished. Your changes are saved automatically.</Step>
+        <Note>Every new user starts with a standard set of strategies. Your edits only affect your own copy. Administrators can edit the default strategies that new users receive by tapping "Edit Defaults".</Note>
+      </Section>
+
       <Section title="Interesting Facts">
         <p style={{ fontSize: '15px', lineHeight: '1.7', color: '#333' }}>
           On any piece's detail page, tap <strong>Tell me something interesting</strong> to have AI share a fun fact about the piece, composer, musical period, or related works. Each fact is saved so you can revisit them. The AI avoids repeating information from previous facts, the piece summary, and the composer bio.
@@ -158,6 +168,9 @@ function ReleaseNotes() {
         'Visual indicator banner when viewing someone else\'s profile',
         'View-only mode hides edit controls entirely for a clean read-only experience',
         'Sharing & Permissions page — grant, revoke, and manage access levels',
+        'New Practice Strategies section — structured practice tips with collapsible headings and editable bullets',
+        'Every user starts with standard strategies, fully customizable per user',
+        'Admin can edit default strategies that new users receive',
         'AI Summary now visible and editable on the Edit Piece page',
         'Practice and lesson notes can now be edited after they are created',
       ]

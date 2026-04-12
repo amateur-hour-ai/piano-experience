@@ -27,6 +27,7 @@ export default function NavBar() {
     { href: '/pieces', label: isOwnProfile ? 'My Pieces' : 'Pieces' },
     ...(canEdit ? [{ href: '/add', label: 'Add Piece' }] : []),
     { href: '/schedule', label: 'Practice Schedule' },
+    { href: '/strategies', label: 'Practice Strategies' },
     { href: '/permissions', label: 'Sharing' },
     ...(isAdmin ? [{ href: '/admin/users', label: 'Manage Users' }] : []),
     { href: '/docs', label: 'Documentation' },
