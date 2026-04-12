@@ -567,24 +567,34 @@ export default function PieceDetail({ params }) {
       </div>
 
       {/* Tempo Progress */}
-      {tempoLog.length > 0 && (
+      {(tempoLog.length > 0 || piece.metronome_marking) && (
         <div style={{ background: '#fff', borderRadius: '12px', padding: '24px', border: '1px solid #e5e7eb', marginBottom: '24px' }}>
           <h2 style={{ fontSize: '18px', color: '#2563eb', marginBottom: '16px' }}>Tempo Progress</h2>
-          <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '8px' }}>
-            {tempoLog.slice().reverse().map((t, i) => (
-              <div key={t.id} style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '20px', fontWeight: '700', color: i === tempoLog.length - 1 ? '#2563eb' : '#666' }}>{t.bpm}</div>
-                <div style={{ fontSize: '11px', color: '#999' }}>{new Date(t.created_at).toLocaleDateString()}</div>
+          {tempoLog.length > 0 ? (
+            <>
+              <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                {tempoLog.slice().reverse().map((t, i) => (
+                  <div key={t.id} style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '20px', fontWeight: '700', color: i === tempoLog.length - 1 ? '#2563eb' : '#666' }}>{t.bpm}</div>
+                    <div style={{ fontSize: '11px', color: '#999' }}>{new Date(t.created_at).toLocaleDateString()}</div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-          {tempoLog.length >= 2 && (
-            <div style={{ fontSize: '13px', color: '#059669', marginTop: '8px' }}>
-              {tempoLog[0].bpm > tempoLog[tempoLog.length - 1].bpm
-                ? `+${tempoLog[0].bpm - tempoLog[tempoLog.length - 1].bpm} BPM improvement`
-                : tempoLog[0].bpm < tempoLog[tempoLog.length - 1].bpm
-                ? `${tempoLog[tempoLog.length - 1].bpm - tempoLog[0].bpm} BPM decrease`
-                : 'Same tempo'}
+              {tempoLog.length >= 2 && (
+                <div style={{ fontSize: '13px', color: '#059669', marginTop: '8px' }}>
+                  {tempoLog[0].bpm > tempoLog[tempoLog.length - 1].bpm
+                    ? `+${tempoLog[0].bpm - tempoLog[tempoLog.length - 1].bpm} BPM improvement`
+                    : tempoLog[0].bpm < tempoLog[tempoLog.length - 1].bpm
+                    ? `${tempoLog[tempoLog.length - 1].bpm - tempoLog[0].bpm} BPM decrease`
+                    : 'Same tempo'}
+                </div>
+              )}
+            </>
+          ) : (
+            <div style={{ fontSize: '14px', color: '#666' }}>
+              <span style={{ fontSize: '24px', fontWeight: '700', color: '#2563eb' }}>{piece.metronome_marking}</span>
+              <span style={{ marginLeft: '8px' }}>BPM (current)</span>
+              <p style={{ fontSize: '13px', color: '#999', marginTop: '8px' }}>Edit the piece and change the metronome marking to start tracking tempo progress over time.</p>
             </div>
           )}
         </div>
