@@ -86,23 +86,35 @@ export default function PieceDetail({ params }) {
 
   async function handleSave() {
     setSaving(true)
-    // Log tempo change if metronome marking changed
-    const oldBpm = piece.metronome_marking
-    const newBpm = form.metronome_marking
-    if (newBpm && newBpm !== oldBpm) {
-      const bpmNum = parseInt(newBpm.replace(/[^\d]/g, ''))
-      if (bpmNum > 0) {
-        await supabase.from('tempo_log').insert([{ piece_id: id, bpm: bpmNum }])
-      }
-    }
-    const { error } = await supabase.from('pieces').update({
+    const fields = {
       title: form.title, composer: form.composer, book_title: form.book_title,
       book_editor: form.book_editor, key_signature: form.key_signature,
       time_signature: form.time_signature, tempo_marking: form.tempo_marking,
       difficulty_level: form.difficulty_level, period: form.period,
       metronome_marking: form.metronome_marking, areas_of_focus: form.areas_of_focus,
       goals: form.goals, category_id: form.category_id || null, ai_summary: form.ai_summary,
-    }).eq('id', id)
+    }
+
+    let error
+    if (isOwnProfile) {
+      // Log tempo change
+      const oldBpm = piece.metronome_marking
+      const newBpm = form.metronome_marking
+      if (newBpm && newBpm !== oldBpm) {
+        const bpmNum = parseInt(newBpm.replace(/[^\d]/g, ''))
+        if (bpmNum > 0) await supabase.from('tempo_log').insert([{ piece_id: id, bpm: bpmNum }])
+      }
+      const res = await supabase.from('pieces').update(fields).eq('id', id)
+      error = res.error
+    } else {
+      const res = await fetch(`/api/profile/${encodeURIComponent(activeProfile)}/piece/${id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'update', fields })
+      })
+      const data = await res.json()
+      if (data.error) error = { message: data.error }
+    }
 
     if (error) {
       addToast('Failed to save: ' + error.message, 'error')
@@ -116,11 +128,18 @@ export default function PieceDetail({ params }) {
   }
 
   async function handleDelete() {
-    await supabase.from('piece_notes').delete().eq('piece_id', id)
-    await supabase.from('piece_images').delete().eq('piece_id', id)
-    await supabase.from('interesting_facts').delete().eq('piece_id', id)
-    await supabase.from('practice_schedule').delete().eq('piece_id', id)
-    await supabase.from('pieces').delete().eq('id', id)
+    if (isOwnProfile) {
+      await supabase.from('piece_notes').delete().eq('piece_id', id)
+      await supabase.from('piece_images').delete().eq('piece_id', id)
+      await supabase.from('interesting_facts').delete().eq('piece_id', id)
+      await supabase.from('practice_schedule').delete().eq('piece_id', id)
+      await supabase.from('pieces').delete().eq('id', id)
+    } else {
+      await fetch(`/api/profile/${encodeURIComponent(activeProfile)}/piece/${id}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete' })
+      })
+    }
     await logActivity({ action: 'delete_piece', piece_id: id, piece_title: piece.title, details: 'Deleted piece', user_email: user.email })
     addToast('Piece deleted', 'info')
     router.push('/pieces')
@@ -128,10 +147,19 @@ export default function PieceDetail({ params }) {
 
   async function addNote() {
     if (!newNote.trim()) return
-    const { error } = await supabase.from('piece_notes').insert([{
-      piece_id: id, user_id: user.email, note_type: noteType, note: newNote.trim()
-    }])
-    if (error) { addToast('Failed to add note', 'error'); return }
+    if (isOwnProfile) {
+      const { error } = await supabase.from('piece_notes').insert([{
+        piece_id: id, user_id: user.email, note_type: noteType, note: newNote.trim()
+      }])
+      if (error) { addToast('Failed to add note', 'error'); return }
+    } else {
+      const res = await fetch(`/api/profile/${encodeURIComponent(activeProfile)}/piece/${id}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'add_note', note_type: noteType, note: newNote.trim() })
+      })
+      const data = await res.json()
+      if (data.error) { addToast('Failed to add note', 'error'); return }
+    }
     await logActivity({ action: 'add_note', piece_id: id, piece_title: piece.title, details: `Added ${noteType} note`, user_email: user.email })
     setNewNote('')
     addToast('Note added!', 'success')
