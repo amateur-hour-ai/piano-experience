@@ -5,6 +5,7 @@ import { createBrowserClient } from '@supabase/ssr'
 import Link from 'next/link'
 import { useCurrentUser } from '@/lib/useCurrentUser'
 import { useActiveProfile } from '@/lib/useActiveProfile'
+import EmptyState, { Skeleton } from '@/app/EmptyState'
 
 export default function Pieces() {
   const { user, loading: userLoading } = useCurrentUser()
@@ -13,6 +14,7 @@ export default function Pieces() {
   const [categories, setCategories] = useState([])
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
+  const [sortBy, setSortBy] = useState('date')
   const [loading, setLoading] = useState(true)
 
   const supabase = createBrowserClient(
@@ -48,9 +50,14 @@ export default function Pieces() {
     const matchSearch = !search || [p.title, p.composer, p.book_title].some(f => f?.toLowerCase().includes(search.toLowerCase()))
     const matchCat = !categoryFilter || p.category_id === categoryFilter
     return matchSearch && matchCat
+  }).sort((a, b) => {
+    if (sortBy === 'title') return (a.title || '').localeCompare(b.title || '')
+    if (sortBy === 'composer') return (a.composer || '').localeCompare(b.composer || '')
+    if (sortBy === 'category') return (a.categories?.name || '').localeCompare(b.categories?.name || '')
+    return new Date(b.updated_at) - new Date(a.updated_at) // date (default)
   })
 
-  if (userLoading || loading) return <div style={{ padding: '24px', textAlign: 'center', color: '#666' }}>Loading...</div>
+  if (userLoading || loading) return <Skeleton rows={5} height={60} />
 
   return (
     <main style={{ padding: '24px', maxWidth: '900px', margin: '0 auto' }}>
@@ -68,13 +75,21 @@ export default function Pieces() {
 
       {/* Filters */}
       <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', flexWrap: 'wrap' }}>
-        <input
-          type="text"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Search by title, composer, book..."
-          style={{ flex: 1, minWidth: '200px', padding: '10px 14px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px' }}
-        />
+        <div style={{ flex: 1, minWidth: '200px', position: 'relative' }}>
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search by title, composer, book..."
+            style={{ width: '100%', padding: '10px 36px 10px 14px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px' }}
+          />
+          {search && (
+            <button onClick={() => setSearch('')} style={{
+              position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)',
+              background: 'none', border: 'none', color: '#999', fontSize: '18px', cursor: 'pointer', padding: '4px'
+            }}>×</button>
+          )}
+        </div>
         <select
           value={categoryFilter}
           onChange={e => setCategoryFilter(e.target.value)}
@@ -85,16 +100,25 @@ export default function Pieces() {
             <option key={c.id} value={c.id}>{c.name}</option>
           ))}
         </select>
+        <select
+          value={sortBy}
+          onChange={e => setSortBy(e.target.value)}
+          style={{ padding: '10px 14px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', background: '#fff' }}
+        >
+          <option value="date">Sort: Recent</option>
+          <option value="title">Sort: Title</option>
+          <option value="composer">Sort: Composer</option>
+          <option value="category">Sort: Category</option>
+        </select>
       </div>
 
       {filtered.length === 0 ? (
-        <div style={{ background: '#fff', borderRadius: '12px', padding: '40px', textAlign: 'center', color: '#666', border: '1px solid #e5e7eb' }}>
-          {pieces.length === 0 ? (
-            <p>No pieces yet. <Link href="/add">Add your first piece!</Link></p>
-          ) : (
-            <p>No pieces match your search.</p>
-          )}
-        </div>
+        <EmptyState
+          icon={pieces.length === 0 ? '🎵' : '🔍'}
+          message={pieces.length === 0 ? 'No pieces yet.' : 'No pieces match your search.'}
+        >
+          {pieces.length === 0 && canEdit && <Link href="/add" style={{ color: '#2563eb' }}>Add your first piece!</Link>}
+        </EmptyState>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {filtered.map(p => (

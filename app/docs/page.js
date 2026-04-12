@@ -160,6 +160,28 @@ function UserGuide() {
 function ReleaseNotes() {
   const releases = [
     {
+      version: '2.0',
+      date: '2026-04-11',
+      changes: [
+        'Practice timer — start/stop session timer on the schedule page to track practice duration',
+        'Structured goals checklist — add, check off, and delete goals for each piece',
+        'Tempo progress tracking — metronome marking changes are logged and displayed as a timeline',
+        'Export piece — print or save a piece summary with all details, notes, goals, and facts',
+        'Image lightbox — tap any image to view full-screen',
+        'Dashboard activity feed — see your recent actions at a glance',
+        'Sort pieces by title, composer, date, or category',
+        'Search clear button — quickly reset search with the X button',
+        'Note author attribution — see who wrote each note on shared profiles',
+        'Delete note confirmation — inline "Are you sure?" before removing notes',
+        'Practice schedule auto-scrolls to today on load',
+        'Loading skeletons across pages for a polished feel',
+        'Empty state illustrations with icons on empty pages',
+        'Touch feedback — buttons respond to taps on mobile',
+        'Favicon — piano icon now shows in browser tabs',
+        'Print-friendly styles for piece export',
+      ]
+    },
+    {
       version: '1.4',
       date: '2026-04-11',
       changes: [

@@ -11,6 +11,7 @@ export default function Dashboard() {
   const { activeProfile, isOwnProfile, canEdit, profileDisplayName } = useActiveProfile()
   const [pieces, setPieces] = useState([])
   const [schedule, setSchedule] = useState([])
+  const [recentActivity, setRecentActivity] = useState([])
   const [loading, setLoading] = useState(true)
 
   const supabase = createBrowserClient(
@@ -23,12 +24,14 @@ export default function Dashboard() {
     setLoading(true)
     async function load() {
       if (isOwnProfile) {
-        const [piecesRes, scheduleRes] = await Promise.all([
+        const [piecesRes, scheduleRes, actRes] = await Promise.all([
           supabase.from('pieces').select('*, categories(name)').eq('user_id', user.email).order('updated_at', { ascending: false }),
           supabase.from('practice_schedule').select('*, pieces(title, composer)').eq('user_id', user.email).order('day_of_week').order('sort_order'),
+          fetch('/api/activity?limit=8').then(r => r.json()),
         ])
         setPieces(piecesRes.data || [])
         setSchedule(scheduleRes.data || [])
+        setRecentActivity(actRes.activities || [])
       } else {
         const [piecesRes, scheduleRes] = await Promise.all([
           fetch(`/api/profile/${encodeURIComponent(activeProfile)}/pieces`).then(r => r.json()),
@@ -129,6 +132,26 @@ export default function Dashboard() {
           ))
         )}
       </section>
+
+      {/* Recent Activity */}
+      {recentActivity.length > 0 && (
+        <section style={{ marginBottom: '32px' }}>
+          <h2 style={{ fontSize: '20px', marginBottom: '16px' }}>Recent Activity</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {recentActivity.map(a => (
+              <div key={a.id} style={{ fontSize: '14px', padding: '10px 14px', background: '#fff', borderRadius: '8px', border: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>
+                  <strong style={{ color: '#374151' }}>{a.action.replace('_', ' ')}</strong>
+                  {a.piece_title && <span style={{ color: '#666' }}> — {a.piece_title}</span>}
+                </span>
+                <span style={{ fontSize: '12px', color: '#999', whiteSpace: 'nowrap', marginLeft: '12px' }}>
+                  {new Date(a.created_at).toLocaleDateString()}
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Quick Actions — only for own profile or edit access */}
       {canEdit && (

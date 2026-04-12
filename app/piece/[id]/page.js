@@ -36,6 +36,11 @@ export default function PieceDetail({ params }) {
   const [bioDraft, setBioDraft] = useState('')
   const [editingNoteId, setEditingNoteId] = useState(null)
   const [editingNoteText, setEditingNoteText] = useState('')
+  const [lightboxUrl, setLightboxUrl] = useState(null)
+  const [goals, setGoals] = useState([])
+  const [newGoalText, setNewGoalText] = useState('')
+  const [tempoLog, setTempoLog] = useState([])
+  const [deletingNoteId, setDeletingNoteId] = useState(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   const supabase = createBrowserClient(
@@ -50,18 +55,22 @@ export default function PieceDetail({ params }) {
 
   async function loadPiece() {
     if (isOwnProfile) {
-      const [pieceRes, imagesRes, notesRes, factsRes, catsRes] = await Promise.all([
+      const [pieceRes, imagesRes, notesRes, factsRes, catsRes, goalsRes, tempoRes] = await Promise.all([
         supabase.from('pieces').select('*, categories(name)').eq('id', id).single(),
         supabase.from('piece_images').select('*').eq('piece_id', id).order('created_at'),
         supabase.from('piece_notes').select('*').eq('piece_id', id).order('created_at', { ascending: false }),
         supabase.from('interesting_facts').select('*').eq('piece_id', id).order('created_at', { ascending: false }),
         supabase.from('categories').select('*').or(`user_id.eq.${user.email},user_id.is.null`).order('sort_order'),
+        supabase.from('piece_goals').select('*').eq('piece_id', id).order('sort_order'),
+        supabase.from('tempo_log').select('*').eq('piece_id', id).order('created_at', { ascending: false }),
       ])
       if (pieceRes.data) { setPiece(pieceRes.data); setForm(pieceRes.data) }
       setImages(imagesRes.data || [])
       setNotes(notesRes.data || [])
       setFacts(factsRes.data || [])
       setCategories(catsRes.data || [])
+      setGoals(goalsRes.data || [])
+      setTempoLog(tempoRes.data || [])
     } else {
       const res = await fetch(`/api/profile/${encodeURIComponent(activeProfile)}/piece/${id}`).then(r => r.json())
       if (res.piece) { setPiece(res.piece); setForm(res.piece) }
@@ -69,12 +78,23 @@ export default function PieceDetail({ params }) {
       setNotes(res.notes || [])
       setFacts(res.facts || [])
       setCategories(res.categories || [])
+      setGoals(res.goals || [])
+      setTempoLog(res.tempoLog || [])
     }
     setLoading(false)
   }
 
   async function handleSave() {
     setSaving(true)
+    // Log tempo change if metronome marking changed
+    const oldBpm = piece.metronome_marking
+    const newBpm = form.metronome_marking
+    if (newBpm && newBpm !== oldBpm) {
+      const bpmNum = parseInt(newBpm.replace(/[^\d]/g, ''))
+      if (bpmNum > 0) {
+        await supabase.from('tempo_log').insert([{ piece_id: id, bpm: bpmNum }])
+      }
+    }
     const { error } = await supabase.from('pieces').update({
       title: form.title, composer: form.composer, book_title: form.book_title,
       book_editor: form.book_editor, key_signature: form.key_signature,
@@ -126,6 +146,56 @@ export default function PieceDetail({ params }) {
     setEditingNoteText('')
     addToast('Note updated!', 'success')
     loadPiece()
+  }
+
+  async function addGoal() {
+    if (!newGoalText.trim()) return
+    const { data, error } = await supabase.from('piece_goals').insert([{
+      piece_id: id, text: newGoalText.trim(), sort_order: goals.length
+    }]).select().single()
+    if (error) { addToast('Failed to add goal', 'error'); return }
+    setGoals(prev => [...prev, data])
+    setNewGoalText('')
+  }
+
+  async function toggleGoal(goalId, completed) {
+    await supabase.from('piece_goals').update({ completed: !completed }).eq('id', goalId)
+    setGoals(prev => prev.map(g => g.id === goalId ? { ...g, completed: !completed } : g))
+  }
+
+  async function deleteGoal(goalId) {
+    await supabase.from('piece_goals').delete().eq('id', goalId)
+    setGoals(prev => prev.filter(g => g.id !== goalId))
+  }
+
+  function exportPiece() {
+    const w = window.open('', '_blank')
+    const html = `<!DOCTYPE html><html><head><title>${piece.title || 'Piece'} - Piano Experience</title>
+      <style>body{font-family:-apple-system,sans-serif;padding:40px;max-width:700px;margin:0 auto;color:#1a1a1a}
+      h1{font-size:24px;margin-bottom:4px}h2{font-size:18px;color:#2563eb;margin:24px 0 12px;border-bottom:1px solid #dbeafe;padding-bottom:6px}
+      .meta{color:#666;font-size:14px}.field{margin-bottom:8px}.label{font-size:12px;color:#999}.value{font-size:14px}
+      .note{padding:8px 12px;background:#f9fafb;border-radius:6px;margin-bottom:6px;font-size:14px;border-left:3px solid #2563eb}
+      .note-meta{font-size:12px;color:#999;margin-bottom:4px}ul{padding-left:20px}li{margin-bottom:4px;font-size:14px}
+      .fact{padding:8px;background:#eff6ff;border-radius:6px;margin-bottom:6px;font-size:14px}</style></head><body>
+      <h1>${piece.title || 'Untitled'}</h1>
+      ${piece.composer ? `<p class="meta">${piece.composer}</p>` : ''}
+      ${piece.categories?.name ? `<p class="meta">${piece.categories.name}</p>` : ''}
+      <h2>Details</h2>
+      ${['Book', 'Editor', 'Key', 'Time', 'Tempo', 'Metronome', 'Difficulty', 'Period'].map((label, i) => {
+        const fields = [piece.book_title, piece.book_editor, piece.key_signature, piece.time_signature, piece.tempo_marking, piece.metronome_marking, piece.difficulty_level, piece.period]
+        return fields[i] ? `<div class="field"><span class="label">${label}:</span> <span class="value">${fields[i]}</span></div>` : ''
+      }).join('')}
+      ${piece.ai_summary ? `<h2>AI Summary</h2><p style="font-size:14px;line-height:1.6">${piece.ai_summary}</p>` : ''}
+      ${piece.composer_bio ? `<h2>About ${piece.composer}</h2><p style="font-size:14px;line-height:1.6">${piece.composer_bio}</p>` : ''}
+      ${goals.length > 0 ? `<h2>Goals</h2><ul>${goals.map(g => `<li>${g.completed ? '✓ ' : '☐ '}${g.text}</li>`).join('')}</ul>` : ''}
+      ${piece.areas_of_focus ? `<h2>Areas of Focus</h2><p style="font-size:14px">${piece.areas_of_focus}</p>` : ''}
+      ${notes.length > 0 ? `<h2>Notes</h2>${notes.map(n => `<div class="note"><div class="note-meta">${n.note_type} — ${new Date(n.created_at).toLocaleDateString()}</div>${n.note}</div>`).join('')}` : ''}
+      ${facts.length > 0 ? `<h2>Interesting Facts</h2>${facts.map(f => `<div class="fact">${f.fact}</div>`).join('')}` : ''}
+      <p style="margin-top:32px;font-size:12px;color:#999">Exported from Piano Experience — ${new Date().toLocaleDateString()}</p>
+      </body></html>`
+    w.document.write(html)
+    w.document.close()
+    w.print()
   }
 
   async function requestFact() {
@@ -225,9 +295,12 @@ export default function PieceDetail({ params }) {
             </span>
           )}
         </div>
-        {canEdit && (
-          <div style={{ display: 'flex', gap: '8px' }}>
-            {!editing ? (
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button onClick={exportPiece} style={{ padding: '8px 16px', background: '#f9fafb', color: '#666', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }} className="no-print">
+            Export
+          </button>
+          {canEdit && (
+            !editing ? (
               <button onClick={() => setEditing(true)} style={{ padding: '8px 16px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>
                 Edit
               </button>
@@ -240,16 +313,16 @@ export default function PieceDetail({ params }) {
                   Cancel
                 </button>
               </>
-            )}
-          </div>
-        )}
+            )
+          )}
+        </div>
       </div>
 
       {/* Images */}
       {images.length > 0 && (
         <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', overflowX: 'auto' }}>
           {images.map(img => (
-            <div key={img.id} style={{ flexShrink: 0 }}>
+            <div key={img.id} style={{ flexShrink: 0, cursor: 'zoom-in' }} onClick={() => setLightboxUrl(img.image_url)}>
               <img src={img.image_url} alt={img.image_type} style={{ height: '200px', borderRadius: '10px', border: '1px solid #e5e7eb' }} />
               <div style={{ fontSize: '12px', color: '#666', textAlign: 'center', marginTop: '4px' }}>{img.image_type.replace('_', ' ')}</div>
             </div>
@@ -406,18 +479,40 @@ export default function PieceDetail({ params }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {notes.map(n => (
               <div key={n.id} style={{ padding: '12px', background: '#f9fafb', borderRadius: '8px', borderLeft: `3px solid ${noteTypeColors[n.note_type] || '#999'}` }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                  <span style={{ fontSize: '12px', fontWeight: '600', color: noteTypeColors[n.note_type] || '#666', textTransform: 'capitalize' }}>{n.note_type}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', flexWrap: 'wrap', gap: '4px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: '600', color: noteTypeColors[n.note_type] || '#666', textTransform: 'capitalize' }}>{n.note_type}</span>
+                    {!isOwnProfile && n.user_id && (
+                      <span style={{ fontSize: '11px', color: '#999', background: '#f3f4f6', padding: '1px 6px', borderRadius: '4px' }}>
+                        {n.user_id === user?.email ? 'You' : n.user_id.split('@')[0]}
+                      </span>
+                    )}
+                  </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontSize: '12px', color: '#999' }}>{new Date(n.created_at).toLocaleString()}</span>
-                    {canEdit && editingNoteId !== n.id && (
-                      <button onClick={() => { setEditingNoteId(n.id); setEditingNoteText(n.note) }}
-                        style={{ fontSize: '12px', color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
-                        Edit
-                      </button>
+                    {canEdit && editingNoteId !== n.id && deletingNoteId !== n.id && (
+                      <>
+                        <button onClick={() => { setEditingNoteId(n.id); setEditingNoteText(n.note) }}
+                          style={{ fontSize: '12px', color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
+                          Edit
+                        </button>
+                        <button onClick={() => setDeletingNoteId(n.id)}
+                          style={{ fontSize: '12px', color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
+                          Delete
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>
+                {deletingNoteId === n.id && (
+                  <div style={{ background: '#fef2f2', borderRadius: '6px', padding: '8px 12px', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
+                    <span style={{ color: '#991b1b' }}>Delete this note?</span>
+                    <button onClick={async () => { await supabase.from('piece_notes').delete().eq('id', n.id); setDeletingNoteId(null); addToast('Note deleted', 'info'); loadPiece() }}
+                      style={{ padding: '4px 10px', background: '#dc2626', color: '#fff', border: 'none', borderRadius: '4px', fontSize: '12px', cursor: 'pointer' }}>Yes</button>
+                    <button onClick={() => setDeletingNoteId(null)}
+                      style={{ padding: '4px 10px', background: '#fff', color: '#666', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '12px', cursor: 'pointer' }}>No</button>
+                  </div>
+                )}
                 {editingNoteId === n.id ? (
                   <div>
                     <textarea value={editingNoteText} onChange={e => setEditingNoteText(e.target.value)} rows={3}
@@ -435,6 +530,65 @@ export default function PieceDetail({ params }) {
           </div>
         )}
       </div>
+
+      {/* Goals Checklist */}
+      <div style={{ background: '#fff', borderRadius: '12px', padding: '24px', border: '1px solid #e5e7eb', marginBottom: '24px' }}>
+        <h2 style={{ fontSize: '18px', color: '#2563eb', marginBottom: '16px' }}>Goals</h2>
+        {goals.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: canEdit ? '12px' : '0' }}>
+            {goals.map(g => (
+              <div key={g.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 0' }}>
+                {canEdit ? (
+                  <button onClick={() => toggleGoal(g.id, g.completed)} style={{
+                    width: '20px', height: '20px', borderRadius: '4px', border: `2px solid ${g.completed ? '#059669' : '#d1d5db'}`,
+                    background: g.completed ? '#059669' : '#fff', color: '#fff', display: 'flex', alignItems: 'center',
+                    justifyContent: 'center', cursor: 'pointer', fontSize: '11px', flexShrink: 0
+                  }}>{g.completed && '✓'}</button>
+                ) : (
+                  <span style={{ fontSize: '14px' }}>{g.completed ? '✓' : '☐'}</span>
+                )}
+                <span style={{ flex: 1, fontSize: '14px', textDecoration: g.completed ? 'line-through' : 'none', color: g.completed ? '#059669' : '#1a1a1a' }}>{g.text}</span>
+                {canEdit && (
+                  <button onClick={() => deleteGoal(g.id)} style={{ background: 'none', border: 'none', color: '#ccc', cursor: 'pointer', fontSize: '16px' }}>×</button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+        {goals.length === 0 && <p style={{ fontSize: '14px', color: '#999', marginBottom: canEdit ? '12px' : '0' }}>No goals set yet.</p>}
+        {canEdit && (
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <input value={newGoalText} onChange={e => setNewGoalText(e.target.value)} placeholder="Add a goal..."
+              onKeyDown={e => e.key === 'Enter' && addGoal()}
+              style={{ flex: 1, padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px' }} />
+            <button onClick={addGoal} style={{ padding: '8px 16px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>Add</button>
+          </div>
+        )}
+      </div>
+
+      {/* Tempo Progress */}
+      {tempoLog.length > 0 && (
+        <div style={{ background: '#fff', borderRadius: '12px', padding: '24px', border: '1px solid #e5e7eb', marginBottom: '24px' }}>
+          <h2 style={{ fontSize: '18px', color: '#2563eb', marginBottom: '16px' }}>Tempo Progress</h2>
+          <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '8px' }}>
+            {tempoLog.slice().reverse().map((t, i) => (
+              <div key={t.id} style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '20px', fontWeight: '700', color: i === tempoLog.length - 1 ? '#2563eb' : '#666' }}>{t.bpm}</div>
+                <div style={{ fontSize: '11px', color: '#999' }}>{new Date(t.created_at).toLocaleDateString()}</div>
+              </div>
+            ))}
+          </div>
+          {tempoLog.length >= 2 && (
+            <div style={{ fontSize: '13px', color: '#059669', marginTop: '8px' }}>
+              {tempoLog[0].bpm > tempoLog[tempoLog.length - 1].bpm
+                ? `+${tempoLog[0].bpm - tempoLog[tempoLog.length - 1].bpm} BPM improvement`
+                : tempoLog[0].bpm < tempoLog[tempoLog.length - 1].bpm
+                ? `${tempoLog[tempoLog.length - 1].bpm - tempoLog[0].bpm} BPM decrease`
+                : 'Same tempo'}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Delete — only for edit access */}
       {canEdit && <div style={{ borderTop: '1px solid #fca5a5', paddingTop: '20px' }}>
@@ -454,6 +608,13 @@ export default function PieceDetail({ params }) {
           </div>
         )}
       </div>}
+
+      {/* Image lightbox */}
+      {lightboxUrl && (
+        <div className="lightbox-overlay" onClick={() => setLightboxUrl(null)}>
+          <img src={lightboxUrl} alt="Full size" />
+        </div>
+      )}
 
       {/* Sticky footer when editing */}
       {editing && (

@@ -72,6 +72,61 @@ button:disabled {
   cursor: not-allowed !important;
 }
 
+/* Touch feedback for mobile */
+button:not(:disabled):active {
+  transform: scale(0.97);
+  filter: brightness(0.9);
+}
+
+a:active {
+  opacity: 0.7;
+}
+
+/* Shimmer skeleton animation */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+}
+
+/* Lightbox overlay */
+.lightbox-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.9);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: zoom-out;
+}
+
+.lightbox-overlay img {
+  max-width: 95vw;
+  max-height: 95vh;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+/* Print styles for PDF export */
+@media print {
+  nav, .no-print, button, .sticky-footer {
+    display: none !important;
+  }
+  body {
+    background: #fff !important;
+  }
+  main {
+    padding: 0 !important;
+  }
+}
+
 /* Mobile: hide table, show cards */
 @media (max-width: 767px) {
   .desktop-table {
