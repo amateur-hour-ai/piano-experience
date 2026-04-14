@@ -90,7 +90,7 @@ export default function PieceDetail({ params }) {
       title: form.title, composer: form.composer, book_title: form.book_title,
       book_editor: form.book_editor, key_signature: form.key_signature,
       time_signature: form.time_signature, tempo_marking: form.tempo_marking,
-      difficulty_level: form.difficulty_level, period: form.period,
+      period: form.period,
       metronome_marking: form.metronome_marking, areas_of_focus: form.areas_of_focus,
       goals: form.goals, category_id: form.category_id || null, ai_summary: form.ai_summary,
     }
@@ -247,8 +247,8 @@ export default function PieceDetail({ params }) {
       ${piece.composer ? `<p class="meta">${piece.composer}</p>` : ''}
       ${piece.categories?.name ? `<p class="meta">${piece.categories.name}</p>` : ''}
       <h2>Details</h2>
-      ${['Book', 'Editor', 'Key', 'Time', 'Tempo', 'Metronome', 'Difficulty', 'Period'].map((label, i) => {
-        const fields = [piece.book_title, piece.book_editor, piece.key_signature, piece.time_signature, piece.tempo_marking, piece.metronome_marking, piece.difficulty_level, piece.period]
+      ${['Book', 'Editor', 'Key', 'Time', 'Tempo', 'Metronome', 'Period'].map((label, i) => {
+        const fields = [piece.book_title, piece.book_editor, piece.key_signature, piece.time_signature, piece.tempo_marking, piece.metronome_marking, piece.period]
         return fields[i] ? `<div class="field"><span class="label">${label}:</span> <span class="value">${fields[i]}</span></div>` : ''
       }).join('')}
       ${piece.ai_summary ? `<h2>AI Summary</h2><p style="font-size:14px;line-height:1.6">${piece.ai_summary}</p>` : ''}
@@ -734,7 +734,7 @@ function DetailGrid({ piece }) {
     ['Book', piece.book_title], ['Editor', piece.book_editor],
     ['Key', piece.key_signature], ['Time', piece.time_signature],
     ['Tempo', piece.tempo_marking], ['Metronome', piece.metronome_marking],
-    ['Difficulty', piece.difficulty_level], ['Period', piece.period],
+    ['Period', piece.period],
   ].filter(([, v]) => v)
 
   return (
@@ -776,7 +776,7 @@ function EditForm({ form, setForm, categories }) {
         ['Title', 'title'], ['Composer', 'composer'], ['Book Title', 'book_title'], ['Book Editor', 'book_editor'],
         ['Key Signature', 'key_signature'], ['Time Signature', 'time_signature'],
         ['Tempo Marking', 'tempo_marking'], ['Metronome', 'metronome_marking'],
-        ['Difficulty', 'difficulty_level'], ['Period', 'period'],
+        ['Period', 'period'],
       ].map(([label, field]) => (
         <div key={field} style={{ marginBottom: '12px' }}>
           <label style={{ display: 'block', fontSize: '13px', color: '#666', marginBottom: '4px' }}>{label}</label>

@@ -160,6 +160,13 @@ function UserGuide() {
 function ReleaseNotes() {
   const releases = [
     {
+      version: '2.1',
+      date: '2026-04-14',
+      changes: [
+        'Removed difficulty level field from all screens — pieces are no longer categorized by level',
+      ]
+    },
+    {
       version: '2.0',
       date: '2026-04-11',
       changes: [

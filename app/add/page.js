@@ -32,7 +32,7 @@ export default function AddPiece() {
   const [form, setForm] = useState({
     title: '', composer: '', book_title: '', book_editor: '',
     key_signature: '', time_signature: '', tempo_marking: '',
-    difficulty_level: '', period: '', ai_summary: '',
+    period: '', ai_summary: '',
     metronome_marking: '', areas_of_focus: '', goals: '',
     category_id: '',
   })
@@ -121,7 +121,6 @@ export default function AddPiece() {
           book_editor: a.book_editor || prev.book_editor,
           time_signature: a.time_signature || prev.time_signature,
           tempo_marking: a.tempo_marking || prev.tempo_marking,
-          difficulty_level: a.difficulty_level || prev.difficulty_level,
           period: a.period || prev.period,
           ai_summary: a.ai_summary || prev.ai_summary,
         }))
@@ -170,7 +169,6 @@ export default function AddPiece() {
         key_signature: form.key_signature || null,
         time_signature: form.time_signature || null,
         tempo_marking: form.tempo_marking || null,
-        difficulty_level: form.difficulty_level || null,
         period: form.period || null,
         ai_summary: form.ai_summary || null,
         metronome_marking: form.metronome_marking || null,
@@ -361,19 +359,7 @@ export default function AddPiece() {
               <FormField label="Metronome" value={form.metronome_marking} onChange={v => updateForm('metronome_marking', v)} placeholder="e.g. ♩= 120" />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>Difficulty</label>
-                <select value={form.difficulty_level} onChange={e => updateForm('difficulty_level', e.target.value)}
-                  style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', background: '#fff' }}>
-                  <option value="">Select...</option>
-                  <option>Beginner</option>
-                  <option>Intermediate</option>
-                  <option>Advanced</option>
-                </select>
-              </div>
-              <FormField label="Period" value={form.period} onChange={v => updateForm('period', v)} placeholder="e.g. Baroque, Classical" />
-            </div>
+            <FormField label="Period" value={form.period} onChange={v => updateForm('period', v)} placeholder="e.g. Baroque, Classical" />
 
             {/* Category */}
             <div style={{ marginBottom: '16px' }}>

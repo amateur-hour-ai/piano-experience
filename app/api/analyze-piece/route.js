@@ -44,7 +44,6 @@ export async function POST(request) {
   "key_signature": "e.g. C Major, A minor",
   "time_signature": "e.g. 4/4, 3/4",
   "tempo_marking": "e.g. Allegro, Andante",
-  "difficulty_level": "Beginner/Intermediate/Advanced",
   "period": "e.g. Baroque, Classical, Romantic, Modern",
   "ai_summary": "A 2-3 sentence interesting description about this piece, the composer, or the musical period. Make it engaging and educational."
 }
