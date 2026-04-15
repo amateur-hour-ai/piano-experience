@@ -57,9 +57,15 @@ export default function BackgroundCacher() {
             allPieces.push(...(pData.pieces || []))
           }
         }
-        // Prefetch each piece detail page to warm the SW cache
-        for (const piece of allPieces) {
-          fetch(`/piece/${piece.id}`, { signal: AbortSignal.timeout(5000) }).catch(() => {})
+        // Prefetch each piece detail page AND other key pages to warm the SW cache
+        const pagesToCache = [
+          '/', '/pieces', '/schedule', '/strategies', '/experiences',
+          ...allPieces.map(p => `/piece/${p.id}`)
+        ]
+        for (const url of pagesToCache) {
+          try {
+            await fetch(url, { signal: AbortSignal.timeout(5000) })
+          } catch {}
         }
       } catch {}
 
