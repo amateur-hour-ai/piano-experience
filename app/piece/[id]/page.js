@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect, useRef, use } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { useCurrentUser } from '@/lib/useCurrentUser'
 import { useActiveProfile } from '@/lib/useActiveProfile'
@@ -10,8 +10,8 @@ import { useToast } from '@/app/ToastProvider'
 import { logActivity } from '@/lib/logActivity'
 import { useOfflineData } from '@/lib/useOfflineData'
 
-export default function PieceDetail({ params }) {
-  const { id } = use(params)
+export default function PieceDetail() {
+  const { id } = useParams()
   const { activeProfile, isOwnProfile, canEdit } = useActiveProfile()
   const { isOnline, getCachedPieceDetail } = useOfflineData()
   const router = useRouter()
@@ -46,79 +46,78 @@ export default function PieceDetail({ params }) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   )
 
+  // Load cached data immediately (just needs id, no user/profile needed)
   useEffect(() => {
-    if (userLoading || !user || !activeProfile) return
-    loadPiece()
-    // Failsafe: never hang on loading for more than 5 seconds
-    const failsafe = setTimeout(() => setLoading(false), 5000)
-    return () => clearTimeout(failsafe)
+    if (!id) return
+    loadCachedData()
+  }, [id])
+
+  // Refresh from network when user/profile are available
+  useEffect(() => {
+    if (userLoading || !user || !activeProfile || !id) return
+    refreshFromNetwork()
   }, [userLoading, user, id, activeProfile])
 
-  async function loadPiece() {
+  async function loadCachedData() {
     try {
-      // Try cache first for instant display
-      let cacheHit = false
-      try {
-        const cached = await getCachedPieceDetail(id)
-        if (cached?.piece) {
-          setPiece(cached.piece); setForm(cached.piece)
-          setImages(cached.images || [])
-          setNotes(cached.notes || [])
-          setFacts(cached.facts || [])
-          setCategories(cached.categories || [])
-          setGoals(cached.goals || [])
-          setTempoLog(cached.tempoLog || [])
-          cacheHit = true
-          setLoading(false)
-        }
-      } catch (cacheErr) {
-        console.error('Cache read failed:', cacheErr)
-      }
-
-      // If online, refresh from network (with timeout)
-      if (isOnline) {
-        try {
-          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
-
-          if (isOwnProfile) {
-            const dataPromise = Promise.all([
-              supabase.from('pieces').select('*, categories(name)').eq('id', id).single(),
-              supabase.from('piece_images').select('*').eq('piece_id', id).order('created_at'),
-              supabase.from('piece_notes').select('*').eq('piece_id', id).order('created_at', { ascending: false }),
-              supabase.from('interesting_facts').select('*').eq('piece_id', id).order('created_at', { ascending: false }),
-              supabase.from('categories').select('*').or(`user_id.eq.${user.email},user_id.is.null`).order('sort_order'),
-              supabase.from('piece_goals').select('*').eq('piece_id', id).order('sort_order'),
-              supabase.from('tempo_log').select('*').eq('piece_id', id).order('created_at', { ascending: false }),
-            ])
-            const [pieceRes, imagesRes, notesRes, factsRes, catsRes, goalsRes, tempoRes] = await Promise.race([dataPromise, timeoutPromise])
-            if (pieceRes.data) { setPiece(pieceRes.data); setForm(pieceRes.data) }
-            setImages(imagesRes.data || [])
-            setNotes(notesRes.data || [])
-            setFacts(factsRes.data || [])
-            setCategories(catsRes.data || [])
-            setGoals(goalsRes.data || [])
-            setTempoLog(tempoRes.data || [])
-          } else {
-            const res = await Promise.race([
-              fetch(`/api/profile/${encodeURIComponent(activeProfile)}/piece/${id}`, { signal: AbortSignal.timeout(5000) }).then(r => r.json()),
-              timeoutPromise
-            ])
-            if (res.piece) { setPiece(res.piece); setForm(res.piece) }
-            setImages(res.images || [])
-            setNotes(res.notes || [])
-            setFacts(res.facts || [])
-            setCategories(res.categories || [])
-            setGoals(res.goals || [])
-            setTempoLog(res.tempoLog || [])
-          }
-        } catch {
-          // Network failed or timed out — cached data already displayed above
-        }
+      const cached = await getCachedPieceDetail(id)
+      if (cached?.piece) {
+        setPiece(cached.piece); setForm(cached.piece)
+        setImages(cached.images || [])
+        setNotes(cached.notes || [])
+        setFacts(cached.facts || [])
+        setCategories(cached.categories || [])
+        setGoals(cached.goals || [])
+        setTempoLog(cached.tempoLog || [])
       }
     } catch (err) {
-      console.error('loadPiece failed entirely:', err)
+      console.error('Cache read failed:', err)
     }
     setLoading(false)
+  }
+
+  async function refreshFromNetwork() {
+    if (!isOnline) return
+    try {
+      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
+      if (isOwnProfile) {
+        const dataPromise = Promise.all([
+          supabase.from('pieces').select('*, categories(name)').eq('id', id).single(),
+          supabase.from('piece_images').select('*').eq('piece_id', id).order('created_at'),
+          supabase.from('piece_notes').select('*').eq('piece_id', id).order('created_at', { ascending: false }),
+          supabase.from('interesting_facts').select('*').eq('piece_id', id).order('created_at', { ascending: false }),
+          supabase.from('categories').select('*').or(`user_id.eq.${user.email},user_id.is.null`).order('sort_order'),
+          supabase.from('piece_goals').select('*').eq('piece_id', id).order('sort_order'),
+          supabase.from('tempo_log').select('*').eq('piece_id', id).order('created_at', { ascending: false }),
+        ])
+        const [pieceRes, imagesRes, notesRes, factsRes, catsRes, goalsRes, tempoRes] = await Promise.race([dataPromise, timeoutPromise])
+        if (pieceRes.data) { setPiece(pieceRes.data); setForm(pieceRes.data) }
+        setImages(imagesRes.data || [])
+        setNotes(notesRes.data || [])
+        setFacts(factsRes.data || [])
+        setCategories(catsRes.data || [])
+        setGoals(goalsRes.data || [])
+        setTempoLog(tempoRes.data || [])
+      } else {
+        const res = await Promise.race([
+          fetch(`/api/profile/${encodeURIComponent(activeProfile)}/piece/${id}`, { signal: AbortSignal.timeout(5000) }).then(r => r.json()),
+          timeoutPromise
+        ])
+        if (res.piece) { setPiece(res.piece); setForm(res.piece) }
+        setImages(res.images || [])
+        setNotes(res.notes || [])
+        setFacts(res.facts || [])
+        setCategories(res.categories || [])
+        setGoals(res.goals || [])
+        setTempoLog(res.tempoLog || [])
+      }
+    } catch {}
+  }
+
+  // Called after edits to reload data
+  async function loadPiece() {
+    await loadCachedData()
+    await refreshFromNetwork()
   }
 
   async function handleSave() {
