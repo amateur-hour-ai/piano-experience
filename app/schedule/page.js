@@ -7,6 +7,7 @@ import { useCurrentUser } from '@/lib/useCurrentUser'
 import { useActiveProfile } from '@/lib/useActiveProfile'
 import { useToast } from '@/app/ToastProvider'
 import { logActivity } from '@/lib/logActivity'
+import { useOfflineData } from '@/lib/useOfflineData'
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
@@ -14,6 +15,7 @@ export default function PracticeSchedule() {
   const { user, loading: userLoading } = useCurrentUser()
   const { activeProfile, isOwnProfile, canEdit, profileDisplayName } = useActiveProfile()
   const { addToast } = useToast()
+  const { isOnline, getCachedProfileData } = useOfflineData()
   const [schedule, setSchedule] = useState([])
   const [pieces, setPieces] = useState([])
   const [loading, setLoading] = useState(true)
@@ -34,26 +36,42 @@ export default function PracticeSchedule() {
   }, [userLoading, user, activeProfile])
 
   async function loadData() {
-    if (isOwnProfile) {
-      const [schedRes, piecesRes] = await Promise.all([
-        supabase.from('practice_schedule')
-          .select('*, pieces(title, composer)')
-          .eq('user_id', user.email)
-          .order('day_of_week')
-          .order('sort_order'),
-        supabase.from('pieces').select('id, title, composer').eq('user_id', user.email).order('title'),
-      ])
-      setSchedule(schedRes.data || [])
-      setPieces(piecesRes.data || [])
+    if (isOnline) {
+      try {
+        if (isOwnProfile) {
+          const [schedRes, piecesRes] = await Promise.all([
+            supabase.from('practice_schedule')
+              .select('*, pieces(title, composer)')
+              .eq('user_id', user.email)
+              .order('day_of_week')
+              .order('sort_order'),
+            supabase.from('pieces').select('id, title, composer').eq('user_id', user.email).order('title'),
+          ])
+          setSchedule(schedRes.data || [])
+          setPieces(piecesRes.data || [])
+        } else {
+          const [schedRes, piecesRes] = await Promise.all([
+            fetch(`/api/profile/${encodeURIComponent(activeProfile)}/schedule`).then(r => r.json()),
+            fetch(`/api/profile/${encodeURIComponent(activeProfile)}/pieces`).then(r => r.json()),
+          ])
+          setSchedule(schedRes.schedule || [])
+          setPieces(piecesRes.pieces || [])
+        }
+      } catch {
+        await loadFromCache()
+      }
     } else {
-      const [schedRes, piecesRes] = await Promise.all([
-        fetch(`/api/profile/${encodeURIComponent(activeProfile)}/schedule`).then(r => r.json()),
-        fetch(`/api/profile/${encodeURIComponent(activeProfile)}/pieces`).then(r => r.json()),
-      ])
-      setSchedule(schedRes.schedule || [])
-      setPieces(piecesRes.pieces || [])
+      await loadFromCache()
     }
     setLoading(false)
+  }
+
+  async function loadFromCache() {
+    const cached = await getCachedProfileData(activeProfile)
+    if (cached) {
+      setSchedule(cached.schedule || [])
+      setPieces(cached.pieces || [])
+    }
   }
 
   function isCompletedToday(item) {

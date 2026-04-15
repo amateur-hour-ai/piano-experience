@@ -163,6 +163,26 @@ function UserGuide() {
         <Note>You can change the access level or revoke access at any time from the Sharing page. The profile switcher in the nav bar shows all profiles you have access to — tap to switch between them.</Note>
       </Section>
 
+      <Section title="Offline Mode">
+        <p style={{ fontSize: '15px', lineHeight: '1.7', color: '#333', marginBottom: '16px' }}>
+          Piano Experience works offline! Your data is cached on your device so you can view and edit during piano lessons without internet.
+        </p>
+        <Step n="1">Open the app while on wifi — your data (and any shared profiles) is automatically cached in the background.</Step>
+        <Step n="2">When offline, all your pieces, notes, schedule, strategies, and experiences are available from the cache.</Step>
+        <Step n="3">You can add notes, edit pieces, update goals, and log experiences while offline. Changes queue locally.</Step>
+        <Step n="4">When you're back online, queued changes sync automatically. You'll see a confirmation.</Step>
+        <Note>A status bar at the bottom shows your connection state and any pending changes. AI features (piece analysis, interesting facts) and image uploads require internet. For best results, open the app at least once a week to keep the cache fresh.</Note>
+      </Section>
+
+      <Section title="Add to Home Screen">
+        <p style={{ fontSize: '15px', lineHeight: '1.7', color: '#333', marginBottom: '16px' }}>
+          Install Piano Experience on your device for the best experience:
+        </p>
+        <Step n="1">On iPhone: open the app in Safari, tap the Share button, then tap <strong>Add to Home Screen</strong>.</Step>
+        <Step n="2">On Android: open in Chrome, tap the menu, then <strong>Install app</strong> or <strong>Add to Home Screen</strong>.</Step>
+        <Note>The app launches full-screen like a native app and loads faster from your home screen.</Note>
+      </Section>
+
       <Section title="Account">
         <p style={{ fontSize: '15px', lineHeight: '1.7', color: '#333' }}>
           Sign up with your email and password. Your account is automatically approved — no waiting required. To sign out, tap the menu in the top right and select <strong>Sign Out</strong>.
@@ -174,6 +194,19 @@ function UserGuide() {
 
 function ReleaseNotes() {
   const releases = [
+    {
+      version: '4.0',
+      date: '2026-04-15',
+      changes: [
+        'Progressive Web App (PWA) — add to your home screen for a native app experience',
+        'Offline mode — view and edit all data without internet; changes sync when connected',
+        'Background data caching — your data and shared profiles are pre-loaded for offline use',
+        'Offline status indicator — see when you\'re offline and how many changes are pending sync',
+        'Flaky connection handling — automatically falls back to cached data when connection is poor',
+        'Service Worker caching — app loads instantly from device cache',
+        'Sync queue persists across app closes — changes won\'t be lost',
+      ]
+    },
     {
       version: '3.0',
       date: '2026-04-14',

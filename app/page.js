@@ -5,10 +5,12 @@ import { createBrowserClient } from '@supabase/ssr'
 import Link from 'next/link'
 import { useCurrentUser } from '@/lib/useCurrentUser'
 import { useActiveProfile } from '@/lib/useActiveProfile'
+import { useOfflineData } from '@/lib/useOfflineData'
 
 export default function Dashboard() {
   const { user, loading: userLoading } = useCurrentUser()
   const { activeProfile, isOwnProfile, canEdit, profileDisplayName } = useActiveProfile()
+  const { isOnline, fetchOrCache, getCachedProfileData, getCachedTheme } = useOfflineData()
   const [pieces, setPieces] = useState([])
   const [schedule, setSchedule] = useState([])
   const [recentActivity, setRecentActivity] = useState([])
@@ -24,29 +26,50 @@ export default function Dashboard() {
     if (userLoading || !user || !activeProfile) return
     setLoading(true)
     async function load() {
-      // Load theme for everyone
-      fetch('/api/theme').then(r => r.json()).then(d => setTheme(d.theme)).catch(() => {})
+      // Load theme — try network, fall back to cache
+      const themeResult = await fetchOrCache('/api/theme', getCachedTheme)
+      setTheme(themeResult.data?.theme || themeResult.data || null)
 
-      if (isOwnProfile) {
-        const [piecesRes, scheduleRes, actRes] = await Promise.all([
-          supabase.from('pieces').select('*, categories(name)').eq('user_id', user.email).order('updated_at', { ascending: false }),
-          supabase.from('practice_schedule').select('*, pieces(title, composer)').eq('user_id', user.email).order('day_of_week').order('sort_order'),
-          fetch(`/api/activity?limit=8&user_email=${encodeURIComponent(user.email)}`).then(r => r.json()),
-        ])
-        setPieces(piecesRes.data || [])
-        setSchedule(scheduleRes.data || [])
-        setRecentActivity(actRes.activities || [])
+      if (isOnline) {
+        // Online path — fetch from server
+        try {
+          if (isOwnProfile) {
+            const [piecesRes, scheduleRes, actRes] = await Promise.all([
+              supabase.from('pieces').select('*, categories(name)').eq('user_id', user.email).order('updated_at', { ascending: false }),
+              supabase.from('practice_schedule').select('*, pieces(title, composer)').eq('user_id', user.email).order('day_of_week').order('sort_order'),
+              fetch(`/api/activity?limit=8&user_email=${encodeURIComponent(user.email)}`).then(r => r.json()),
+            ])
+            setPieces(piecesRes.data || [])
+            setSchedule(scheduleRes.data || [])
+            setRecentActivity(actRes.activities || [])
+          } else {
+            const [piecesRes, scheduleRes, actRes] = await Promise.all([
+              fetch(`/api/profile/${encodeURIComponent(activeProfile)}/pieces`).then(r => r.json()),
+              fetch(`/api/profile/${encodeURIComponent(activeProfile)}/schedule`).then(r => r.json()),
+              fetch(`/api/activity?limit=8&user_email=${encodeURIComponent(activeProfile)}`).then(r => r.json()),
+            ])
+            setPieces(piecesRes.pieces || [])
+            setSchedule(scheduleRes.schedule || [])
+            setRecentActivity(actRes.activities || [])
+          }
+        } catch {
+          // Network failed mid-request — fall back to cache
+          await loadFromCache()
+        }
       } else {
-        const [piecesRes, scheduleRes, actRes] = await Promise.all([
-          fetch(`/api/profile/${encodeURIComponent(activeProfile)}/pieces`).then(r => r.json()),
-          fetch(`/api/profile/${encodeURIComponent(activeProfile)}/schedule`).then(r => r.json()),
-          fetch(`/api/activity?limit=8&user_email=${encodeURIComponent(activeProfile)}`).then(r => r.json()),
-        ])
-        setPieces(piecesRes.pieces || [])
-        setSchedule(scheduleRes.schedule || [])
-        setRecentActivity(actRes.activities || [])
+        // Offline — load from IndexedDB
+        await loadFromCache()
       }
       setLoading(false)
+    }
+
+    async function loadFromCache() {
+      const cached = await getCachedProfileData(activeProfile)
+      if (cached) {
+        setPieces(cached.pieces || [])
+        setSchedule(cached.schedule || [])
+        setRecentActivity(cached.activities || [])
+      }
     }
     load()
   }, [userLoading, user, activeProfile])

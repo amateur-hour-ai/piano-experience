@@ -8,10 +8,12 @@ import { useCurrentUser } from '@/lib/useCurrentUser'
 import { useActiveProfile } from '@/lib/useActiveProfile'
 import { useToast } from '@/app/ToastProvider'
 import { logActivity } from '@/lib/logActivity'
+import { useOfflineData } from '@/lib/useOfflineData'
 
 export default function PieceDetail({ params }) {
   const { id } = use(params)
   const { activeProfile, isOwnProfile, canEdit } = useActiveProfile()
+  const { isOnline, getCachedPieceDetail } = useOfflineData()
   const router = useRouter()
   const { user, loading: userLoading } = useCurrentUser()
   const { addToast } = useToast()
@@ -50,34 +52,55 @@ export default function PieceDetail({ params }) {
   }, [userLoading, user, id, activeProfile])
 
   async function loadPiece() {
-    if (isOwnProfile) {
-      const [pieceRes, imagesRes, notesRes, factsRes, catsRes, goalsRes, tempoRes] = await Promise.all([
-        supabase.from('pieces').select('*, categories(name)').eq('id', id).single(),
-        supabase.from('piece_images').select('*').eq('piece_id', id).order('created_at'),
-        supabase.from('piece_notes').select('*').eq('piece_id', id).order('created_at', { ascending: false }),
-        supabase.from('interesting_facts').select('*').eq('piece_id', id).order('created_at', { ascending: false }),
-        supabase.from('categories').select('*').or(`user_id.eq.${user.email},user_id.is.null`).order('sort_order'),
-        supabase.from('piece_goals').select('*').eq('piece_id', id).order('sort_order'),
-        supabase.from('tempo_log').select('*').eq('piece_id', id).order('created_at', { ascending: false }),
-      ])
-      if (pieceRes.data) { setPiece(pieceRes.data); setForm(pieceRes.data) }
-      setImages(imagesRes.data || [])
-      setNotes(notesRes.data || [])
-      setFacts(factsRes.data || [])
-      setCategories(catsRes.data || [])
-      setGoals(goalsRes.data || [])
-      setTempoLog(tempoRes.data || [])
+    if (isOnline) {
+      try {
+        if (isOwnProfile) {
+          const [pieceRes, imagesRes, notesRes, factsRes, catsRes, goalsRes, tempoRes] = await Promise.all([
+            supabase.from('pieces').select('*, categories(name)').eq('id', id).single(),
+            supabase.from('piece_images').select('*').eq('piece_id', id).order('created_at'),
+            supabase.from('piece_notes').select('*').eq('piece_id', id).order('created_at', { ascending: false }),
+            supabase.from('interesting_facts').select('*').eq('piece_id', id).order('created_at', { ascending: false }),
+            supabase.from('categories').select('*').or(`user_id.eq.${user.email},user_id.is.null`).order('sort_order'),
+            supabase.from('piece_goals').select('*').eq('piece_id', id).order('sort_order'),
+            supabase.from('tempo_log').select('*').eq('piece_id', id).order('created_at', { ascending: false }),
+          ])
+          if (pieceRes.data) { setPiece(pieceRes.data); setForm(pieceRes.data) }
+          setImages(imagesRes.data || [])
+          setNotes(notesRes.data || [])
+          setFacts(factsRes.data || [])
+          setCategories(catsRes.data || [])
+          setGoals(goalsRes.data || [])
+          setTempoLog(tempoRes.data || [])
+        } else {
+          const res = await fetch(`/api/profile/${encodeURIComponent(activeProfile)}/piece/${id}`).then(r => r.json())
+          if (res.piece) { setPiece(res.piece); setForm(res.piece) }
+          setImages(res.images || [])
+          setNotes(res.notes || [])
+          setFacts(res.facts || [])
+          setCategories(res.categories || [])
+          setGoals(res.goals || [])
+          setTempoLog(res.tempoLog || [])
+        }
+      } catch {
+        await loadFromCache()
+      }
     } else {
-      const res = await fetch(`/api/profile/${encodeURIComponent(activeProfile)}/piece/${id}`).then(r => r.json())
-      if (res.piece) { setPiece(res.piece); setForm(res.piece) }
-      setImages(res.images || [])
-      setNotes(res.notes || [])
-      setFacts(res.facts || [])
-      setCategories(res.categories || [])
-      setGoals(res.goals || [])
-      setTempoLog(res.tempoLog || [])
+      await loadFromCache()
     }
     setLoading(false)
+  }
+
+  async function loadFromCache() {
+    const cached = await getCachedPieceDetail(id)
+    if (cached) {
+      if (cached.piece) { setPiece(cached.piece); setForm(cached.piece) }
+      setImages(cached.images || [])
+      setNotes(cached.notes || [])
+      setFacts(cached.facts || [])
+      setCategories(cached.categories || [])
+      setGoals(cached.goals || [])
+      setTempoLog(cached.tempoLog || [])
+    }
   }
 
   async function handleSave() {

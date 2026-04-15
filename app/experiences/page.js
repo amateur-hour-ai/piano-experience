@@ -5,11 +5,13 @@ import Link from 'next/link'
 import { useCurrentUser } from '@/lib/useCurrentUser'
 import { useActiveProfile } from '@/lib/useActiveProfile'
 import { useToast } from '@/app/ToastProvider'
+import { useOfflineData } from '@/lib/useOfflineData'
 
 export default function ExperienceLog() {
   const { user, loading: userLoading } = useCurrentUser()
   const { activeProfile, isOwnProfile, canEdit, profileDisplayName } = useActiveProfile()
   const { addToast } = useToast()
+  const { isOnline, getCachedProfileData } = useOfflineData()
   const [experiences, setExperiences] = useState([])
   const [loading, setLoading] = useState(true)
   const [adding, setAdding] = useState(false)
@@ -23,10 +25,20 @@ export default function ExperienceLog() {
 
   async function loadExperiences() {
     setLoading(true)
-    const profileParam = isOwnProfile ? '' : `?profile=${encodeURIComponent(activeProfile)}`
-    const res = await fetch(`/api/experiences${profileParam}`)
-    const data = await res.json()
-    setExperiences(data.experiences || [])
+    if (isOnline) {
+      try {
+        const profileParam = isOwnProfile ? '' : `?profile=${encodeURIComponent(activeProfile)}`
+        const res = await fetch(`/api/experiences${profileParam}`)
+        const data = await res.json()
+        setExperiences(data.experiences || [])
+      } catch {
+        const cached = await getCachedProfileData(activeProfile)
+        if (cached) setExperiences(cached.experiences || [])
+      }
+    } else {
+      const cached = await getCachedProfileData(activeProfile)
+      if (cached) setExperiences(cached.experiences || [])
+    }
     setLoading(false)
   }
 

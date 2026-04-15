@@ -5,11 +5,13 @@ import Link from 'next/link'
 import { useCurrentUser } from '@/lib/useCurrentUser'
 import { useActiveProfile } from '@/lib/useActiveProfile'
 import { useToast } from '@/app/ToastProvider'
+import { useOfflineData } from '@/lib/useOfflineData'
 
 export default function Strategies() {
   const { user, isAdmin, loading: userLoading } = useCurrentUser()
   const { activeProfile, isOwnProfile, canEdit, profileDisplayName } = useActiveProfile()
   const { addToast } = useToast()
+  const { isOnline, getCachedProfileData } = useOfflineData()
   const [strategies, setStrategies] = useState([])
   const [loading, setLoading] = useState(true)
   const [editMode, setEditMode] = useState(false)
@@ -23,10 +25,20 @@ export default function Strategies() {
 
   async function loadStrategies() {
     setLoading(true)
-    const params = editingStandard ? '?standard=true' : `?profile=${encodeURIComponent(isOwnProfile ? user.email : activeProfile)}`
-    const res = await fetch(`/api/strategies${params}`)
-    const data = await res.json()
-    setStrategies(data.strategies || [])
+    if (isOnline) {
+      try {
+        const params = editingStandard ? '?standard=true' : `?profile=${encodeURIComponent(isOwnProfile ? user.email : activeProfile)}`
+        const res = await fetch(`/api/strategies${params}`)
+        const data = await res.json()
+        setStrategies(data.strategies || [])
+      } catch {
+        const cached = await getCachedProfileData(activeProfile)
+        if (cached) setStrategies(cached.strategies || [])
+      }
+    } else {
+      const cached = await getCachedProfileData(activeProfile)
+      if (cached) setStrategies(cached.strategies || [])
+    }
     setLoading(false)
   }
 

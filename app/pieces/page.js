@@ -6,10 +6,12 @@ import Link from 'next/link'
 import { useCurrentUser } from '@/lib/useCurrentUser'
 import { useActiveProfile } from '@/lib/useActiveProfile'
 import EmptyState, { Skeleton } from '@/app/EmptyState'
+import { useOfflineData } from '@/lib/useOfflineData'
 
 export default function Pieces() {
   const { user, loading: userLoading } = useCurrentUser()
   const { activeProfile, isOwnProfile, canEdit, profileDisplayName } = useActiveProfile()
+  const { isOnline, getCachedProfileData } = useOfflineData()
   const [pieces, setPieces] = useState([])
   const [categories, setCategories] = useState([])
   const [search, setSearch] = useState('')
@@ -27,22 +29,36 @@ export default function Pieces() {
     if (userLoading || !user || !activeProfile) return
     setLoading(true)
     async function load() {
-      if (isOwnProfile) {
-        const [piecesRes, catsRes] = await Promise.all([
-          supabase.from('pieces').select('*, categories(name)').eq('user_id', user.email).order('updated_at', { ascending: false }),
-          supabase.from('categories').select('*').or(`user_id.eq.${user.email},user_id.is.null`).order('sort_order'),
-        ])
-        setPieces(piecesRes.data || [])
-        setCategories(catsRes.data || [])
+      if (isOnline) {
+        try {
+          if (isOwnProfile) {
+            const [piecesRes, catsRes] = await Promise.all([
+              supabase.from('pieces').select('*, categories(name)').eq('user_id', user.email).order('updated_at', { ascending: false }),
+              supabase.from('categories').select('*').or(`user_id.eq.${user.email},user_id.is.null`).order('sort_order'),
+            ])
+            setPieces(piecesRes.data || [])
+            setCategories(catsRes.data || [])
+          } else {
+            const res = await fetch(`/api/profile/${encodeURIComponent(activeProfile)}/pieces`).then(r => r.json())
+            setPieces(res.pieces || [])
+            const cats = {}
+            res.pieces?.forEach(p => { if (p.categories?.name) cats[p.category_id] = { id: p.category_id, name: p.categories.name } })
+            setCategories(Object.values(cats))
+          }
+        } catch {
+          await loadFromCache()
+        }
       } else {
-        const res = await fetch(`/api/profile/${encodeURIComponent(activeProfile)}/pieces`).then(r => r.json())
-        setPieces(res.pieces || [])
-        // Extract unique categories from pieces
-        const cats = {}
-        res.pieces?.forEach(p => { if (p.categories?.name) cats[p.category_id] = { id: p.category_id, name: p.categories.name } })
-        setCategories(Object.values(cats))
+        await loadFromCache()
       }
       setLoading(false)
+    }
+    async function loadFromCache() {
+      const cached = await getCachedProfileData(activeProfile)
+      if (cached) {
+        setPieces(cached.pieces || [])
+        setCategories(cached.categories || [])
+      }
     }
     load()
   }, [userLoading, user, activeProfile])
