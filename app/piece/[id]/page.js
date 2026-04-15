@@ -623,12 +623,17 @@ export default function PieceDetail({ params }) {
         <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
           <button onClick={async () => {
             const newArchived = !piece.archived
+            let success = false
             if (isOwnProfile) {
-              await supabase.from('pieces').update({ archived: newArchived }).eq('id', id)
+              const res = await supabase.from('pieces').update({ archived: newArchived }).eq('id', id)
+              success = !res.error
             } else {
-              await fetch(pieceApiBase, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+              const res = await fetch(pieceApiBase, { method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'update_field', field: 'archived', value: newArchived }) })
+              const data = await res.json()
+              success = !data.error
             }
+            if (!success) { addToast('Failed to update', 'error'); return }
             setPiece(prev => ({ ...prev, archived: newArchived }))
             addToast(newArchived ? 'Piece archived' : 'Piece restored', 'success')
           }} style={{ padding: '10px 20px', background: piece.archived ? '#dbeafe' : '#f9fafb', color: piece.archived ? '#2563eb' : '#666', border: `1px solid ${piece.archived ? '#93c5fd' : '#d1d5db'}`, borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>

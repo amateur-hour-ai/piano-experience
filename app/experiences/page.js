@@ -54,11 +54,13 @@ export default function ExperienceLog() {
   }
 
   async function deleteExperience(id) {
-    await fetch('/api/experiences', {
+    const res = await fetch('/api/experiences', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'delete', id, profileEmail: isOwnProfile ? undefined : activeProfile })
     })
+    const data = await res.json()
+    if (data.error) { addToast('Failed to delete', 'error'); return }
     addToast('Experience removed', 'info')
     loadExperiences()
   }

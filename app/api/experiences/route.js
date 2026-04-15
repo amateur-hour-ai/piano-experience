@@ -62,13 +62,13 @@ export async function POST(request) {
   if (action === 'update') {
     const { error } = await supabase.from('experience_log').update({
       date: body.date, summary: body.summary, feedback: body.feedback, assignments: body.assignments
-    }).eq('id', body.id)
+    }).eq('id', body.id).eq('user_email', targetEmail)
     if (error) return Response.json({ error: error.message }, { status: 500 })
     return Response.json({ success: true })
   }
 
   if (action === 'delete') {
-    await supabase.from('experience_log').delete().eq('id', body.id)
+    await supabase.from('experience_log').delete().eq('id', body.id).eq('user_email', targetEmail)
     return Response.json({ success: true })
   }
 

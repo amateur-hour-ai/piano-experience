@@ -19,8 +19,9 @@ async function getAuthEmail() {
 
 export async function GET() {
   const supabase = adminSupabase()
-  const { data } = await supabase.from('theme_of_week').select('*').order('created_at', { ascending: false }).limit(1).single()
-  return Response.json({ theme: data || null })
+  const { data, error } = await supabase.from('theme_of_week').select('*').order('created_at', { ascending: false }).limit(1)
+  if (error) return Response.json({ error: error.message }, { status: 500 })
+  return Response.json({ theme: data?.[0] || null })
 }
 
 export async function POST(request) {

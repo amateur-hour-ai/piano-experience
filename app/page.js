@@ -37,12 +37,14 @@ export default function Dashboard() {
         setSchedule(scheduleRes.data || [])
         setRecentActivity(actRes.activities || [])
       } else {
-        const [piecesRes, scheduleRes] = await Promise.all([
+        const [piecesRes, scheduleRes, actRes] = await Promise.all([
           fetch(`/api/profile/${encodeURIComponent(activeProfile)}/pieces`).then(r => r.json()),
           fetch(`/api/profile/${encodeURIComponent(activeProfile)}/schedule`).then(r => r.json()),
+          fetch(`/api/activity?limit=8&user_email=${encodeURIComponent(activeProfile)}`).then(r => r.json()),
         ])
         setPieces(piecesRes.pieces || [])
         setSchedule(scheduleRes.schedule || [])
+        setRecentActivity(actRes.activities || [])
       }
       setLoading(false)
     }
