@@ -736,8 +736,8 @@ function DetailGrid({ piece }) {
     ['Key', piece.key_signature], ['Time', piece.time_signature],
     ['Tempo', piece.tempo_marking], ['Metronome', piece.metronome_marking],
     ['Period', piece.period],
-    ['Personal Rating', piece.personal_rating ? `${piece.personal_rating}/10` : null],
-  ].filter(([, v]) => v)
+    ['Personal Rating', piece.personal_rating ? `${piece.personal_rating}/10` : 'Not rated'],
+  ].filter(([label, v]) => v || label === 'Personal Rating')
 
   return (
     <div>
