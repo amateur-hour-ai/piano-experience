@@ -93,6 +93,7 @@ export default function PieceDetail({ params }) {
       period: form.period,
       metronome_marking: form.metronome_marking, areas_of_focus: form.areas_of_focus,
       goals: form.goals, category_id: form.category_id || null, ai_summary: form.ai_summary,
+      personal_rating: form.personal_rating ? parseFloat(form.personal_rating) : null,
     }
 
     // Include old metronome marking so API can detect changes for tempo logging
@@ -247,8 +248,8 @@ export default function PieceDetail({ params }) {
       ${piece.composer ? `<p class="meta">${piece.composer}</p>` : ''}
       ${piece.categories?.name ? `<p class="meta">${piece.categories.name}</p>` : ''}
       <h2>Details</h2>
-      ${['Book', 'Editor', 'Key', 'Time', 'Tempo', 'Metronome', 'Period'].map((label, i) => {
-        const fields = [piece.book_title, piece.book_editor, piece.key_signature, piece.time_signature, piece.tempo_marking, piece.metronome_marking, piece.period]
+      ${['Book', 'Editor', 'Key', 'Time', 'Tempo', 'Metronome', 'Period', 'Personal Rating'].map((label, i) => {
+        const fields = [piece.book_title, piece.book_editor, piece.key_signature, piece.time_signature, piece.tempo_marking, piece.metronome_marking, piece.period, piece.personal_rating ? `${piece.personal_rating}/10` : null]
         return fields[i] ? `<div class="field"><span class="label">${label}:</span> <span class="value">${fields[i]}</span></div>` : ''
       }).join('')}
       ${piece.ai_summary ? `<h2>AI Summary</h2><p style="font-size:14px;line-height:1.6">${piece.ai_summary}</p>` : ''}
@@ -735,6 +736,7 @@ function DetailGrid({ piece }) {
     ['Key', piece.key_signature], ['Time', piece.time_signature],
     ['Tempo', piece.tempo_marking], ['Metronome', piece.metronome_marking],
     ['Period', piece.period],
+    ['Personal Rating', piece.personal_rating ? `${piece.personal_rating}/10` : null],
   ].filter(([, v]) => v)
 
   return (
@@ -790,6 +792,16 @@ function EditForm({ form, setForm, categories }) {
           style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', background: '#fff' }}>
           <option value="">None</option>
           {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+      </div>
+      <div style={{ marginBottom: '12px' }}>
+        <label style={{ display: 'block', fontSize: '13px', color: '#666', marginBottom: '4px' }}>Personal Rating (1-10)</label>
+        <select value={form.personal_rating || ''} onChange={e => update('personal_rating', e.target.value)}
+          style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', background: '#fff' }}>
+          <option value="">Not rated</option>
+          {[1,1.5,2,2.5,3,3.5,4,4.5,5,5.5,6,6.5,7,7.5,8,8.5,9,9.5,10].map(v => (
+            <option key={v} value={v}>{v}{v === 1 ? " — don't care for it" : v === 5 ? " — it's okay" : v === 10 ? ' — love it!' : ''}</option>
+          ))}
         </select>
       </div>
       {['areas_of_focus', 'goals'].map(field => (

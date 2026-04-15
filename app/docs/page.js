@@ -164,6 +164,7 @@ function ReleaseNotes() {
       date: '2026-04-14',
       changes: [
         'Removed difficulty level field from all screens — pieces are no longer categorized by level',
+        'New Personal Rating field (1-10) — rate how much you like each piece, from 1 (don\'t care for it) to 10 (love it!)',
       ]
     },
     {

@@ -33,7 +33,7 @@ export default function AddPiece() {
     title: '', composer: '', book_title: '', book_editor: '',
     key_signature: '', time_signature: '', tempo_marking: '',
     period: '', ai_summary: '',
-    metronome_marking: '', areas_of_focus: '', goals: '',
+    metronome_marking: '', areas_of_focus: '', goals: '', personal_rating: '',
     category_id: '',
   })
 
@@ -175,6 +175,7 @@ export default function AddPiece() {
         areas_of_focus: form.areas_of_focus || null,
         goals: form.goals || null,
         category_id: form.category_id || null,
+        personal_rating: form.personal_rating ? parseFloat(form.personal_rating) : null,
       }
 
       let piece
@@ -359,7 +360,19 @@ export default function AddPiece() {
               <FormField label="Metronome" value={form.metronome_marking} onChange={v => updateForm('metronome_marking', v)} placeholder="e.g. ♩= 120" />
             </div>
 
-            <FormField label="Period" value={form.period} onChange={v => updateForm('period', v)} placeholder="e.g. Baroque, Classical" />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <FormField label="Period" value={form.period} onChange={v => updateForm('period', v)} placeholder="e.g. Baroque, Classical" />
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>Personal Rating</label>
+                <select value={form.personal_rating} onChange={e => updateForm('personal_rating', e.target.value)}
+                  style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', background: '#fff' }}>
+                  <option value="">How much do you like this piece?</option>
+                  {[1,1.5,2,2.5,3,3.5,4,4.5,5,5.5,6,6.5,7,7.5,8,8.5,9,9.5,10].map(v => (
+                    <option key={v} value={v}>{v}{v === 1 ? " — don't care for it" : v === 5 ? ' — it\'s okay' : v === 10 ? ' — love it!' : ''}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
 
             {/* Category */}
             <div style={{ marginBottom: '16px' }}>
