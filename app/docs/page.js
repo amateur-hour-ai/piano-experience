@@ -122,6 +122,21 @@ function UserGuide() {
         <Note>The dashboard shows today's practice items so you can jump right in.</Note>
       </Section>
 
+      <Section title="Piano Experience Log">
+        <p style={{ fontSize: '15px', lineHeight: '1.7', color: '#333', marginBottom: '16px' }}>
+          Go to <strong>Experience Log</strong> from the menu to record each piano experience (lesson). Log the date, what was covered, teacher feedback, and assignments for next time.
+        </p>
+        <Step n="1">Tap <strong>+ Log Experience</strong> to create a new entry.</Step>
+        <Step n="2">Fill in the date and details.</Step>
+        <Step n="3">Save. You can edit or delete entries later.</Step>
+      </Section>
+
+      <Section title="Repertoire Archive">
+        <p style={{ fontSize: '15px', lineHeight: '1.7', color: '#333' }}>
+          When you finish a piece, you can archive it instead of deleting it. Archived pieces are hidden from your main list but preserved in your repertoire history. Tap <strong>Archive This Piece</strong> on the piece detail page. To see archived pieces, use the <strong>Show Archived</strong> toggle on the My Pieces page. You can restore archived pieces at any time.
+        </p>
+      </Section>
+
       <Section title="Practice Strategies">
         <p style={{ fontSize: '15px', lineHeight: '1.7', color: '#333', marginBottom: '16px' }}>
           Go to <strong>Practice Strategies</strong> from the menu. You'll find a set of practice strategies organized by heading, each with detailed bullet points.
@@ -160,10 +175,17 @@ function UserGuide() {
 function ReleaseNotes() {
   const releases = [
     {
-      version: '2.1',
+      version: '3.0',
       date: '2026-04-14',
       changes: [
-        'Removed difficulty level field from all screens — pieces are no longer categorized by level',
+        'Theme of the Week — admin-uploaded banner at the top of the dashboard',
+        'Practice Streak — visual 7-day streak showing which days you practiced',
+        'Piano Experience Log — log each experience with date, what was covered, feedback, and assignments',
+        'Repertoire Archive — archive finished pieces instead of deleting; toggle to view archived pieces',
+        'Parent/Teacher Dashboard — aggregated view of all students shared with you',
+        'Weekly Practice Summary Email — automated email every Friday at 8pm CT with your week\'s highlights',
+        'Removed practice timer (practice is about quality and frequency, not minutes)',
+        'Removed difficulty level field from all screens',
         'New Personal Rating field (1-10) — rate how much you like each piece, from 1 (don\'t care for it) to 10 (love it!)',
       ]
     },

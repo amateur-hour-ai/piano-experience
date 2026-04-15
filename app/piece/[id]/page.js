@@ -618,11 +618,26 @@ export default function PieceDetail({ params }) {
         </div>
       )}
 
-      {/* Delete — only for edit access */}
-      {canEdit && <div style={{ borderTop: '1px solid #fca5a5', paddingTop: '20px' }}>
+      {/* Archive & Delete — only for edit access */}
+      {canEdit && <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '20px' }}>
+        <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+          <button onClick={async () => {
+            const newArchived = !piece.archived
+            if (isOwnProfile) {
+              await supabase.from('pieces').update({ archived: newArchived }).eq('id', id)
+            } else {
+              await fetch(pieceApiBase, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'update_field', field: 'archived', value: newArchived }) })
+            }
+            setPiece(prev => ({ ...prev, archived: newArchived }))
+            addToast(newArchived ? 'Piece archived' : 'Piece restored', 'success')
+          }} style={{ padding: '10px 20px', background: piece.archived ? '#dbeafe' : '#f9fafb', color: piece.archived ? '#2563eb' : '#666', border: `1px solid ${piece.archived ? '#93c5fd' : '#d1d5db'}`, borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>
+            {piece.archived ? 'Restore from Archive' : 'Archive This Piece'}
+          </button>
+        </div>
         {!confirmDelete ? (
           <button onClick={() => setConfirmDelete(true)} style={{ padding: '10px 20px', background: '#fff', color: '#dc2626', border: '1px solid #fca5a5', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>
-            Delete This Piece
+            Delete Permanently
           </button>
         ) : (
           <div style={{ background: '#fef2f2', borderRadius: '10px', padding: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>

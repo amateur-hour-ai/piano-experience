@@ -15,6 +15,7 @@ export default function Pieces() {
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
   const [sortBy, setSortBy] = useState('date')
+  const [showArchived, setShowArchived] = useState(false)
   const [loading, setLoading] = useState(true)
 
   const supabase = createBrowserClient(
@@ -47,9 +48,10 @@ export default function Pieces() {
   }, [userLoading, user, activeProfile])
 
   const filtered = pieces.filter(p => {
+    const matchArchive = showArchived ? p.archived : !p.archived
     const matchSearch = !search || [p.title, p.composer, p.book_title].some(f => f?.toLowerCase().includes(search.toLowerCase()))
     const matchCat = !categoryFilter || p.category_id === categoryFilter
-    return matchSearch && matchCat
+    return matchArchive && matchSearch && matchCat
   }).sort((a, b) => {
     if (sortBy === 'title') return (a.title || '').localeCompare(b.title || '')
     if (sortBy === 'composer') return (a.composer || '').localeCompare(b.composer || '')
@@ -110,6 +112,14 @@ export default function Pieces() {
           <option value="composer">Sort: Composer</option>
           <option value="category">Sort: Category</option>
         </select>
+        <button onClick={() => setShowArchived(!showArchived)} style={{
+          padding: '10px 14px', border: `1px solid ${showArchived ? '#2563eb' : '#d1d5db'}`,
+          borderRadius: '8px', fontSize: '14px', cursor: 'pointer',
+          background: showArchived ? '#dbeafe' : '#fff',
+          color: showArchived ? '#2563eb' : '#666',
+        }}>
+          {showArchived ? 'Showing Archived' : 'Show Archived'}
+        </button>
       </div>
 
       {filtered.length === 0 ? (

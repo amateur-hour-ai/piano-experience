@@ -22,18 +22,20 @@ export default function NavBar() {
     window.location.href = '/login'
   }
 
+  const hasMultipleProfiles = (availableProfiles || []).length > 0
+
   const links = [
     { href: '/', label: 'Dashboard' },
     { href: '/pieces', label: isOwnProfile ? 'My Pieces' : 'Pieces' },
     ...(canEdit ? [{ href: '/add', label: 'Add Piece' }] : []),
     { href: '/schedule', label: 'Practice Schedule' },
+    { href: '/experiences', label: 'Experience Log' },
     { href: '/strategies', label: 'Practice Strategies' },
+    ...(hasMultipleProfiles ? [{ href: '/dashboard/teacher', label: 'Parent/Teacher View' }] : []),
     { href: '/permissions', label: 'Sharing' },
     ...(isAdmin ? [{ href: '/admin/users', label: 'Manage Users' }] : []),
     { href: '/docs', label: 'Documentation' },
   ]
-
-  const hasMultipleProfiles = availableProfiles.length > 0
 
   return (
     <>

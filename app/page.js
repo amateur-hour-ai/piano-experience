@@ -12,6 +12,7 @@ export default function Dashboard() {
   const [pieces, setPieces] = useState([])
   const [schedule, setSchedule] = useState([])
   const [recentActivity, setRecentActivity] = useState([])
+  const [theme, setTheme] = useState(null)
   const [loading, setLoading] = useState(true)
 
   const supabase = createBrowserClient(
@@ -23,6 +24,9 @@ export default function Dashboard() {
     if (userLoading || !user || !activeProfile) return
     setLoading(true)
     async function load() {
+      // Load theme for everyone
+      fetch('/api/theme').then(r => r.json()).then(d => setTheme(d.theme)).catch(() => {})
+
       if (isOwnProfile) {
         const [piecesRes, scheduleRes, actRes] = await Promise.all([
           supabase.from('pieces').select('*, categories(name)').eq('user_id', user.email).order('updated_at', { ascending: false }),
@@ -63,6 +67,50 @@ export default function Dashboard() {
       <h1 style={{ fontSize: '28px', marginBottom: '24px' }}>
         {isOwnProfile ? 'Welcome back!' : `${profileDisplayName(activeProfile)}'s Dashboard`}
       </h1>
+
+      {/* Theme of the Week */}
+      {theme && (
+        <div style={{ marginBottom: '24px' }}>
+          <h2 style={{ fontSize: '16px', color: '#2563eb', marginBottom: '10px' }}>Theme of the Week</h2>
+          <img src={theme.image_url} alt="Theme of the Week" style={{ width: '100%', borderRadius: '12px', border: '1px solid #e5e7eb', maxHeight: '200px', objectFit: 'cover' }} />
+        </div>
+      )}
+
+      {/* Practice Streak — last 7 days */}
+      <div style={{ background: '#fff', borderRadius: '12px', padding: '16px 20px', border: '1px solid #e5e7eb', marginBottom: '24px' }}>
+        <div style={{ fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '12px' }}>Practice Streak — Last 7 Days</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
+          {(() => {
+            const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+            const today = new Date()
+            const result = []
+            for (let i = 6; i >= 0; i--) {
+              const d = new Date(today)
+              d.setDate(d.getDate() - i)
+              const dateStr = d.toLocaleDateString()
+              const dayIdx = (d.getDay() + 6) % 7
+              const practiced = schedule.some(s => s.completed_at && new Date(s.completed_at).toLocaleDateString() === dateStr)
+              const isToday = i === 0
+              result.push(
+                <div key={i} style={{ textAlign: 'center', flex: 1 }}>
+                  <div style={{ fontSize: '11px', color: isToday ? '#2563eb' : '#999', fontWeight: isToday ? '600' : '400', marginBottom: '6px' }}>
+                    {days[dayIdx]}
+                  </div>
+                  <div style={{
+                    width: '28px', height: '28px', borderRadius: '50%', margin: '0 auto',
+                    background: practiced ? '#059669' : isToday ? '#dbeafe' : '#f3f4f6',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '12px', color: practiced ? '#fff' : '#999', fontWeight: '600'
+                  }}>
+                    {practiced ? '✓' : ''}
+                  </div>
+                </div>
+              )
+            }
+            return result
+          })()}
+        </div>
+      </div>
 
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '16px', marginBottom: '32px' }}>

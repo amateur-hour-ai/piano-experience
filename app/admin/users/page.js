@@ -1,15 +1,19 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useCurrentUser } from '@/lib/useCurrentUser'
+import { useToast } from '@/app/ToastProvider'
 
 export default function AdminUsers() {
   const { user, isAdmin, loading: userLoading } = useCurrentUser()
+  const { addToast } = useToast()
   const [users, setUsers] = useState([])
   const [activities, setActivities] = useState([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState('users')
+  const [themeUploading, setThemeUploading] = useState(false)
+  const themeInputRef = useRef(null)
 
   useEffect(() => {
     if (userLoading) return
@@ -51,7 +55,7 @@ export default function AdminUsers() {
       <h1 style={{ margin: '16px 0 24px' }}>Admin Panel</h1>
 
       <div style={{ display: 'flex', gap: '0', borderBottom: '2px solid #e5e7eb', marginBottom: '24px' }}>
-        {['users', 'activity'].map(t => (
+        {['users', 'activity', 'theme'].map(t => (
           <button key={t} onClick={() => setTab(t)} style={{
             padding: '10px 24px', border: 'none', background: 'none', cursor: 'pointer',
             fontSize: '15px', fontWeight: tab === t ? '600' : '400',
@@ -114,6 +118,34 @@ export default function AdminUsers() {
             </div>
           ))}
           {activities.length === 0 && <p style={{ color: '#666' }}>No activity yet.</p>}
+        </div>
+      )}
+
+      {tab === 'theme' && (
+        <div>
+          <h2 style={{ fontSize: '18px', color: '#2563eb', marginBottom: '16px' }}>Theme of the Week</h2>
+          <p style={{ fontSize: '14px', color: '#666', marginBottom: '16px' }}>Upload a banner image that will appear at the top of everyone's dashboard.</p>
+          <input type="file" accept="image/*" ref={themeInputRef} style={{ display: 'none' }} onChange={async (e) => {
+            const file = e.target.files[0]
+            if (!file) return
+            setThemeUploading(true)
+            const formData = new FormData()
+            formData.append('file', file)
+            const res = await fetch('/api/theme', { method: 'POST', body: formData })
+            const data = await res.json()
+            if (data.theme) {
+              addToast('Theme updated!', 'success')
+            } else {
+              addToast('Failed to upload theme', 'error')
+            }
+            setThemeUploading(false)
+          }} />
+          <button onClick={() => themeInputRef.current?.click()} disabled={themeUploading} style={{
+            padding: '12px 24px', background: '#2563eb', color: '#fff', border: 'none',
+            borderRadius: '8px', fontSize: '14px', fontWeight: '500', cursor: 'pointer'
+          }}>
+            {themeUploading ? 'Uploading...' : 'Upload New Theme Image'}
+          </button>
         </div>
       )}
     </main>

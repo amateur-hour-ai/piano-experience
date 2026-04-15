@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import Link from 'next/link'
 import { useCurrentUser } from '@/lib/useCurrentUser'
@@ -20,10 +20,6 @@ export default function PracticeSchedule() {
   const [addingDay, setAddingDay] = useState(null)
   const [selectedPiece, setSelectedPiece] = useState('')
   const [focusNotes, setFocusNotes] = useState('')
-  const [timerRunning, setTimerRunning] = useState(false)
-  const [timerSeconds, setTimerSeconds] = useState(0)
-  const [timerStartedAt, setTimerStartedAt] = useState(null)
-  const timerRef = useRef(null)
   const todayRef = useRef(null)
 
   const supabase = createBrowserClient(
@@ -156,39 +152,6 @@ export default function PracticeSchedule() {
     }
   }, [loading])
 
-  // Practice timer
-  function startTimer() {
-    setTimerRunning(true)
-    setTimerStartedAt(new Date())
-    setTimerSeconds(0)
-    timerRef.current = setInterval(() => {
-      setTimerSeconds(prev => prev + 1)
-    }, 1000)
-  }
-
-  async function stopTimer() {
-    clearInterval(timerRef.current)
-    setTimerRunning(false)
-    if (timerSeconds > 0) {
-      await fetch('/api/activity', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_email: user.email,
-          action: 'practice_session',
-          details: `Practiced for ${Math.floor(timerSeconds / 60)}m ${timerSeconds % 60}s`
-        })
-      })
-      addToast(`Practice session: ${Math.floor(timerSeconds / 60)}m ${timerSeconds % 60}s`, 'success')
-    }
-  }
-
-  function formatTime(seconds) {
-    const m = Math.floor(seconds / 60)
-    const s = seconds % 60
-    return `${m}:${s.toString().padStart(2, '0')}`
-  }
-
   if (userLoading || loading) return <div style={{ padding: '24px', textAlign: 'center', color: '#666' }}>Loading...</div>
 
   const todayIdx = (new Date().getDay() + 6) % 7
@@ -198,22 +161,6 @@ export default function PracticeSchedule() {
       <Link href="/" style={{ textDecoration: 'none', color: '#666', fontSize: '14px' }}>← Dashboard</Link>
       <h1 style={{ margin: '16px 0 8px' }}>{isOwnProfile ? 'Practice Schedule' : `${profileDisplayName(activeProfile)}'s Schedule`}</h1>
       <p style={{ color: '#666', fontSize: '14px', marginBottom: '16px' }}>Your weekly plan — stays until you change it. Checkmarks reset each day.</p>
-
-      {/* Practice Timer */}
-      <div style={{ background: '#fff', borderRadius: '12px', padding: '16px 20px', border: '1px solid #e5e7eb', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <div style={{ fontSize: '13px', color: '#666', marginBottom: '4px' }}>Practice Timer</div>
-          <div style={{ fontSize: '32px', fontWeight: '700', fontFamily: 'monospace', color: timerRunning ? '#2563eb' : '#1a1a1a' }}>
-            {formatTime(timerSeconds)}
-          </div>
-        </div>
-        <button onClick={timerRunning ? stopTimer : startTimer} style={{
-          padding: '12px 24px', background: timerRunning ? '#dc2626' : '#059669', color: '#fff',
-          border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: '600', cursor: 'pointer'
-        }}>
-          {timerRunning ? 'Stop' : 'Start'}
-        </button>
-      </div>
 
       {pieces.length === 0 ? (
         <div style={{ background: '#fff', borderRadius: '12px', padding: '40px', textAlign: 'center', color: '#666', border: '1px solid #e5e7eb' }}>
