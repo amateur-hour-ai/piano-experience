@@ -36,42 +36,38 @@ export default function PracticeSchedule() {
   }, [userLoading, user, activeProfile])
 
   async function loadData() {
-    if (isOnline) {
-      try {
-        if (isOwnProfile) {
-          const [schedRes, piecesRes] = await Promise.all([
-            supabase.from('practice_schedule')
-              .select('*, pieces(title, composer)')
-              .eq('user_id', user.email)
-              .order('day_of_week')
-              .order('sort_order'),
-            supabase.from('pieces').select('id, title, composer').eq('user_id', user.email).order('title'),
-          ])
-          setSchedule(schedRes.data || [])
-          setPieces(piecesRes.data || [])
-        } else {
-          const [schedRes, piecesRes] = await Promise.all([
-            fetch(`/api/profile/${encodeURIComponent(activeProfile)}/schedule`).then(r => r.json()),
-            fetch(`/api/profile/${encodeURIComponent(activeProfile)}/pieces`).then(r => r.json()),
-          ])
-          setSchedule(schedRes.schedule || [])
-          setPieces(piecesRes.pieces || [])
-        }
-      } catch {
-        await loadFromCache()
-      }
-    } else {
-      await loadFromCache()
-    }
-    setLoading(false)
-  }
-
-  async function loadFromCache() {
+    // Cache first
     const cached = await getCachedProfileData(activeProfile)
     if (cached) {
       setSchedule(cached.schedule || [])
       setPieces(cached.pieces || [])
+      setLoading(false)
     }
+
+    // Refresh from network if online
+    if (isOnline) {
+      try {
+        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
+        if (isOwnProfile) {
+          const dataPromise = Promise.all([
+            supabase.from('practice_schedule').select('*, pieces(title, composer)').eq('user_id', user.email).order('day_of_week').order('sort_order'),
+            supabase.from('pieces').select('id, title, composer').eq('user_id', user.email).order('title'),
+          ])
+          const [schedRes, piecesRes] = await Promise.race([dataPromise, timeoutPromise])
+          setSchedule(schedRes.data || [])
+          setPieces(piecesRes.data || [])
+        } else {
+          const dataPromise = Promise.all([
+            fetch(`/api/profile/${encodeURIComponent(activeProfile)}/schedule`, { signal: AbortSignal.timeout(5000) }).then(r => r.json()),
+            fetch(`/api/profile/${encodeURIComponent(activeProfile)}/pieces`, { signal: AbortSignal.timeout(5000) }).then(r => r.json()),
+          ])
+          const [schedRes, piecesRes] = await Promise.race([dataPromise, timeoutPromise])
+          setSchedule(schedRes.schedule || [])
+          setPieces(piecesRes.pieces || [])
+        }
+      } catch {}
+    }
+    setLoading(false)
   }
 
   function isCompletedToday(item) {

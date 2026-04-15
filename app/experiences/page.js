@@ -25,19 +25,20 @@ export default function ExperienceLog() {
 
   async function loadExperiences() {
     setLoading(true)
+    // Cache first
+    const cached = await getCachedProfileData(activeProfile)
+    if (cached?.experiences?.length) {
+      setExperiences(cached.experiences)
+      setLoading(false)
+    }
+    // Refresh from network if online
     if (isOnline) {
       try {
         const profileParam = isOwnProfile ? '' : `?profile=${encodeURIComponent(activeProfile)}`
-        const res = await fetch(`/api/experiences${profileParam}`)
+        const res = await fetch(`/api/experiences${profileParam}`, { signal: AbortSignal.timeout(5000) })
         const data = await res.json()
         setExperiences(data.experiences || [])
-      } catch {
-        const cached = await getCachedProfileData(activeProfile)
-        if (cached) setExperiences(cached.experiences || [])
-      }
-    } else {
-      const cached = await getCachedProfileData(activeProfile)
-      if (cached) setExperiences(cached.experiences || [])
+      } catch {}
     }
     setLoading(false)
   }

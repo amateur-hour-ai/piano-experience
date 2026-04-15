@@ -26,50 +26,54 @@ export default function Dashboard() {
     if (userLoading || !user || !activeProfile) return
     setLoading(true)
     async function load() {
-      // Load theme — try network, fall back to cache
-      const themeResult = await fetchOrCache('/api/theme', getCachedTheme)
-      setTheme(themeResult.data?.theme || themeResult.data || null)
-
-      if (isOnline) {
-        // Online path — fetch from server
-        try {
-          if (isOwnProfile) {
-            const [piecesRes, scheduleRes, actRes] = await Promise.all([
-              supabase.from('pieces').select('*, categories(name)').eq('user_id', user.email).order('updated_at', { ascending: false }),
-              supabase.from('practice_schedule').select('*, pieces(title, composer)').eq('user_id', user.email).order('day_of_week').order('sort_order'),
-              fetch(`/api/activity?limit=8&user_email=${encodeURIComponent(user.email)}`).then(r => r.json()),
-            ])
-            setPieces(piecesRes.data || [])
-            setSchedule(scheduleRes.data || [])
-            setRecentActivity(actRes.activities || [])
-          } else {
-            const [piecesRes, scheduleRes, actRes] = await Promise.all([
-              fetch(`/api/profile/${encodeURIComponent(activeProfile)}/pieces`).then(r => r.json()),
-              fetch(`/api/profile/${encodeURIComponent(activeProfile)}/schedule`).then(r => r.json()),
-              fetch(`/api/activity?limit=8&user_email=${encodeURIComponent(activeProfile)}`).then(r => r.json()),
-            ])
-            setPieces(piecesRes.pieces || [])
-            setSchedule(scheduleRes.schedule || [])
-            setRecentActivity(actRes.activities || [])
-          }
-        } catch {
-          // Network failed mid-request — fall back to cache
-          await loadFromCache()
-        }
-      } else {
-        // Offline — load from IndexedDB
-        await loadFromCache()
-      }
-      setLoading(false)
-    }
-
-    async function loadFromCache() {
+      // Show cached data immediately
       const cached = await getCachedProfileData(activeProfile)
       if (cached) {
         setPieces(cached.pieces || [])
         setSchedule(cached.schedule || [])
         setRecentActivity(cached.activities || [])
+        setLoading(false)
       }
+
+      // Load theme from cache first
+      const cachedTheme = await getCachedTheme()
+      if (cachedTheme) setTheme(cachedTheme)
+
+      // If online, refresh from network
+      if (isOnline) {
+        try {
+          // Theme
+          fetch('/api/theme', { signal: AbortSignal.timeout(5000) })
+            .then(r => r.json()).then(d => { if (d.theme) setTheme(d.theme) }).catch(() => {})
+
+          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
+
+          if (isOwnProfile) {
+            const dataPromise = Promise.all([
+              supabase.from('pieces').select('*, categories(name)').eq('user_id', user.email).order('updated_at', { ascending: false }),
+              supabase.from('practice_schedule').select('*, pieces(title, composer)').eq('user_id', user.email).order('day_of_week').order('sort_order'),
+              fetch(`/api/activity?limit=8&user_email=${encodeURIComponent(user.email)}`, { signal: AbortSignal.timeout(5000) }).then(r => r.json()),
+            ])
+            const [piecesRes, scheduleRes, actRes] = await Promise.race([dataPromise, timeoutPromise])
+            setPieces(piecesRes.data || [])
+            setSchedule(scheduleRes.data || [])
+            setRecentActivity(actRes.activities || [])
+          } else {
+            const dataPromise = Promise.all([
+              fetch(`/api/profile/${encodeURIComponent(activeProfile)}/pieces`, { signal: AbortSignal.timeout(5000) }).then(r => r.json()),
+              fetch(`/api/profile/${encodeURIComponent(activeProfile)}/schedule`, { signal: AbortSignal.timeout(5000) }).then(r => r.json()),
+              fetch(`/api/activity?limit=8&user_email=${encodeURIComponent(activeProfile)}`, { signal: AbortSignal.timeout(5000) }).then(r => r.json()),
+            ])
+            const [piecesRes, scheduleRes, actRes] = await Promise.race([dataPromise, timeoutPromise])
+            setPieces(piecesRes.pieces || [])
+            setSchedule(scheduleRes.schedule || [])
+            setRecentActivity(actRes.activities || [])
+          }
+        } catch {
+          // Network failed — cached data already displayed
+        }
+      }
+      setLoading(false)
     }
     load()
   }, [userLoading, user, activeProfile])

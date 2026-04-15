@@ -25,19 +25,22 @@ export default function Strategies() {
 
   async function loadStrategies() {
     setLoading(true)
+    // Cache first (unless editing standard defaults)
+    if (!editingStandard) {
+      const cached = await getCachedProfileData(activeProfile)
+      if (cached?.strategies?.length) {
+        setStrategies(cached.strategies)
+        setLoading(false)
+      }
+    }
+    // Refresh from network if online
     if (isOnline) {
       try {
         const params = editingStandard ? '?standard=true' : `?profile=${encodeURIComponent(isOwnProfile ? user.email : activeProfile)}`
-        const res = await fetch(`/api/strategies${params}`)
+        const res = await fetch(`/api/strategies${params}`, { signal: AbortSignal.timeout(5000) })
         const data = await res.json()
         setStrategies(data.strategies || [])
-      } catch {
-        const cached = await getCachedProfileData(activeProfile)
-        if (cached) setStrategies(cached.strategies || [])
-      }
-    } else {
-      const cached = await getCachedProfileData(activeProfile)
-      if (cached) setStrategies(cached.strategies || [])
+      } catch {}
     }
     setLoading(false)
   }

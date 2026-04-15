@@ -29,36 +29,39 @@ export default function Pieces() {
     if (userLoading || !user || !activeProfile) return
     setLoading(true)
     async function load() {
+      // Cache first
+      const cached = await getCachedProfileData(activeProfile)
+      if (cached) {
+        setPieces(cached.pieces || [])
+        setCategories(cached.categories || [])
+        setLoading(false)
+      }
+
+      // Refresh from network if online
       if (isOnline) {
         try {
+          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
           if (isOwnProfile) {
-            const [piecesRes, catsRes] = await Promise.all([
+            const dataPromise = Promise.all([
               supabase.from('pieces').select('*, categories(name)').eq('user_id', user.email).order('updated_at', { ascending: false }),
               supabase.from('categories').select('*').or(`user_id.eq.${user.email},user_id.is.null`).order('sort_order'),
             ])
+            const [piecesRes, catsRes] = await Promise.race([dataPromise, timeoutPromise])
             setPieces(piecesRes.data || [])
             setCategories(catsRes.data || [])
           } else {
-            const res = await fetch(`/api/profile/${encodeURIComponent(activeProfile)}/pieces`).then(r => r.json())
+            const res = await Promise.race([
+              fetch(`/api/profile/${encodeURIComponent(activeProfile)}/pieces`, { signal: AbortSignal.timeout(5000) }).then(r => r.json()),
+              timeoutPromise
+            ])
             setPieces(res.pieces || [])
             const cats = {}
             res.pieces?.forEach(p => { if (p.categories?.name) cats[p.category_id] = { id: p.category_id, name: p.categories.name } })
             setCategories(Object.values(cats))
           }
-        } catch {
-          await loadFromCache()
-        }
-      } else {
-        await loadFromCache()
+        } catch {}
       }
       setLoading(false)
-    }
-    async function loadFromCache() {
-      const cached = await getCachedProfileData(activeProfile)
-      if (cached) {
-        setPieces(cached.pieces || [])
-        setCategories(cached.categories || [])
-      }
     }
     load()
   }, [userLoading, user, activeProfile])

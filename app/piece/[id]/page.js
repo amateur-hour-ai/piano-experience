@@ -52,10 +52,26 @@ export default function PieceDetail({ params }) {
   }, [userLoading, user, id, activeProfile])
 
   async function loadPiece() {
+    // Try cache first for instant display, then refresh from network
+    const cached = await getCachedPieceDetail(id)
+    if (cached?.piece) {
+      setPiece(cached.piece); setForm(cached.piece)
+      setImages(cached.images || [])
+      setNotes(cached.notes || [])
+      setFacts(cached.facts || [])
+      setCategories(cached.categories || [])
+      setGoals(cached.goals || [])
+      setTempoLog(cached.tempoLog || [])
+      setLoading(false)
+    }
+
+    // If online, refresh from network (with timeout)
     if (isOnline) {
       try {
+        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
+
         if (isOwnProfile) {
-          const [pieceRes, imagesRes, notesRes, factsRes, catsRes, goalsRes, tempoRes] = await Promise.all([
+          const dataPromise = Promise.all([
             supabase.from('pieces').select('*, categories(name)').eq('id', id).single(),
             supabase.from('piece_images').select('*').eq('piece_id', id).order('created_at'),
             supabase.from('piece_notes').select('*').eq('piece_id', id).order('created_at', { ascending: false }),
@@ -64,6 +80,7 @@ export default function PieceDetail({ params }) {
             supabase.from('piece_goals').select('*').eq('piece_id', id).order('sort_order'),
             supabase.from('tempo_log').select('*').eq('piece_id', id).order('created_at', { ascending: false }),
           ])
+          const [pieceRes, imagesRes, notesRes, factsRes, catsRes, goalsRes, tempoRes] = await Promise.race([dataPromise, timeoutPromise])
           if (pieceRes.data) { setPiece(pieceRes.data); setForm(pieceRes.data) }
           setImages(imagesRes.data || [])
           setNotes(notesRes.data || [])
@@ -72,7 +89,10 @@ export default function PieceDetail({ params }) {
           setGoals(goalsRes.data || [])
           setTempoLog(tempoRes.data || [])
         } else {
-          const res = await fetch(`/api/profile/${encodeURIComponent(activeProfile)}/piece/${id}`).then(r => r.json())
+          const res = await Promise.race([
+            fetch(`/api/profile/${encodeURIComponent(activeProfile)}/piece/${id}`, { signal: AbortSignal.timeout(5000) }).then(r => r.json()),
+            timeoutPromise
+          ])
           if (res.piece) { setPiece(res.piece); setForm(res.piece) }
           setImages(res.images || [])
           setNotes(res.notes || [])
@@ -82,10 +102,8 @@ export default function PieceDetail({ params }) {
           setTempoLog(res.tempoLog || [])
         }
       } catch {
-        await loadFromCache()
+        // Network failed or timed out — cached data already displayed above
       }
-    } else {
-      await loadFromCache()
     }
     setLoading(false)
   }
