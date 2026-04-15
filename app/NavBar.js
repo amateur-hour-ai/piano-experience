@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import Link from 'next/link'
-import { useCurrentUser } from '@/lib/useCurrentUser'
+import { useCurrentUser, clearCachedUser } from '@/lib/useCurrentUser'
 import { useActiveProfile } from '@/lib/useActiveProfile'
 
 export default function NavBar() {
@@ -18,6 +18,7 @@ export default function NavBar() {
   )
 
   async function handleSignOut() {
+    clearCachedUser()
     await supabase.auth.signOut()
     window.location.href = '/login'
   }
