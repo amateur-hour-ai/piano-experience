@@ -38,6 +38,31 @@ export default function BackgroundCacher() {
         await preloadProfileData(profiles[i].email, false)
       }
 
+      // Pre-cache page shells for offline navigation
+      setCacheProgress('Caching pages for offline...')
+      try {
+        // Fetch piece detail pages to warm the SW cache
+        const allPieces = []
+        // Own pieces
+        const ownRes = await fetch(`/api/profile-data?type=pieces&email=${encodeURIComponent(user.email)}`, { signal: AbortSignal.timeout(10000) }).catch(() => null)
+        if (ownRes?.ok) {
+          const ownData = await ownRes.json()
+          allPieces.push(...(ownData.pieces || []))
+        }
+        // Shared profile pieces
+        for (const profile of (availableProfiles || [])) {
+          const pRes = await fetch(`/api/profile/${encodeURIComponent(profile.email)}/pieces`, { signal: AbortSignal.timeout(10000) }).catch(() => null)
+          if (pRes?.ok) {
+            const pData = await pRes.json()
+            allPieces.push(...(pData.pieces || []))
+          }
+        }
+        // Prefetch each piece detail page to warm the SW cache
+        for (const piece of allPieces) {
+          fetch(`/piece/${piece.id}`, { signal: AbortSignal.timeout(5000) }).catch(() => {})
+        }
+      } catch {}
+
       setCacheStatus('done')
       setTimeout(() => setCacheStatus(null), 2000)
     }

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'piano-exp-v1'
+const CACHE_NAME = 'piano-exp-v2'
 const STATIC_ASSETS = [
   '/',
   '/pieces',
@@ -15,9 +15,7 @@ const STATIC_ASSETS = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS).catch(() => {
-        // Some pages may fail to cache during install — that's okay
-      })
+      return cache.addAll(STATIC_ASSETS).catch(() => {})
     })
   )
   self.skipWaiting()
@@ -35,38 +33,63 @@ self.addEventListener('activate', (event) => {
   self.clients.claim()
 })
 
-// Fetch — network first, fall back to cache
+// Fetch handler
 self.addEventListener('fetch', (event) => {
   const { request } = event
   const url = new URL(request.url)
 
-  // Skip non-GET requests (mutations go through the sync queue, not the SW)
+  // Skip non-GET requests
   if (request.method !== 'GET') return
 
-  // Skip API routes — those are handled by the offline layer in the app
+  // Skip API routes — handled by the app's offline layer
   if (url.pathname.startsWith('/api/')) return
 
   // Skip auth routes
   if (url.pathname.startsWith('/auth/')) return
 
-  // For page navigations and static assets: network first, cache fallback
+  // For Next.js internal data requests (RSC payloads) — cache them aggressively
+  const isNextData = url.pathname.includes('/_next/') ||
+    request.headers.get('RSC') === '1' ||
+    request.headers.get('Next-Router-State-Tree') ||
+    url.searchParams.has('_rsc')
+
+  if (isNextData) {
+    event.respondWith(
+      fetch(request, { signal: AbortSignal.timeout(5000) })
+        .then((response) => {
+          if (response.ok) {
+            const clone = response.clone()
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone))
+          }
+          return response
+        })
+        .catch(() => {
+          return caches.match(request).then((cached) => {
+            if (cached) return cached
+            // For RSC requests with no cache, return empty response instead of 503
+            // This lets Next.js fall back to client-side rendering
+            return new Response('', { status: 200, headers: { 'Content-Type': 'text/plain' } })
+          })
+        })
+    )
+    return
+  }
+
+  // For page navigations: network first, cache fallback
   event.respondWith(
     fetch(request, { signal: AbortSignal.timeout(5000) })
       .then((response) => {
-        // Cache successful responses
         if (response.ok) {
           const clone = response.clone()
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(request, clone)
-          })
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone))
         }
         return response
       })
       .catch(() => {
-        // Network failed — try cache
         return caches.match(request).then((cached) => {
           if (cached) return cached
-          // If it's a navigation request, serve the cached home page as fallback
+          // For any navigation request without a specific cache,
+          // serve the root page — Next.js client router handles the URL
           if (request.mode === 'navigate') {
             return caches.match('/')
           }
