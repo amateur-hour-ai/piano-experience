@@ -25,19 +25,24 @@ export default function Dashboard() {
   useEffect(() => {
     if (userLoading || !user || !activeProfile) return
     setLoading(true)
+    const failsafe = setTimeout(() => setLoading(false), 5000)
     async function load() {
-      // Show cached data immediately
-      const cached = await getCachedProfileData(activeProfile)
-      if (cached) {
-        setPieces(cached.pieces || [])
-        setSchedule(cached.schedule || [])
-        setRecentActivity(cached.activities || [])
-        setLoading(false)
-      }
+      try {
+        // Show cached data immediately
+        const cached = await getCachedProfileData(activeProfile)
+        if (cached) {
+          setPieces(cached.pieces || [])
+          setSchedule(cached.schedule || [])
+          setRecentActivity(cached.activities || [])
+          setLoading(false)
+        }
 
-      // Load theme from cache first
-      const cachedTheme = await getCachedTheme()
-      if (cachedTheme) setTheme(cachedTheme)
+        // Load theme from cache first
+        const cachedTheme = await getCachedTheme()
+        if (cachedTheme) setTheme(cachedTheme)
+      } catch (cacheErr) {
+        console.error('Cache read failed:', cacheErr)
+      }
 
       // If online, refresh from network
       if (isOnline) {
@@ -75,7 +80,8 @@ export default function Dashboard() {
       }
       setLoading(false)
     }
-    load()
+    load().finally(() => clearTimeout(failsafe))
+    return () => clearTimeout(failsafe)
   }, [userLoading, user, activeProfile])
 
   if (userLoading || loading) return <LoadingSkeleton />

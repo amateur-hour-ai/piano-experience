@@ -49,76 +49,76 @@ export default function PieceDetail({ params }) {
   useEffect(() => {
     if (userLoading || !user || !activeProfile) return
     loadPiece()
+    // Failsafe: never hang on loading for more than 5 seconds
+    const failsafe = setTimeout(() => setLoading(false), 5000)
+    return () => clearTimeout(failsafe)
   }, [userLoading, user, id, activeProfile])
 
   async function loadPiece() {
-    // Try cache first for instant display, then refresh from network
-    const cached = await getCachedPieceDetail(id)
-    if (cached?.piece) {
-      setPiece(cached.piece); setForm(cached.piece)
-      setImages(cached.images || [])
-      setNotes(cached.notes || [])
-      setFacts(cached.facts || [])
-      setCategories(cached.categories || [])
-      setGoals(cached.goals || [])
-      setTempoLog(cached.tempoLog || [])
-      setLoading(false)
-    }
-
-    // If online, refresh from network (with timeout)
-    if (isOnline) {
+    try {
+      // Try cache first for instant display
+      let cacheHit = false
       try {
-        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
-
-        if (isOwnProfile) {
-          const dataPromise = Promise.all([
-            supabase.from('pieces').select('*, categories(name)').eq('id', id).single(),
-            supabase.from('piece_images').select('*').eq('piece_id', id).order('created_at'),
-            supabase.from('piece_notes').select('*').eq('piece_id', id).order('created_at', { ascending: false }),
-            supabase.from('interesting_facts').select('*').eq('piece_id', id).order('created_at', { ascending: false }),
-            supabase.from('categories').select('*').or(`user_id.eq.${user.email},user_id.is.null`).order('sort_order'),
-            supabase.from('piece_goals').select('*').eq('piece_id', id).order('sort_order'),
-            supabase.from('tempo_log').select('*').eq('piece_id', id).order('created_at', { ascending: false }),
-          ])
-          const [pieceRes, imagesRes, notesRes, factsRes, catsRes, goalsRes, tempoRes] = await Promise.race([dataPromise, timeoutPromise])
-          if (pieceRes.data) { setPiece(pieceRes.data); setForm(pieceRes.data) }
-          setImages(imagesRes.data || [])
-          setNotes(notesRes.data || [])
-          setFacts(factsRes.data || [])
-          setCategories(catsRes.data || [])
-          setGoals(goalsRes.data || [])
-          setTempoLog(tempoRes.data || [])
-        } else {
-          const res = await Promise.race([
-            fetch(`/api/profile/${encodeURIComponent(activeProfile)}/piece/${id}`, { signal: AbortSignal.timeout(5000) }).then(r => r.json()),
-            timeoutPromise
-          ])
-          if (res.piece) { setPiece(res.piece); setForm(res.piece) }
-          setImages(res.images || [])
-          setNotes(res.notes || [])
-          setFacts(res.facts || [])
-          setCategories(res.categories || [])
-          setGoals(res.goals || [])
-          setTempoLog(res.tempoLog || [])
+        const cached = await getCachedPieceDetail(id)
+        if (cached?.piece) {
+          setPiece(cached.piece); setForm(cached.piece)
+          setImages(cached.images || [])
+          setNotes(cached.notes || [])
+          setFacts(cached.facts || [])
+          setCategories(cached.categories || [])
+          setGoals(cached.goals || [])
+          setTempoLog(cached.tempoLog || [])
+          cacheHit = true
+          setLoading(false)
         }
-      } catch {
-        // Network failed or timed out — cached data already displayed above
+      } catch (cacheErr) {
+        console.error('Cache read failed:', cacheErr)
       }
+
+      // If online, refresh from network (with timeout)
+      if (isOnline) {
+        try {
+          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
+
+          if (isOwnProfile) {
+            const dataPromise = Promise.all([
+              supabase.from('pieces').select('*, categories(name)').eq('id', id).single(),
+              supabase.from('piece_images').select('*').eq('piece_id', id).order('created_at'),
+              supabase.from('piece_notes').select('*').eq('piece_id', id).order('created_at', { ascending: false }),
+              supabase.from('interesting_facts').select('*').eq('piece_id', id).order('created_at', { ascending: false }),
+              supabase.from('categories').select('*').or(`user_id.eq.${user.email},user_id.is.null`).order('sort_order'),
+              supabase.from('piece_goals').select('*').eq('piece_id', id).order('sort_order'),
+              supabase.from('tempo_log').select('*').eq('piece_id', id).order('created_at', { ascending: false }),
+            ])
+            const [pieceRes, imagesRes, notesRes, factsRes, catsRes, goalsRes, tempoRes] = await Promise.race([dataPromise, timeoutPromise])
+            if (pieceRes.data) { setPiece(pieceRes.data); setForm(pieceRes.data) }
+            setImages(imagesRes.data || [])
+            setNotes(notesRes.data || [])
+            setFacts(factsRes.data || [])
+            setCategories(catsRes.data || [])
+            setGoals(goalsRes.data || [])
+            setTempoLog(tempoRes.data || [])
+          } else {
+            const res = await Promise.race([
+              fetch(`/api/profile/${encodeURIComponent(activeProfile)}/piece/${id}`, { signal: AbortSignal.timeout(5000) }).then(r => r.json()),
+              timeoutPromise
+            ])
+            if (res.piece) { setPiece(res.piece); setForm(res.piece) }
+            setImages(res.images || [])
+            setNotes(res.notes || [])
+            setFacts(res.facts || [])
+            setCategories(res.categories || [])
+            setGoals(res.goals || [])
+            setTempoLog(res.tempoLog || [])
+          }
+        } catch {
+          // Network failed or timed out — cached data already displayed above
+        }
+      }
+    } catch (err) {
+      console.error('loadPiece failed entirely:', err)
     }
     setLoading(false)
-  }
-
-  async function loadFromCache() {
-    const cached = await getCachedPieceDetail(id)
-    if (cached) {
-      if (cached.piece) { setPiece(cached.piece); setForm(cached.piece) }
-      setImages(cached.images || [])
-      setNotes(cached.notes || [])
-      setFacts(cached.facts || [])
-      setCategories(cached.categories || [])
-      setGoals(cached.goals || [])
-      setTempoLog(cached.tempoLog || [])
-    }
   }
 
   async function handleSave() {
@@ -366,7 +366,7 @@ export default function PieceDetail({ params }) {
     }
   }
 
-  if (loading || userLoading) return <div style={{ padding: '24px', textAlign: 'center', color: '#666' }}>Loading...</div>
+  if (loading || userLoading) return <div style={{ padding: '24px', textAlign: 'center', color: '#666' }}>Loading{!isOnline ? ' (offline)' : ''}...</div>
   if (!piece) return <div style={{ padding: '24px', textAlign: 'center' }}>Piece not found. <Link href="/pieces">Back to pieces</Link></div>
 
   const noteTypeColors = { practice: '#059669', lesson: '#2563eb', general: '#2563eb' }
