@@ -30,10 +30,6 @@ export default function PieceDetail({ params }) {
   const [saving, setSaving] = useState(false)
   const [factLoading, setFactLoading] = useState(false)
   const [bioLoading, setBioLoading] = useState(false)
-  const [editingSummary, setEditingSummary] = useState(false)
-  const [editingBio, setEditingBio] = useState(false)
-  const [summaryDraft, setSummaryDraft] = useState('')
-  const [bioDraft, setBioDraft] = useState('')
   const [editingNoteId, setEditingNoteId] = useState(null)
   const [editingNoteText, setEditingNoteText] = useState('')
   const [lightboxUrl, setLightboxUrl] = useState(null)
@@ -94,6 +90,7 @@ export default function PieceDetail({ params }) {
       metronome_marking: form.metronome_marking, areas_of_focus: form.areas_of_focus,
       goals: form.goals, category_id: form.category_id || null, ai_summary: form.ai_summary,
       personal_rating: form.personal_rating ? parseFloat(form.personal_rating) : null,
+      composer_bio: form.composer_bio || null,
     }
 
     // Include old metronome marking so API can detect changes for tempo logging
@@ -310,31 +307,7 @@ export default function PieceDetail({ params }) {
     setBioLoading(false)
   }
 
-  async function saveSummary() {
-    if (isOwnProfile) {
-      const { error } = await supabase.from('pieces').update({ ai_summary: summaryDraft }).eq('id', id)
-      if (error) { addToast('Failed to save', 'error'); return }
-    } else {
-      await fetch(pieceApiBase, { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'update_field', field: 'ai_summary', value: summaryDraft }) })
-    }
-    setPiece(prev => ({ ...prev, ai_summary: summaryDraft }))
-    setEditingSummary(false)
-    addToast('Summary updated!', 'success')
-  }
 
-  async function saveBio() {
-    if (isOwnProfile) {
-      const { error } = await supabase.from('pieces').update({ composer_bio: bioDraft }).eq('id', id)
-      if (error) { addToast('Failed to save', 'error'); return }
-    } else {
-      await fetch(pieceApiBase, { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'update_field', field: 'composer_bio', value: bioDraft }) })
-    }
-    setPiece(prev => ({ ...prev, composer_bio: bioDraft }))
-    setEditingBio(false)
-    addToast('Composer bio updated!', 'success')
-  }
 
   async function handleImageUpload(e, imageType) {
     const file = e.target.files[0]
@@ -426,24 +399,8 @@ export default function PieceDetail({ params }) {
           <DetailGrid piece={piece} />
           {piece.ai_summary && (
             <div style={{ background: '#dbeafe', borderRadius: '10px', padding: '14px', marginTop: '16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '12px', fontWeight: '600', color: '#2563eb' }}>AI Summary</span>
-                {!editingSummary && (
-                  <button onClick={() => { setEditingSummary(true); setSummaryDraft(piece.ai_summary) }} style={{ fontSize: '12px', color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Edit</button>
-                )}
-              </div>
-              {editingSummary ? (
-                <div style={{ marginTop: '6px' }}>
-                  <textarea value={summaryDraft} onChange={e => setSummaryDraft(e.target.value)} rows={4}
-                    style={{ width: '100%', padding: '8px', border: '1px solid #93c5fd', borderRadius: '6px', fontSize: '14px', lineHeight: '1.5', resize: 'vertical', background: '#fff' }} />
-                  <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-                    <button onClick={saveSummary} style={{ padding: '6px 14px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' }}>Save</button>
-                    <button onClick={() => setEditingSummary(false)} style={{ padding: '6px 14px', background: '#fff', color: '#666', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' }}>Cancel</button>
-                  </div>
-                </div>
-              ) : (
-                <p style={{ fontSize: '14px', marginTop: '6px', lineHeight: '1.5' }}>{piece.ai_summary}</p>
-              )}
+              <span style={{ fontSize: '12px', fontWeight: '600', color: '#2563eb' }}>AI Summary</span>
+              <p style={{ fontSize: '14px', marginTop: '6px', lineHeight: '1.5' }}>{piece.ai_summary}</p>
             </div>
           )}
         </div>
@@ -470,24 +427,8 @@ export default function PieceDetail({ params }) {
           </div>
           {piece.composer_bio ? (
             <div style={{ background: '#dbeafe', borderRadius: '10px', padding: '14px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '12px', fontWeight: '600', color: '#2563eb' }}>AI Composer Bio</span>
-                {!editingBio && (
-                  <button onClick={() => { setEditingBio(true); setBioDraft(piece.composer_bio) }} style={{ fontSize: '12px', color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Edit</button>
-                )}
-              </div>
-              {editingBio ? (
-                <div style={{ marginTop: '6px' }}>
-                  <textarea value={bioDraft} onChange={e => setBioDraft(e.target.value)} rows={4}
-                    style={{ width: '100%', padding: '8px', border: '1px solid #93c5fd', borderRadius: '6px', fontSize: '14px', lineHeight: '1.5', resize: 'vertical', background: '#fff' }} />
-                  <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-                    <button onClick={saveBio} style={{ padding: '6px 14px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' }}>Save</button>
-                    <button onClick={() => setEditingBio(false)} style={{ padding: '6px 14px', background: '#fff', color: '#666', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' }}>Cancel</button>
-                  </div>
-                </div>
-              ) : (
-                <p style={{ fontSize: '14px', marginTop: '6px', lineHeight: '1.5' }}>{piece.composer_bio}</p>
-              )}
+              <span style={{ fontSize: '12px', fontWeight: '600', color: '#2563eb' }}>AI Composer Bio</span>
+              <p style={{ fontSize: '14px', marginTop: '6px', lineHeight: '1.5' }}>{piece.composer_bio}</p>
             </div>
           ) : (
             <p style={{ fontSize: '14px', color: '#999' }}>Click "Generate Bio" to learn about this composer.</p>
@@ -815,6 +756,13 @@ function EditForm({ form, setForm, categories }) {
         <div style={{ marginBottom: '12px' }}>
           <label style={{ display: 'block', fontSize: '13px', color: '#666', marginBottom: '4px' }}>AI Summary</label>
           <textarea value={form.ai_summary || ''} onChange={e => update('ai_summary', e.target.value)} rows={4}
+            style={{ width: '100%', padding: '8px 12px', border: '1px solid #93c5fd', borderRadius: '8px', fontSize: '14px', resize: 'vertical', background: '#eff6ff' }} />
+        </div>
+      )}
+      {form.composer_bio && (
+        <div style={{ marginBottom: '12px' }}>
+          <label style={{ display: 'block', fontSize: '13px', color: '#666', marginBottom: '4px' }}>Composer Bio</label>
+          <textarea value={form.composer_bio || ''} onChange={e => update('composer_bio', e.target.value)} rows={4}
             style={{ width: '100%', padding: '8px 12px', border: '1px solid #93c5fd', borderRadius: '8px', fontSize: '14px', resize: 'vertical', background: '#eff6ff' }} />
         </div>
       )}
