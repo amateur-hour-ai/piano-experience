@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import Link from 'next/link'
-import OfflineLink from '@/app/OfflineLink'
 import { useCurrentUser } from '@/lib/useCurrentUser'
 import { useActiveProfile } from '@/lib/useActiveProfile'
 import EmptyState, { Skeleton } from '@/app/EmptyState'
@@ -152,7 +151,7 @@ export default function Pieces() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {filtered.map(p => (
-            <OfflineLink key={p.id} href={`/piece/${p.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+            <Link key={p.id} href={`/piece/${p.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
               <div style={{
                 background: '#fff', borderRadius: '10px', padding: '16px 20px', border: '1px solid #e5e7eb',
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'box-shadow 0.15s'
@@ -172,7 +171,7 @@ export default function Pieces() {
                   <span style={{ color: '#999', fontSize: '20px' }}>→</span>
                 </div>
               </div>
-            </OfflineLink>
+            </Link>
           ))}
         </div>
       )}

@@ -6,7 +6,6 @@ import Link from 'next/link'
 import { useCurrentUser } from '@/lib/useCurrentUser'
 import { useActiveProfile } from '@/lib/useActiveProfile'
 import { useOfflineData } from '@/lib/useOfflineData'
-import OfflineLink from '@/app/OfflineLink'
 
 export default function Dashboard() {
   const { user, loading: userLoading } = useCurrentUser()
@@ -204,12 +203,12 @@ export default function Dashboard() {
               <h3 style={{ fontSize: '15px', color: '#2563eb', marginBottom: '8px' }}>{cat} ({items.length})</h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '10px' }}>
                 {items.slice(0, 4).map(p => (
-                  <OfflineLink key={p.id} href={`/piece/${p.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                  <Link key={p.id} href={`/piece/${p.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
                     <div style={{ background: '#fff', borderRadius: '10px', padding: '14px', border: '1px solid #e5e7eb', transition: 'box-shadow 0.15s' }}>
                       <div style={{ fontWeight: '600', fontSize: '15px' }}>{p.title || 'Untitled'}</div>
                       {p.composer && <div style={{ fontSize: '13px', color: '#666', marginTop: '2px' }}>{p.composer}</div>}
                     </div>
-                  </OfflineLink>
+                  </Link>
                 ))}
               </div>
             </div>

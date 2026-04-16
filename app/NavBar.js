@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import Link from 'next/link'
-import OfflineLink from '@/app/OfflineLink'
 import { useCurrentUser, clearCachedUser } from '@/lib/useCurrentUser'
 import { useActiveProfile } from '@/lib/useActiveProfile'
 
@@ -121,14 +120,14 @@ export default function NavBar() {
               minWidth: '200px', zIndex: 100, overflow: 'hidden'
             }}>
               {links.map(({ href, label }) => (
-                <OfflineLink
+                <Link
                   key={href}
                   href={href}
                   onClick={() => setMenuOpen(false)}
                   style={{ display: 'block', padding: '14px 20px', textDecoration: 'none', color: '#1a1a1a', fontSize: '15px', borderBottom: '1px solid #f0f0f0' }}
                 >
                   {label}
-                </OfflineLink>
+                </Link>
               ))}
               <button
                 onClick={handleSignOut}

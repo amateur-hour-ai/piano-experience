@@ -35,6 +35,11 @@ yarn-error.log*
 # vercel
 .vercel
 
+# Serwist
+public/sw.js
+public/sw.js.map
+public/swe-worker*
+
 # ide
 .idea
 .vscode
