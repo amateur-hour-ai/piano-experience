@@ -1,8 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
-  <!-- Scattered music notes pattern tile -->
   <g fill="#c7d7f5" opacity="0.5">
-    <!-- Treble clef -->
-    <text x="30" y="45" font-family="serif" font-size="28" transform="rotate(-15 30 45)">𝄞</text>
+    <!-- Treble clef (larger) -->
+    <text x="25" y="50" font-family="serif" font-size="44" transform="rotate(-15 25 50)">𝄞</text>
 
     <!-- Quarter note -->
     <ellipse cx="140" cy="30" rx="6" ry="4.5" transform="rotate(-20 140 30)"/>
@@ -20,12 +19,15 @@
     <line x1="180" y1="132" x2="180" y2="113" stroke="#c7d7f5" stroke-width="1.8"/>
     <line x1="165" y1="110" x2="180" y2="113" stroke="#c7d7f5" stroke-width="2"/>
 
+    <!-- Quarter rest (replaces whole note) -->
+    <text x="15" y="195" font-family="serif" font-size="28" transform="rotate(5 15 195)">𝄾</text>
+
+    <!-- Bass clef (new) -->
+    <text x="105" y="178" font-family="serif" font-size="40" transform="rotate(10 105 178)">𝄢</text>
+
     <!-- Quarter note -->
     <ellipse cx="35" cy="150" rx="5.5" ry="4" transform="rotate(-25 35 150)"/>
     <line x1="40.5" y1="149" x2="40.5" y2="128" stroke="#c7d7f5" stroke-width="1.8"/>
-
-    <!-- Small treble clef -->
-    <text x="110" y="175" font-family="serif" font-size="22" transform="rotate(10 110 175)">𝄞</text>
 
     <!-- Sixteenth note -->
     <ellipse cx="55" cy="85" rx="4.5" ry="3.2" transform="rotate(-5 55 85)"/>
@@ -36,8 +38,5 @@
     <!-- Half note -->
     <ellipse cx="145" cy="185" rx="5.5" ry="4" transform="rotate(-20 145 185)" fill="none" stroke="#c7d7f5" stroke-width="1.8"/>
     <line x1="150.5" y1="184" x2="150.5" y2="164" stroke="#c7d7f5" stroke-width="1.8"/>
-
-    <!-- Whole note -->
-    <ellipse cx="20" cy="195" rx="6" ry="4" transform="rotate(-10 20 195)" fill="none" stroke="#c7d7f5" stroke-width="1.5"/>
   </g>
 </svg>
