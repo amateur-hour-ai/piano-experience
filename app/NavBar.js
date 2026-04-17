@@ -56,7 +56,8 @@ export default function NavBar() {
                 border: isOwnProfile ? '1px solid rgba(255,255,255,0.3)' : '2px solid #fff',
                 borderRadius: '20px', padding: '6px 14px', cursor: hasMultipleProfiles ? 'pointer' : 'default',
                 color: '#fff', fontSize: '13px', fontWeight: '500',
-                display: 'flex', alignItems: 'center', gap: '6px'
+                display: 'flex', alignItems: 'center', gap: '6px',
+                maxWidth: '160px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis'
               }}
             >
               {profileDisplayName(activeProfile)}
@@ -67,9 +68,10 @@ export default function NavBar() {
               <>
                 <div onClick={() => setProfileOpen(false)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 99 }} />
                 <div style={{
-                  position: 'absolute', top: '40px', right: 0,
+                  position: 'fixed', top: '60px', right: '8px', left: '8px',
+                  maxWidth: '300px', marginLeft: 'auto',
                   background: '#fff', borderRadius: '10px', boxShadow: '0 8px 30px rgba(0,0,0,0.15)',
-                  minWidth: '220px', zIndex: 100, overflow: 'hidden'
+                  zIndex: 100, overflow: 'hidden'
                 }}>
                   <button
                     onClick={() => { switchProfile(user.email); setProfileOpen(false) }}
@@ -115,9 +117,9 @@ export default function NavBar() {
           <>
             <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 99 }} />
             <div style={{
-              position: 'absolute', top: '60px', right: '16px',
+              position: 'fixed', top: '60px', right: '8px',
               background: '#fff', borderRadius: '12px', boxShadow: '0 8px 30px rgba(0,0,0,0.15)',
-              minWidth: '200px', zIndex: 100, overflow: 'hidden'
+              minWidth: '200px', maxWidth: '280px', zIndex: 100, overflow: 'hidden'
             }}>
               {links.map(({ href, label }) => (
                 <Link

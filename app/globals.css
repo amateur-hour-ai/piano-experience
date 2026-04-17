@@ -114,6 +114,13 @@ a:active {
   border-radius: 4px;
 }
 
+/* Safe area padding for notched/home-indicator devices (iPhone X+) */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  body {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
 /* Print styles for PDF export */
 @media print {
   nav, .no-print, button, .sticky-footer {

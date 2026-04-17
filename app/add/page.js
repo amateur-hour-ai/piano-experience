@@ -251,7 +251,7 @@ export default function AddPiece() {
       <h1 style={{ margin: '16px 0 24px' }}>Add New Piece</h1>
 
       {!mode && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px' }}>
           <button onClick={() => setMode('photo')} style={{
             padding: '32px 20px', background: '#fff', border: '2px solid #e5e7eb', borderRadius: '16px',
             cursor: 'pointer', textAlign: 'center', transition: 'border-color 0.15s'
@@ -353,14 +353,14 @@ export default function AddPiece() {
             <FormField label="Book Title" value={form.book_title} onChange={v => updateForm('book_title', v)} />
             <FormField label="Book Editor" value={form.book_editor} onChange={v => updateForm('book_editor', v)} />
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
               <FormField label="Key Signature" value={form.key_signature} onChange={v => updateForm('key_signature', v)} />
               <FormField label="Time Signature" value={form.time_signature} onChange={v => updateForm('time_signature', v)} />
               <FormField label="Tempo Marking" value={form.tempo_marking} onChange={v => updateForm('tempo_marking', v)} />
               <FormField label="Metronome" value={form.metronome_marking} onChange={v => updateForm('metronome_marking', v)} placeholder="e.g. ♩= 120" />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
               <FormField label="Period" value={form.period} onChange={v => updateForm('period', v)} placeholder="e.g. Baroque, Classical" />
               <div style={{ marginBottom: '16px' }}>
                 <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>Personal Rating</label>
