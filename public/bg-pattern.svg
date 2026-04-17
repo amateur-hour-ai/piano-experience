@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
   <g fill="#c7d7f5" opacity="0.5">
     <!-- Treble clef (larger) -->
-    <text x="25" y="50" font-family="serif" font-size="44" transform="rotate(-15 25 50)">𝄞</text>
+    <text x="20" y="55" font-family="serif" font-size="56" transform="rotate(-15 20 55)">𝄞</text>
 
     <!-- Quarter note -->
     <ellipse cx="140" cy="30" rx="6" ry="4.5" transform="rotate(-20 140 30)"/>
@@ -19,10 +19,12 @@
     <line x1="180" y1="132" x2="180" y2="113" stroke="#c7d7f5" stroke-width="1.8"/>
     <line x1="165" y1="110" x2="180" y2="113" stroke="#c7d7f5" stroke-width="2"/>
 
-    <!-- Quarter rest (replaces whole note) -->
-    <text x="15" y="195" font-family="serif" font-size="28" transform="rotate(5 15 195)">𝄾</text>
+    <!-- Quarter rest (hand-drawn SVG path — the squiggly zigzag shape) -->
+    <g transform="translate(18, 175) rotate(5) scale(1.1)" fill="none" stroke="#c7d7f5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 0 0 L 6 6 L -2 14 L 6 22 C 8 26 4 30 0 28 C -2 27 -1 24 1 24 C 3 24 4 26 2 28"/>
+    </g>
 
-    <!-- Bass clef (new) -->
+    <!-- Bass clef -->
     <text x="105" y="178" font-family="serif" font-size="40" transform="rotate(10 105 178)">𝄢</text>
 
     <!-- Quarter note -->
