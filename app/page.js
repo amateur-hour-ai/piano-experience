@@ -107,7 +107,7 @@ export default function Dashboard() {
       {theme && (
         <div style={{ marginBottom: '24px' }}>
           <h2 style={{ fontSize: '16px', color: '#2563eb', marginBottom: '10px' }}>Theme of the Week</h2>
-          <img src={theme.image_url} alt="Theme of the Week" style={{ width: '100%', borderRadius: '12px', border: '1px solid #e5e7eb', maxHeight: '200px', objectFit: 'cover' }} />
+          <img src={theme.image_url} alt="Theme of the Week" style={{ width: '100%', borderRadius: '12px', border: '1px solid #e5e7eb', aspectRatio: '3.2 / 1', objectFit: 'cover' }} />
         </div>
       )}
 
