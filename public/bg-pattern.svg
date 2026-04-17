@@ -19,11 +19,6 @@
     <line x1="180" y1="132" x2="180" y2="113" stroke="#c7d7f5" stroke-width="1.8"/>
     <line x1="165" y1="110" x2="180" y2="113" stroke="#c7d7f5" stroke-width="2"/>
 
-    <!-- Quarter rest (hand-drawn SVG path — the squiggly zigzag shape) -->
-    <g transform="translate(18, 175) rotate(5) scale(1.1)" fill="none" stroke="#c7d7f5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M 0 0 L 6 6 L -2 14 L 6 22 C 8 26 4 30 0 28 C -2 27 -1 24 1 24 C 3 24 4 26 2 28"/>
-    </g>
-
     <!-- Bass clef -->
     <text x="105" y="178" font-family="serif" font-size="40" transform="rotate(10 105 178)">𝄢</text>
 
