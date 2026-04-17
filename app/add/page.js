@@ -28,6 +28,7 @@ export default function AddPiece() {
   const [coverFile, setCoverFile] = useState(null)
   const [awaitingCover, setAwaitingCover] = useState(false) // true after first photo, before analyze
   const [newCategoryName, setNewCategoryName] = useState('')
+  const [enriching, setEnriching] = useState(false)
 
   const [form, setForm] = useState({
     title: '', composer: '', book_title: '', book_editor: '',
@@ -150,6 +151,48 @@ export default function AddPiece() {
     updateForm('category_id', data.id)
     setNewCategoryName('')
     addToast('Category created!', 'success')
+  }
+
+  async function enrichWithAI() {
+    if (!form.title && !form.composer) {
+      setError('Enter at least a title or composer before asking AI to help.')
+      return
+    }
+    setEnriching(true)
+    setError('')
+    try {
+      const res = await fetch('/api/enrich-piece', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: form.title,
+          composer: form.composer,
+          bookTitle: form.book_title,
+          bookEditor: form.book_editor,
+        })
+      })
+      const data = await res.json()
+      if (data.analysis) {
+        const a = data.analysis
+        setForm(prev => ({
+          ...prev,
+          title: a.title || prev.title,
+          composer: a.composer || prev.composer,
+          book_title: a.book_title || prev.book_title,
+          book_editor: a.book_editor || prev.book_editor,
+          time_signature: a.time_signature || prev.time_signature,
+          tempo_marking: a.tempo_marking || prev.tempo_marking,
+          period: a.period || prev.period,
+          ai_summary: a.ai_summary || prev.ai_summary,
+        }))
+        addToast('AI filled in details!', 'success')
+      } else {
+        setError(data.error || 'AI could not find information about this piece.')
+      }
+    } catch {
+      setError('Failed to reach AI. Check your connection.')
+    }
+    setEnriching(false)
   }
 
   async function handleSave() {
@@ -352,6 +395,24 @@ export default function AddPiece() {
             <FormField label="Composer" value={form.composer} onChange={v => updateForm('composer', v)} />
             <FormField label="Book Title" value={form.book_title} onChange={v => updateForm('book_title', v)} />
             <FormField label="Book Editor" value={form.book_editor} onChange={v => updateForm('book_editor', v)} />
+
+            {/* AI Enrich button — available in manual mode or after photo analysis */}
+            {mode === 'manual' || (mode === 'photo' && !analyzing && !awaitingCover) ? (
+              <button onClick={enrichWithAI} disabled={enriching || (!form.title && !form.composer)} style={{
+                width: '100%', padding: '12px', marginBottom: '20px',
+                background: enriching ? '#93c5fd' : '#dbeafe', color: '#1e40af',
+                border: '1px solid #93c5fd', borderRadius: '10px',
+                fontSize: '14px', fontWeight: '500', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+              }}>
+                {enriching ? (
+                  <>
+                    <span style={{ display: 'inline-block', width: '14px', height: '14px', border: '2px solid #1e40af', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.6s linear infinite' }} />
+                    AI is looking up this piece...
+                  </>
+                ) : 'Ask AI to fill in the rest'}
+              </button>
+            ) : null}
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
               <FormField label="Key Signature" value={form.key_signature} onChange={v => updateForm('key_signature', v)} />

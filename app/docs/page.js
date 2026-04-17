@@ -86,7 +86,8 @@ function UserGuide() {
         <Step n="4">Review and edit the details, then save.</Step>
         <p style={{ fontSize: '15px', fontWeight: '600', color: '#333', margin: '16px 0 8px' }}>Enter Manually</p>
         <Step n="1">Type in the piece title, composer, and any other details you know.</Step>
-        <Step n="2">Add your focus areas and goals, then save.</Step>
+        <Step n="2">Tap <strong>Ask AI to fill in the rest</strong> — AI will look up the piece and fill in time signature, tempo, period, and an interesting summary.</Step>
+        <Step n="3">Review, add your focus areas and goals, then save.</Step>
         <Note>You can upload additional photos later — first page, full piece, or book cover — from the piece detail page.</Note>
       </Section>
 
@@ -194,6 +195,14 @@ function UserGuide() {
 
 function ReleaseNotes() {
   const releases = [
+    {
+      version: '4.2',
+      date: '2026-04-17',
+      changes: [
+        '"Ask AI to fill in the rest" — type a title and composer, then let AI look up the details (works for both manual entry and after photo analysis)',
+        'Responsive design fixes for iPhone, iPad, and desktop — dropdowns, grids, and buttons now adapt to all screen sizes',
+      ]
+    },
     {
       version: '4.1',
       date: '2026-04-16',
