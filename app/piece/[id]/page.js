@@ -9,6 +9,8 @@ import { useActiveProfile } from '@/lib/useActiveProfile'
 import { useToast } from '@/app/ToastProvider'
 import { logActivity } from '@/lib/logActivity'
 import { useOfflineData } from '@/lib/useOfflineData'
+import { queueMutation, getPendingCount } from '@/lib/syncManager'
+import db from '@/lib/offlineStore'
 
 export default function PieceDetail() {
   const { id } = useParams()
@@ -136,24 +138,42 @@ export default function PieceDetail() {
     // Include old metronome marking so API can detect changes for tempo logging
     const oldMetronome = piece.metronome_marking
 
+    if (!isOnline) {
+      await queueMutation({ url: pieceApiBase, method: 'POST', body: { action: 'update', fields, oldMetronome }, description: `Update ${form.title}` })
+      try { await db.pieces.update(id, fields) } catch {}
+      setPiece(prev => ({ ...prev, ...fields }))
+      addToast('Changes saved offline — will sync later', 'info')
+      setEditing(false)
+      setSaving(false)
+      return
+    }
+
     let error
-    if (isOwnProfile) {
-      // Log tempo change
-      const newBpm = form.metronome_marking
-      if (newBpm && newBpm !== oldMetronome) {
-        const bpmNum = parseInt(newBpm.replace(/[^\d]/g, ''))
-        if (bpmNum > 0) await supabase.from('tempo_log').insert([{ piece_id: id, bpm: bpmNum }])
+    try {
+      if (isOwnProfile) {
+        const newBpm = form.metronome_marking
+        if (newBpm && newBpm !== oldMetronome) {
+          const bpmNum = parseInt(newBpm.replace(/[^\d]/g, ''))
+          if (bpmNum > 0) await supabase.from('tempo_log').insert([{ piece_id: id, bpm: bpmNum }])
+        }
+        const res = await supabase.from('pieces').update(fields).eq('id', id)
+        error = res.error
+      } else {
+        const res = await fetch(pieceApiBase, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'update', fields, oldMetronome })
+        })
+        const data = await res.json()
+        if (data.error) error = { message: data.error }
       }
-      const res = await supabase.from('pieces').update(fields).eq('id', id)
-      error = res.error
-    } else {
-      const res = await fetch(`/api/profile/${encodeURIComponent(activeProfile)}/piece/${id}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'update', fields, oldMetronome })
-      })
-      const data = await res.json()
-      if (data.error) error = { message: data.error }
+    } catch {
+      await queueMutation({ url: pieceApiBase, method: 'POST', body: { action: 'update', fields, oldMetronome }, description: `Update ${form.title}` })
+      try { await db.pieces.update(id, fields) } catch {}
+      setPiece(prev => ({ ...prev, ...fields }))
+      addToast('Changes saved offline — will sync later', 'info')
+      setEditing(false)
+      setSaving(false)
+      return
     }
 
     if (error) {
@@ -187,23 +207,58 @@ export default function PieceDetail() {
 
   async function addNote() {
     if (!newNote.trim()) return
-    if (isOwnProfile) {
-      const { error } = await supabase.from('piece_notes').insert([{
-        piece_id: id, user_id: user.email, note_type: noteType, note: newNote.trim()
-      }])
-      if (error) { addToast('Failed to add note', 'error'); return }
+    const noteData = { piece_id: id, user_id: user?.email || activeProfile, note_type: noteType, note: newNote.trim() }
+    const tempId = crypto.randomUUID()
+
+    if (isOnline) {
+      try {
+        if (isOwnProfile) {
+          const { error } = await supabase.from('piece_notes').insert([noteData])
+          if (error) { addToast('Failed to add note', 'error'); return }
+        } else {
+          const res = await fetch(pieceApiBase, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'add_note', note_type: noteType, note: newNote.trim() })
+          })
+          const data = await res.json()
+          if (data.error) { addToast('Failed to add note', 'error'); return }
+        }
+        await logActivity({ action: 'add_note', piece_id: id, piece_title: piece.title, details: `Added ${noteType} note`, user_email: user.email })
+      } catch {
+        // Network failed — queue it
+        await queueOfflineNote(noteData, tempId)
+        addToast('Note saved offline — will sync later', 'info')
+        return
+      }
     } else {
-      const res = await fetch(`/api/profile/${encodeURIComponent(activeProfile)}/piece/${id}`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'add_note', note_type: noteType, note: newNote.trim() })
-      })
-      const data = await res.json()
-      if (data.error) { addToast('Failed to add note', 'error'); return }
+      // Offline — queue and show locally
+      await queueOfflineNote(noteData, tempId)
+      addToast('Note saved offline — will sync later', 'info')
+      return
     }
-    await logActivity({ action: 'add_note', piece_id: id, piece_title: piece.title, details: `Added ${noteType} note`, user_email: user.email })
     setNewNote('')
     addToast('Note added!', 'success')
     loadPiece()
+  }
+
+  async function queueOfflineNote(noteData, tempId) {
+    // Save to local IndexedDB for immediate display
+    try {
+      await db.pieceNotes.put({ ...noteData, id: tempId, created_at: new Date().toISOString() })
+    } catch {}
+    // Queue for sync
+    const apiUrl = isOwnProfile
+      ? '/api/activity' // We'll use a generic mutation endpoint
+      : pieceApiBase
+    await queueMutation({
+      url: pieceApiBase,
+      method: 'POST',
+      body: { action: 'add_note', note_type: noteData.note_type, note: noteData.note },
+      description: `Add ${noteData.note_type} note to ${piece?.title || 'piece'}`
+    })
+    // Update local state to show the note immediately
+    setNotes(prev => [{ ...noteData, id: tempId, created_at: new Date().toISOString() }, ...prev])
+    setNewNote('')
   }
 
   const pieceApiBase = `/api/profile/${encodeURIComponent(activeProfile)}/piece/${id}`
@@ -237,39 +292,78 @@ export default function PieceDetail() {
 
   async function addGoal() {
     if (!newGoalText.trim()) return
-    if (isOwnProfile) {
-      const { data, error } = await supabase.from('piece_goals').insert([{
-        piece_id: id, text: newGoalText.trim(), sort_order: goals.length
-      }]).select().single()
-      if (error) { addToast('Failed to add goal', 'error'); return }
-      setGoals(prev => [...prev, data])
-    } else {
-      const res = await fetch(pieceApiBase, { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'add_goal', text: newGoalText.trim(), sort_order: goals.length }) })
-      const data = await res.json()
-      if (data.goal) setGoals(prev => [...prev, data.goal])
+    const tempId = crypto.randomUUID()
+    const goalData = { id: tempId, piece_id: id, text: newGoalText.trim(), completed: false, sort_order: goals.length, created_at: new Date().toISOString() }
+
+    if (!isOnline) {
+      await queueMutation({ url: pieceApiBase, method: 'POST', body: { action: 'add_goal', text: newGoalText.trim(), sort_order: goals.length }, description: `Add goal to ${piece?.title}` })
+      try { await db.pieceGoals.put(goalData) } catch {}
+      setGoals(prev => [...prev, goalData])
+      setNewGoalText('')
+      addToast('Goal saved offline', 'info')
+      return
+    }
+
+    try {
+      if (isOwnProfile) {
+        const { data, error } = await supabase.from('piece_goals').insert([{
+          piece_id: id, text: newGoalText.trim(), sort_order: goals.length
+        }]).select().single()
+        if (error) { addToast('Failed to add goal', 'error'); return }
+        setGoals(prev => [...prev, data])
+      } else {
+        const res = await fetch(pieceApiBase, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'add_goal', text: newGoalText.trim(), sort_order: goals.length }) })
+        const data = await res.json()
+        if (data.goal) setGoals(prev => [...prev, data.goal])
+      }
+    } catch {
+      await queueMutation({ url: pieceApiBase, method: 'POST', body: { action: 'add_goal', text: newGoalText.trim(), sort_order: goals.length }, description: `Add goal` })
+      setGoals(prev => [...prev, goalData])
+      addToast('Goal saved offline', 'info')
     }
     setNewGoalText('')
   }
 
   async function toggleGoal(goalId, completed) {
-    if (isOwnProfile) {
-      await supabase.from('piece_goals').update({ completed: !completed }).eq('id', goalId)
-    } else {
-      await fetch(pieceApiBase, { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'toggle_goal', goalId, completed: !completed }) })
-    }
+    // Update locally immediately
     setGoals(prev => prev.map(g => g.id === goalId ? { ...g, completed: !completed } : g))
+
+    if (!isOnline) {
+      await queueMutation({ url: pieceApiBase, method: 'POST', body: { action: 'toggle_goal', goalId, completed: !completed }, description: 'Toggle goal' })
+      return
+    }
+
+    try {
+      if (isOwnProfile) {
+        await supabase.from('piece_goals').update({ completed: !completed }).eq('id', goalId)
+      } else {
+        await fetch(pieceApiBase, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'toggle_goal', goalId, completed: !completed }) })
+      }
+    } catch {
+      await queueMutation({ url: pieceApiBase, method: 'POST', body: { action: 'toggle_goal', goalId, completed: !completed }, description: 'Toggle goal' })
+    }
   }
 
   async function deleteGoal(goalId) {
-    if (isOwnProfile) {
-      await supabase.from('piece_goals').delete().eq('id', goalId)
-    } else {
-      await fetch(pieceApiBase, { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'delete_goal', goalId }) })
-    }
     setGoals(prev => prev.filter(g => g.id !== goalId))
+
+    if (!isOnline) {
+      await queueMutation({ url: pieceApiBase, method: 'POST', body: { action: 'delete_goal', goalId }, description: 'Delete goal' })
+      return
+    }
+
+    try {
+      if (isOwnProfile) {
+        await supabase.from('piece_goals').delete().eq('id', goalId)
+      } else {
+        await fetch(pieceApiBase, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'delete_goal', goalId }) })
+      }
+    } catch {
+      await queueMutation({ url: pieceApiBase, method: 'POST', body: { action: 'delete_goal', goalId }, description: 'Delete goal' })
+    }
   }
 
   function exportPiece() {
