@@ -8,12 +8,16 @@ import { useCurrentUser } from '@/lib/useCurrentUser'
 import { useActiveProfile } from '@/lib/useActiveProfile'
 import { useToast } from '@/app/ToastProvider'
 import { logActivity } from '@/lib/logActivity'
+import { useOffline } from '@/lib/useOffline'
+import { queueMutation } from '@/lib/syncManager'
+import db from '@/lib/offlineStore'
 
 export default function AddPiece() {
   const router = useRouter()
   const { user, loading: userLoading } = useCurrentUser()
   const { activeProfile, isOwnProfile, canEdit } = useActiveProfile()
   const { addToast } = useToast()
+  const { isOnline } = useOffline()
   const fileInputRef = useRef(null)
   const coverInputRef = useRef(null)
 
@@ -93,6 +97,11 @@ export default function AddPiece() {
   }
 
   async function runAnalysis() {
+    if (!navigator.onLine) {
+      setError('AI photo analysis requires an internet connection. You can still enter details manually.')
+      setAwaitingCover(false)
+      return
+    }
     setAwaitingCover(false)
     setAnalyzing(true)
 
@@ -225,6 +234,20 @@ export default function AddPiece() {
         personal_rating: form.personal_rating ? parseFloat(form.personal_rating) : null,
       }
 
+      // OFFLINE: save to IndexedDB and queue for sync
+      if (!isOnline) {
+        const tempId = crypto.randomUUID()
+        const offlinePiece = { ...pieceData, id: tempId, user_id: isOwnProfile ? user.email : activeProfile, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), archived: false }
+        try { await db.pieces.put(offlinePiece) } catch {}
+        const apiUrl = isOwnProfile ? '/api/profile-data' : `/api/profile/${encodeURIComponent(activeProfile)}/pieces`
+        await queueMutation({ url: apiUrl, method: 'POST', body: pieceData, description: `Add piece: ${form.title}` })
+        if (photoFile) addToast('Photos will be uploaded when you reconnect', 'info')
+        addToast('Piece saved offline — will sync later', 'info')
+        router.push('/pieces')
+        return
+      }
+
+      // ONLINE: normal flow
       let piece
       if (isOwnProfile) {
         const { data, error: insertError } = await supabase.from('pieces').insert([{

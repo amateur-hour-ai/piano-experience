@@ -397,6 +397,7 @@ export default function PieceDetail() {
   }
 
   async function requestFact() {
+    if (!isOnline) { addToast('AI features require an internet connection', 'error'); return }
     setFactLoading(true)
     try {
       const res = await fetch('/api/interesting-fact', {
@@ -422,6 +423,7 @@ export default function PieceDetail() {
   }
 
   async function generateBio() {
+    if (!isOnline) { addToast('AI features require an internet connection', 'error'); return }
     if (!piece.composer) return
     setBioLoading(true)
     try {
@@ -444,6 +446,7 @@ export default function PieceDetail() {
 
 
   async function handleImageUpload(e, imageType) {
+    if (!isOnline) { addToast('Image uploads require an internet connection', 'error'); return }
     const file = e.target.files[0]
     if (!file) return
     const formData = new FormData()

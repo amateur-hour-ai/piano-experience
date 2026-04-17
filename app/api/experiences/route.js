@@ -53,7 +53,7 @@ export async function POST(request) {
   if (action === 'add') {
     const { data, error } = await supabase.from('experience_log').insert([{
       user_email: targetEmail, date: body.date, summary: body.summary,
-      feedback: body.feedback, assignments: body.assignments
+      feedback: body.feedback, assignments: body.assignments, piece_ids: body.piece_ids || []
     }]).select().single()
     if (error) return Response.json({ error: error.message }, { status: 500 })
     return Response.json({ experience: data })
@@ -61,7 +61,7 @@ export async function POST(request) {
 
   if (action === 'update') {
     const { error } = await supabase.from('experience_log').update({
-      date: body.date, summary: body.summary, feedback: body.feedback, assignments: body.assignments
+      date: body.date, summary: body.summary, feedback: body.feedback, assignments: body.assignments, piece_ids: body.piece_ids || []
     }).eq('id', body.id).eq('user_email', targetEmail)
     if (error) return Response.json({ error: error.message }, { status: 500 })
     return Response.json({ success: true })

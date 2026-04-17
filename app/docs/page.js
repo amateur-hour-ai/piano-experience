@@ -200,6 +200,9 @@ function ReleaseNotes() {
       date: '2026-04-17',
       changes: [
         '"Ask AI to fill in the rest" — type a title and composer, then let AI look up the details (works for both manual entry and after photo analysis)',
+        'Create pieces offline — saves locally and syncs when you reconnect',
+        'Tag pieces in Experience Log — select which pieces were discussed during each experience',
+        'Offline guards on all AI features — clear messages when AI, photos, or uploads are unavailable offline',
         'Responsive design fixes for iPhone, iPad, and desktop — dropdowns, grids, and buttons now adapt to all screen sizes',
       ]
     },

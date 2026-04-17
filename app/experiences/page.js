@@ -15,10 +15,11 @@ export default function ExperienceLog() {
   const { addToast } = useToast()
   const { isOnline, getCachedProfileData } = useOfflineData()
   const [experiences, setExperiences] = useState([])
+  const [pieces, setPieces] = useState([])
   const [loading, setLoading] = useState(true)
   const [adding, setAdding] = useState(false)
   const [editingId, setEditingId] = useState(null)
-  const [form, setForm] = useState({ date: '', summary: '', feedback: '', assignments: '' })
+  const [form, setForm] = useState({ date: '', summary: '', feedback: '', assignments: '', piece_ids: [] })
 
   useEffect(() => {
     if (userLoading || !user || !activeProfile) return
@@ -29,24 +30,30 @@ export default function ExperienceLog() {
     setLoading(true)
     // Cache first
     const cached = await getCachedProfileData(activeProfile)
-    if (cached?.experiences?.length) {
-      setExperiences(cached.experiences)
+    if (cached) {
+      if (cached.experiences?.length) setExperiences(cached.experiences)
+      if (cached.pieces?.length) setPieces(cached.pieces)
       setLoading(false)
     }
     // Refresh from network if online
     if (isOnline) {
       try {
         const profileParam = isOwnProfile ? '' : `?profile=${encodeURIComponent(activeProfile)}`
-        const res = await fetch(`/api/experiences${profileParam}`, { signal: AbortSignal.timeout(5000) })
-        const data = await res.json()
-        setExperiences(data.experiences || [])
+        const [expRes, piecesRes] = await Promise.all([
+          fetch(`/api/experiences${profileParam}`, { signal: AbortSignal.timeout(5000) }).then(r => r.json()),
+          isOwnProfile
+            ? fetch(`/api/profile-data?type=pieces&email=${encodeURIComponent(activeProfile)}`, { signal: AbortSignal.timeout(5000) }).then(r => r.json())
+            : fetch(`/api/profile/${encodeURIComponent(activeProfile)}/pieces`, { signal: AbortSignal.timeout(5000) }).then(r => r.json()),
+        ])
+        setExperiences(expRes.experiences || [])
+        setPieces(piecesRes.pieces || [])
       } catch {}
     }
     setLoading(false)
   }
 
   function resetForm() {
-    setForm({ date: new Date().toISOString().split('T')[0], summary: '', feedback: '', assignments: '' })
+    setForm({ date: new Date().toISOString().split('T')[0], summary: '', feedback: '', assignments: '', piece_ids: [] })
   }
 
   async function saveExperience() {
@@ -115,7 +122,7 @@ export default function ExperienceLog() {
   }
 
   function startEdit(exp) {
-    setForm({ date: exp.date, summary: exp.summary || '', feedback: exp.feedback || '', assignments: exp.assignments || '' })
+    setForm({ date: exp.date, summary: exp.summary || '', feedback: exp.feedback || '', assignments: exp.assignments || '', piece_ids: exp.piece_ids || [] })
     setEditingId(exp.id)
     setAdding(true)
   }
@@ -165,6 +172,32 @@ export default function ExperienceLog() {
               rows={3} placeholder="What should you work on before the next experience?"
               style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', resize: 'vertical' }} />
           </div>
+          {/* Pieces discussed */}
+          {pieces.length > 0 && (
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>Pieces Discussed</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {pieces.filter(p => !p.archived).map(p => {
+                  const selected = form.piece_ids.includes(p.id)
+                  return (
+                    <button key={p.id} type="button" onClick={() => {
+                      setForm(prev => ({
+                        ...prev,
+                        piece_ids: selected ? prev.piece_ids.filter(id => id !== p.id) : [...prev.piece_ids, p.id]
+                      }))
+                    }} style={{
+                      padding: '10px 14px', textAlign: 'left', borderRadius: '8px', cursor: 'pointer',
+                      background: selected ? '#dbeafe' : '#f9fafb',
+                      border: `1px solid ${selected ? '#2563eb' : '#d1d5db'}`,
+                      color: selected ? '#1e40af' : '#374151', fontSize: '14px',
+                    }}>
+                      {selected ? '✓ ' : ''}{p.title}{p.composer ? ` — ${p.composer}` : ''}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -226,9 +259,24 @@ export default function ExperienceLog() {
                 </div>
               )}
               {exp.assignments && (
-                <div>
+                <div style={{ marginBottom: '10px' }}>
                   <div style={{ fontSize: '12px', color: '#999', marginBottom: '4px' }}>Assignments</div>
                   <p style={{ fontSize: '14px', lineHeight: '1.6' }}>{exp.assignments}</p>
+                </div>
+              )}
+              {exp.piece_ids?.length > 0 && (
+                <div>
+                  <div style={{ fontSize: '12px', color: '#999', marginBottom: '4px' }}>Pieces Discussed</div>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    {exp.piece_ids.map(pid => {
+                      const p = pieces.find(pp => pp.id === pid)
+                      return p ? (
+                        <span key={pid} style={{ fontSize: '13px', padding: '3px 10px', background: '#dbeafe', color: '#2563eb', borderRadius: '12px' }}>
+                          {p.title}
+                        </span>
+                      ) : null
+                    })}
+                  </div>
                 </div>
               )}
             </div>
