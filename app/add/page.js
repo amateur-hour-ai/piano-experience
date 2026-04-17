@@ -154,6 +154,10 @@ export default function AddPiece() {
   }
 
   async function enrichWithAI() {
+    if (!navigator.onLine) {
+      setError('AI features require an internet connection. You can still save the piece manually and ask AI to fill in details later.')
+      return
+    }
     if (!form.title && !form.composer) {
       setError('Enter at least a title or composer before asking AI to help.')
       return
