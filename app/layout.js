@@ -45,7 +45,7 @@ export default function RootLayout({ children }) {
           <OfflineProvider>
             <ActiveProfileProvider>
               <NavBar />
-              <div style={{ minHeight: '100vh', background: '#eff6ff', paddingBottom: '40px' }}>
+              <div style={{ minHeight: '100vh', background: "#eff6ff url('/bg-pattern.svg') repeat", paddingBottom: '40px' }}>
                 {children}
               </div>
               <ServiceWorkerRegistrar />
