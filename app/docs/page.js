@@ -195,6 +195,18 @@ function UserGuide() {
 function ReleaseNotes() {
   const releases = [
     {
+      version: '4.1',
+      date: '2026-04-16',
+      changes: [
+        'Full offline editing — add notes, edit pieces, toggle goals, manage schedule, update strategies, and log experiences while offline',
+        'All offline changes sync automatically when you reconnect',
+        'Music notes background pattern throughout the app',
+        'Improved offline reliability with @serwist/next service worker',
+        'Cropped logo — piano fills the frame with less whitespace',
+        'App icon with light blue background, transparent logo in nav bar',
+      ]
+    },
+    {
       version: '4.0',
       date: '2026-04-15',
       changes: [
