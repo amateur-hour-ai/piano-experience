@@ -6,6 +6,8 @@ import { useCurrentUser } from '@/lib/useCurrentUser'
 import { useActiveProfile } from '@/lib/useActiveProfile'
 import { useToast } from '@/app/ToastProvider'
 import { useOfflineData } from '@/lib/useOfflineData'
+import { queueMutation } from '@/lib/syncManager'
+import db from '@/lib/offlineStore'
 
 export default function ExperienceLog() {
   const { user, loading: userLoading } = useCurrentUser()
@@ -49,31 +51,65 @@ export default function ExperienceLog() {
 
   async function saveExperience() {
     const action = editingId ? 'update' : 'add'
-    const res = await fetch('/api/experiences', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action, ...form,
-        ...(editingId ? { id: editingId } : {}),
-        profileEmail: isOwnProfile ? undefined : activeProfile
+    const body = {
+      action, ...form,
+      ...(editingId ? { id: editingId } : {}),
+      profileEmail: isOwnProfile ? undefined : activeProfile
+    }
+
+    if (!isOnline) {
+      await queueMutation({ url: '/api/experiences', method: 'POST', body, description: `${action} experience` })
+      if (!editingId) {
+        const tempId = crypto.randomUUID()
+        const newExp = { id: tempId, user_email: activeProfile, ...form, created_at: new Date().toISOString() }
+        try { await db.experienceLog.put(newExp) } catch {}
+        setExperiences(prev => [newExp, ...prev])
+      } else {
+        setExperiences(prev => prev.map(e => e.id === editingId ? { ...e, ...form } : e))
+      }
+      addToast(editingId ? 'Updated offline — will sync later' : 'Logged offline — will sync later', 'info')
+      setAdding(false)
+      setEditingId(null)
+      return
+    }
+
+    try {
+      const res = await fetch('/api/experiences', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
       })
-    })
-    const data = await res.json()
-    if (data.error) { addToast(data.error, 'error'); return }
-    addToast(editingId ? 'Experience updated!' : 'Experience logged!', 'success')
+      const data = await res.json()
+      if (data.error) { addToast(data.error, 'error'); return }
+      addToast(editingId ? 'Experience updated!' : 'Experience logged!', 'success')
+    } catch {
+      await queueMutation({ url: '/api/experiences', method: 'POST', body, description: `${action} experience` })
+      addToast('Saved offline — will sync later', 'info')
+    }
     setAdding(false)
     setEditingId(null)
     loadExperiences()
   }
 
   async function deleteExperience(id) {
-    const res = await fetch('/api/experiences', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'delete', id, profileEmail: isOwnProfile ? undefined : activeProfile })
-    })
-    const data = await res.json()
-    if (data.error) { addToast('Failed to delete', 'error'); return }
+    const body = { action: 'delete', id, profileEmail: isOwnProfile ? undefined : activeProfile }
+    setExperiences(prev => prev.filter(e => e.id !== id))
+
+    if (!isOnline) {
+      await queueMutation({ url: '/api/experiences', method: 'POST', body, description: 'Delete experience' })
+      addToast('Removed offline — will sync later', 'info')
+      return
+    }
+
+    try {
+      const res = await fetch('/api/experiences', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      })
+      const data = await res.json()
+      if (data.error) { addToast('Failed to delete', 'error'); return }
+    } catch {
+      await queueMutation({ url: '/api/experiences', method: 'POST', body, description: 'Delete experience' })
+    }
     addToast('Experience removed', 'info')
     loadExperiences()
   }

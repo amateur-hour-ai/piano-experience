@@ -6,6 +6,8 @@ import { useCurrentUser } from '@/lib/useCurrentUser'
 import { useActiveProfile } from '@/lib/useActiveProfile'
 import { useToast } from '@/app/ToastProvider'
 import { useOfflineData } from '@/lib/useOfflineData'
+import { queueMutation } from '@/lib/syncManager'
+import db from '@/lib/offlineStore'
 
 export default function Strategies() {
   const { user, isAdmin, loading: userLoading } = useCurrentUser()
@@ -51,37 +53,71 @@ export default function Strategies() {
 
   async function updateStrategy(strategy) {
     const action = editingStandard ? 'update_standard' : 'update'
-    await fetch('/api/strategies', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, id: strategy.id, heading: strategy.heading, bullets: strategy.bullets, profileEmail: isOwnProfile ? undefined : activeProfile })
-    })
-    addToast('Saved!', 'success')
+    const body = { action, id: strategy.id, heading: strategy.heading, bullets: strategy.bullets, profileEmail: isOwnProfile ? undefined : activeProfile }
+
+    if (!isOnline) {
+      await queueMutation({ url: '/api/strategies', method: 'POST', body, description: 'Update strategy' })
+      try { await db.practiceStrategies.update(strategy.id, { heading: strategy.heading, bullets: strategy.bullets }) } catch {}
+      addToast('Saved offline', 'info')
+      return
+    }
+
+    try {
+      await fetch('/api/strategies', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      addToast('Saved!', 'success')
+    } catch {
+      await queueMutation({ url: '/api/strategies', method: 'POST', body, description: 'Update strategy' })
+      addToast('Saved offline', 'info')
+    }
   }
 
   async function addStrategy() {
     const action = editingStandard ? 'add_standard' : 'add'
-    const res = await fetch('/api/strategies', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, heading: 'New Strategy', bullets: ['Add your first point here.'], sort_order: strategies.length, profileEmail: isOwnProfile ? undefined : activeProfile })
-    })
-    const data = await res.json()
-    if (data.strategy) {
-      setStrategies(prev => [...prev, data.strategy])
-      setExpanded(prev => ({ ...prev, [data.strategy.id]: true }))
-      addToast('Strategy added!', 'success')
+    const body = { action, heading: 'New Strategy', bullets: ['Add your first point here.'], sort_order: strategies.length, profileEmail: isOwnProfile ? undefined : activeProfile }
+    const tempId = crypto.randomUUID()
+
+    if (!isOnline) {
+      await queueMutation({ url: '/api/strategies', method: 'POST', body, description: 'Add strategy' })
+      const temp = { id: tempId, heading: 'New Strategy', bullets: ['Add your first point here.'], sort_order: strategies.length, user_email: activeProfile }
+      try { await db.practiceStrategies.put(temp) } catch {}
+      setStrategies(prev => [...prev, temp])
+      setExpanded(prev => ({ ...prev, [tempId]: true }))
+      addToast('Added offline', 'info')
+      return
+    }
+
+    try {
+      const res = await fetch('/api/strategies', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      const data = await res.json()
+      if (data.strategy) {
+        setStrategies(prev => [...prev, data.strategy])
+        setExpanded(prev => ({ ...prev, [data.strategy.id]: true }))
+        addToast('Strategy added!', 'success')
+      }
+    } catch {
+      await queueMutation({ url: '/api/strategies', method: 'POST', body, description: 'Add strategy' })
+      const temp = { id: tempId, heading: 'New Strategy', bullets: ['Add your first point here.'], sort_order: strategies.length }
+      setStrategies(prev => [...prev, temp])
+      addToast('Added offline', 'info')
     }
   }
 
   async function deleteStrategy(id) {
     const action = editingStandard ? 'delete_standard' : 'delete'
-    await fetch('/api/strategies', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, id, profileEmail: isOwnProfile ? undefined : activeProfile })
-    })
+    const body = { action, id, profileEmail: isOwnProfile ? undefined : activeProfile }
     setStrategies(prev => prev.filter(s => s.id !== id))
+
+    if (!isOnline) {
+      await queueMutation({ url: '/api/strategies', method: 'POST', body, description: 'Delete strategy' })
+      addToast('Removed offline', 'info')
+      return
+    }
+
+    try {
+      await fetch('/api/strategies', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    } catch {
+      await queueMutation({ url: '/api/strategies', method: 'POST', body, description: 'Delete strategy' })
+    }
     addToast('Strategy removed', 'info')
   }
 

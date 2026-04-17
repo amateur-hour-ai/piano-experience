@@ -8,6 +8,8 @@ import { useActiveProfile } from '@/lib/useActiveProfile'
 import { useToast } from '@/app/ToastProvider'
 import { logActivity } from '@/lib/logActivity'
 import { useOfflineData } from '@/lib/useOfflineData'
+import { queueMutation } from '@/lib/syncManager'
+import db from '@/lib/offlineStore'
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
@@ -90,21 +92,39 @@ export default function PracticeSchedule() {
       week_start_date: '2026-01-01',
       completed: false,
     }
-    if (isOwnProfile) {
-      const { error } = await supabase.from('practice_schedule').insert([{ ...itemData, user_id: user.email }])
-      if (error) { addToast('Failed to add: ' + error.message, 'error'); return }
-    } else {
-      const res = await fetch(profileApiBase, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'add', ...itemData })
-      })
-      const data = await res.json()
-      if (data.error) { addToast('Failed to add: ' + data.error, 'error'); return }
+    const tempId = crypto.randomUUID()
+    const selectedPieceData = pieces.find(p => p.id === selectedPiece)
+
+    if (!isOnline) {
+      await queueMutation({ url: profileApiBase, method: 'POST', body: { action: 'add', ...itemData }, description: 'Add to schedule' })
+      try { await db.practiceSchedule.put({ ...itemData, id: tempId, user_id: activeProfile }) } catch {}
+      setSchedule(prev => [...prev, { ...itemData, id: tempId, pieces: selectedPieceData }])
+      addToast('Added offline — will sync later', 'info')
+      setAddingDay(null); setSelectedPiece(''); setFocusNotes('')
+      return
+    }
+
+    try {
+      if (isOwnProfile) {
+        const { error } = await supabase.from('practice_schedule').insert([{ ...itemData, user_id: user.email }])
+        if (error) { addToast('Failed to add: ' + error.message, 'error'); return }
+      } else {
+        const res = await fetch(profileApiBase, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'add', ...itemData })
+        })
+        const data = await res.json()
+        if (data.error) { addToast('Failed to add: ' + data.error, 'error'); return }
+      }
+    } catch {
+      await queueMutation({ url: profileApiBase, method: 'POST', body: { action: 'add', ...itemData }, description: 'Add to schedule' })
+      setSchedule(prev => [...prev, { ...itemData, id: tempId, pieces: selectedPieceData }])
+      addToast('Added offline — will sync later', 'info')
+      setAddingDay(null); setSelectedPiece(''); setFocusNotes('')
+      return
     }
     addToast('Added to schedule!', 'success')
-    setAddingDay(null)
-    setSelectedPiece('')
-    setFocusNotes('')
+    setAddingDay(null); setSelectedPiece(''); setFocusNotes('')
     loadData()
   }
 
@@ -112,36 +132,56 @@ export default function PracticeSchedule() {
     const doneToday = isCompletedToday(item)
     const newCompleted = !doneToday
     const newCompletedAt = newCompleted ? new Date().toISOString() : null
-    if (isOwnProfile) {
-      await supabase.from('practice_schedule').update({ completed: newCompleted, completed_at: newCompletedAt }).eq('id', item.id)
-    } else {
-      await fetch(profileApiBase, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'toggle', id: item.id, completed: newCompleted, completed_at: newCompletedAt })
-      })
-    }
 
-    if (newCompleted) {
-      await logActivity({
-        action: 'practice_complete',
-        piece_id: item.piece_id,
-        piece_title: item.pieces?.title,
-        details: `Completed practice on ${DAYS[item.day_of_week]}`,
-        user_email: user.email
-      })
-    }
-
+    // Update locally immediately
     setSchedule(prev => prev.map(s => s.id === item.id ? { ...s, completed: newCompleted, completed_at: newCompletedAt } : s))
+
+    if (!isOnline) {
+      await queueMutation({ url: profileApiBase, method: 'POST', body: { action: 'toggle', id: item.id, completed: newCompleted, completed_at: newCompletedAt }, description: 'Toggle practice complete' })
+      return
+    }
+
+    try {
+      if (isOwnProfile) {
+        await supabase.from('practice_schedule').update({ completed: newCompleted, completed_at: newCompletedAt }).eq('id', item.id)
+      } else {
+        await fetch(profileApiBase, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'toggle', id: item.id, completed: newCompleted, completed_at: newCompletedAt })
+        })
+      }
+      if (newCompleted) {
+        await logActivity({
+          action: 'practice_complete', piece_id: item.piece_id,
+          piece_title: item.pieces?.title, details: `Completed practice on ${DAYS[item.day_of_week]}`,
+          user_email: user.email
+        })
+      }
+    } catch {
+      await queueMutation({ url: profileApiBase, method: 'POST', body: { action: 'toggle', id: item.id, completed: newCompleted, completed_at: newCompletedAt }, description: 'Toggle practice complete' })
+    }
   }
 
   async function removeItem(itemId) {
-    if (isOwnProfile) {
-      await supabase.from('practice_schedule').delete().eq('id', itemId)
-    } else {
-      await fetch(profileApiBase, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'remove', id: itemId })
-      })
+    setSchedule(prev => prev.filter(s => s.id !== itemId))
+
+    if (!isOnline) {
+      await queueMutation({ url: profileApiBase, method: 'POST', body: { action: 'remove', id: itemId }, description: 'Remove from schedule' })
+      addToast('Removed offline — will sync later', 'info')
+      return
+    }
+
+    try {
+      if (isOwnProfile) {
+        await supabase.from('practice_schedule').delete().eq('id', itemId)
+      } else {
+        await fetch(profileApiBase, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'remove', id: itemId })
+        })
+      }
+    } catch {
+      await queueMutation({ url: profileApiBase, method: 'POST', body: { action: 'remove', id: itemId }, description: 'Remove from schedule' })
     }
     setSchedule(prev => prev.filter(s => s.id !== itemId))
     addToast('Removed from schedule', 'info')
