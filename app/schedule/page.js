@@ -8,12 +8,14 @@ import { useActiveProfile } from '@/lib/useActiveProfile'
 import { useToast } from '@/app/ToastProvider'
 import { useOfflineData } from '@/lib/useOfflineData'
 import { queueMutation } from '@/lib/syncManager'
+import { useSortedCategories } from '@/lib/useSortedCategories'
 
 export default function PracticeSchedule() {
   const { user, loading: userLoading } = useCurrentUser()
   const { activeProfile, isOwnProfile, canEdit, profileDisplayName } = useActiveProfile()
   const { addToast } = useToast()
   const { isOnline, getCachedProfileData } = useOfflineData()
+  const { sortPiecesByCategory } = useSortedCategories()
   const [pieces, setPieces] = useState([])
   const [grid, setGrid] = useState({}) // key: `${pieceId}_${date}` → status
   const [loading, setLoading] = useState(true)
@@ -82,12 +84,14 @@ export default function PracticeSchedule() {
           ])
           piecesData = (res.pieces || []).filter(p => !p.archived)
         }
-        setPieces(piecesData.sort((a, b) => {
+        // Sort by user's category preference, then priority, then title
+        const sorted = sortPiecesByCategory(piecesData)
+        setPieces(sorted.sort((a, b) => {
           const catA = a.categories?.name || 'Uncategorized'
           const catB = b.categories?.name || 'Uncategorized'
-          if (catA !== catB) return catA.localeCompare(catB)
+          if (catA !== catB) return 0 // category order already handled by sortPiecesByCategory
           if (a.is_priority !== b.is_priority) return (b.is_priority ? 1 : 0) - (a.is_priority ? 1 : 0)
-          return (a.title || '').localeCompare(b.title || '')
+          return 0
         }))
 
         // Load grid data

@@ -115,6 +115,16 @@ function UserGuide() {
         </p>
       </Section>
 
+      <Section title="Managing Categories">
+        <p style={{ fontSize: '15px', lineHeight: '1.7', color: '#333', marginBottom: '16px' }}>
+          Go to <strong>Manage Categories</strong> from the menu to customize your category order and create new categories.
+        </p>
+        <Step n="1">Use the <strong>▲ ▼ arrows</strong> to reorder categories. This order applies everywhere — dashboard, practice schedule, pieces list.</Step>
+        <Step n="2">Tap <strong>Rename</strong> to change the name of a custom category (system defaults can't be renamed).</Step>
+        <Step n="3">Tap <strong>Delete</strong> to remove a custom category. Pieces in that category become uncategorized.</Step>
+        <Step n="4">Use the <strong>Add Category</strong> section to create new categories. Custom categories are only visible to you.</Step>
+      </Section>
+
       <Section title="Practice Schedule">
         <p style={{ fontSize: '15px', lineHeight: '1.7', color: '#333', marginBottom: '16px' }}>
           The practice schedule is a grid showing all your active pieces across 14 days (7 past + today + 6 future). Scroll left to see past days or right for upcoming days.
@@ -208,6 +218,14 @@ function ReleaseNotes() {
         'Horizontally scrollable grid with today highlighted and centered',
         'Export schedule as printable PDF',
         'Dashboard reads from new practice grid for today\'s practice and streak',
+      ]
+    },
+    {
+      version: '5.2',
+      date: '2026-04-18',
+      changes: [
+        'Manage Categories page — reorder categories with up/down arrows, add/rename/delete custom categories',
+        'Per-user category sort order — your preferred order applies on dashboard, schedule, pieces list, and everywhere categories appear',
       ]
     },
     {

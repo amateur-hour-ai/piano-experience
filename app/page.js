@@ -6,11 +6,13 @@ import Link from 'next/link'
 import { useCurrentUser } from '@/lib/useCurrentUser'
 import { useActiveProfile } from '@/lib/useActiveProfile'
 import { useOfflineData } from '@/lib/useOfflineData'
+import { useSortedCategories } from '@/lib/useSortedCategories'
 
 export default function Dashboard() {
   const { user, loading: userLoading } = useCurrentUser()
   const { activeProfile, isOwnProfile, canEdit, profileDisplayName } = useActiveProfile()
   const { isOnline, fetchOrCache, getCachedProfileData, getCachedTheme } = useOfflineData()
+  const { categories: sortedCategories } = useSortedCategories()
   const [pieces, setPieces] = useState([])
   const [schedule, setSchedule] = useState([])
   const [practiceGrid, setPracticeGrid] = useState([])
@@ -93,11 +95,19 @@ export default function Dashboard() {
 
   if (userLoading || loading) return <LoadingSkeleton />
 
+  // Group pieces by category in the user's preferred sort order
   const byCategory = {}
+  const catOrder = {}
+  sortedCategories.forEach((c, i) => { catOrder[c.name] = c.effective_sort !== undefined ? c.effective_sort : i })
   pieces.forEach(p => {
     const cat = p.categories?.name || 'Uncategorized'
     if (!byCategory[cat]) byCategory[cat] = []
     byCategory[cat].push(p)
+  })
+  const sortedCategoryEntries = Object.entries(byCategory).sort((a, b) => {
+    const orderA = catOrder[a[0]] !== undefined ? catOrder[a[0]] : 999
+    const orderB = catOrder[b[0]] !== undefined ? catOrder[b[0]] : 999
+    return orderA - orderB
   })
 
   const todayStr = new Date().toISOString().split('T')[0]
@@ -208,7 +218,7 @@ export default function Dashboard() {
             No pieces yet. {canEdit && <Link href="/add">Add your first piece</Link>}
           </div>
         ) : (
-          Object.entries(byCategory).map(([cat, items]) => (
+          sortedCategoryEntries.map(([cat, items]) => (
             <div key={cat} style={{ marginBottom: '16px' }}>
               <h3 style={{ fontSize: '15px', color: '#2563eb', marginBottom: '8px' }}>{cat} ({items.length})</h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '10px' }}>

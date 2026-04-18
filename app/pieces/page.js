@@ -7,11 +7,13 @@ import { useCurrentUser } from '@/lib/useCurrentUser'
 import { useActiveProfile } from '@/lib/useActiveProfile'
 import EmptyState, { Skeleton } from '@/app/EmptyState'
 import { useOfflineData } from '@/lib/useOfflineData'
+import { useSortedCategories } from '@/lib/useSortedCategories'
 
 export default function Pieces() {
   const { user, loading: userLoading } = useCurrentUser()
   const { activeProfile, isOwnProfile, canEdit, profileDisplayName } = useActiveProfile()
   const { isOnline, getCachedProfileData } = useOfflineData()
+  const { categories: sortedCats } = useSortedCategories()
   const [pieces, setPieces] = useState([])
   const [categories, setCategories] = useState([])
   const [search, setSearch] = useState('')
@@ -117,7 +119,7 @@ export default function Pieces() {
           style={{ padding: '10px 14px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', background: '#fff' }}
         >
           <option value="">All Categories</option>
-          {categories.map(c => (
+          {(sortedCats.length > 0 ? sortedCats : categories).map(c => (
             <option key={c.id} value={c.id}>{c.name}</option>
           ))}
         </select>

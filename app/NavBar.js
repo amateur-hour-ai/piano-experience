@@ -33,6 +33,7 @@ export default function NavBar() {
     { href: '/experiences', label: 'Experience Log' },
     { href: '/strategies', label: 'Practice Strategies' },
     ...(hasMultipleProfiles ? [{ href: '/dashboard/teacher', label: 'Parent/Teacher View' }] : []),
+    { href: '/categories', label: 'Manage Categories' },
     { href: '/permissions', label: 'Sharing' },
     ...(isAdmin ? [{ href: '/admin/users', label: 'Manage Users' }] : []),
     { href: '/docs', label: 'Documentation' },
