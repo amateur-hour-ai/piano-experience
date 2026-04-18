@@ -116,11 +116,13 @@ function UserGuide() {
       </Section>
 
       <Section title="Practice Schedule">
-        <Step n="1">Go to <strong>Practice Schedule</strong> from the dashboard or menu.</Step>
-        <Step n="2">For each day of the week, tap <strong>+ Add</strong> to assign pieces.</Step>
-        <Step n="3">Add optional focus notes for each scheduled piece.</Step>
-        <Step n="4">During practice, check off each piece as you complete it.</Step>
-        <Note>The dashboard shows today's practice items so you can jump right in.</Note>
+        <p style={{ fontSize: '15px', lineHeight: '1.7', color: '#333', marginBottom: '16px' }}>
+          The practice schedule is a grid showing all your active pieces across 14 days (7 past + today + 6 future). Scroll left to see past days or right for upcoming days.
+        </p>
+        <Step n="1">Tap any cell to plan: empty → <strong>blue dot</strong> (planned) → <strong>green check</strong> (completed) → empty again.</Step>
+        <Step n="2">Set a focus area for each piece by tapping the focus text next to the piece name.</Step>
+        <Step n="3">Use the <strong>Export</strong> button to print your schedule.</Step>
+        <Note>You can also edit focus areas from the piece detail page. The dashboard shows today's planned pieces and your practice streak.</Note>
       </Section>
 
       <Section title="Piano Experience Log">
@@ -195,6 +197,18 @@ function UserGuide() {
 
 function ReleaseNotes() {
   const releases = [
+    {
+      version: '5.0',
+      date: '2026-04-18',
+      changes: [
+        'Redesigned Practice Schedule as a perpetual grid — all pieces × 14 days (7 past + today + 6 future)',
+        'Tap cells to cycle: empty → planned (blue dot) → completed (green check) → empty',
+        'Focus areas editable inline on the grid and on each piece detail page',
+        'Horizontally scrollable grid with today highlighted and centered',
+        'Export schedule as printable PDF',
+        'Dashboard reads from new practice grid for today\'s practice and streak',
+      ]
+    },
     {
       version: '4.2',
       date: '2026-04-17',

@@ -6,312 +6,285 @@ import Link from 'next/link'
 import { useCurrentUser } from '@/lib/useCurrentUser'
 import { useActiveProfile } from '@/lib/useActiveProfile'
 import { useToast } from '@/app/ToastProvider'
-import { logActivity } from '@/lib/logActivity'
 import { useOfflineData } from '@/lib/useOfflineData'
 import { queueMutation } from '@/lib/syncManager'
-import db from '@/lib/offlineStore'
-
-const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
 export default function PracticeSchedule() {
   const { user, loading: userLoading } = useCurrentUser()
   const { activeProfile, isOwnProfile, canEdit, profileDisplayName } = useActiveProfile()
   const { addToast } = useToast()
   const { isOnline, getCachedProfileData } = useOfflineData()
-  const [schedule, setSchedule] = useState([])
   const [pieces, setPieces] = useState([])
+  const [grid, setGrid] = useState({}) // key: `${pieceId}_${date}` → status
   const [loading, setLoading] = useState(true)
-  const [addingDay, setAddingDay] = useState(null)
-  const [selectedPiece, setSelectedPiece] = useState('')
-  const [focusNotes, setFocusNotes] = useState('')
-  const todayRef = useRef(null)
+  const [editingFocus, setEditingFocus] = useState(null) // piece id being edited
+  const [focusDraft, setFocusDraft] = useState('')
+  const scrollRef = useRef(null)
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   )
 
+  // Generate 14 days: 7 past + today + 6 future
+  const days = []
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  for (let i = -7; i <= 6; i++) {
+    const d = new Date(today)
+    d.setDate(d.getDate() + i)
+    days.push(d)
+  }
+  const todayStr = today.toISOString().split('T')[0]
+
   useEffect(() => {
     if (userLoading || !user || !activeProfile) return
-    setLoading(true)
     loadData()
   }, [userLoading, user, activeProfile])
 
+  // Auto-scroll to today on load
+  useEffect(() => {
+    if (!loading && scrollRef.current) {
+      const todayCol = scrollRef.current.querySelector('[data-today="true"]')
+      if (todayCol) {
+        todayCol.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
+      }
+    }
+  }, [loading])
+
   async function loadData() {
+    const startDate = days[0].toISOString().split('T')[0]
+    const endDate = days[days.length - 1].toISOString().split('T')[0]
+
     // Cache first
     const cached = await getCachedProfileData(activeProfile)
-    if (cached) {
-      setSchedule(cached.schedule || [])
-      setPieces(cached.pieces || [])
+    if (cached?.pieces) {
+      setPieces(cached.pieces.filter(p => !p.archived))
       setLoading(false)
     }
 
-    // Refresh from network if online
     if (isOnline) {
       try {
         const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
+
+        // Load pieces
+        let piecesData
         if (isOwnProfile) {
-          const dataPromise = Promise.all([
-            supabase.from('practice_schedule').select('*, pieces(title, composer)').eq('user_id', user.email).order('day_of_week').order('sort_order'),
-            supabase.from('pieces').select('id, title, composer').eq('user_id', user.email).order('title'),
+          const res = await Promise.race([
+            supabase.from('pieces').select('id, title, composer, current_focus, archived, categories(name)').eq('user_id', user.email).eq('archived', false).order('title'),
+            timeoutPromise
           ])
-          const [schedRes, piecesRes] = await Promise.race([dataPromise, timeoutPromise])
-          setSchedule(schedRes.data || [])
-          setPieces(piecesRes.data || [])
+          piecesData = res.data || []
         } else {
-          const dataPromise = Promise.all([
-            fetch(`/api/profile/${encodeURIComponent(activeProfile)}/schedule`, { signal: AbortSignal.timeout(5000) }).then(r => r.json()),
+          const res = await Promise.race([
             fetch(`/api/profile/${encodeURIComponent(activeProfile)}/pieces`, { signal: AbortSignal.timeout(5000) }).then(r => r.json()),
+            timeoutPromise
           ])
-          const [schedRes, piecesRes] = await Promise.race([dataPromise, timeoutPromise])
-          setSchedule(schedRes.schedule || [])
-          setPieces(piecesRes.pieces || [])
+          piecesData = (res.pieces || []).filter(p => !p.archived)
         }
+        setPieces(piecesData)
+
+        // Load grid data
+        const gridRes = await Promise.race([
+          fetch(`/api/practice-grid?profile=${encodeURIComponent(activeProfile)}&start=${startDate}&end=${endDate}`, { signal: AbortSignal.timeout(5000) }).then(r => r.json()),
+          timeoutPromise
+        ])
+        const gridMap = {}
+        for (const item of (gridRes.grid || [])) {
+          gridMap[`${item.piece_id}_${item.date}`] = item.status
+        }
+        setGrid(gridMap)
       } catch {}
     }
     setLoading(false)
   }
 
-  function isCompletedToday(item) {
-    if (!item.completed_at) return false
-    const completedDate = new Date(item.completed_at).toLocaleDateString()
-    const today = new Date().toLocaleDateString()
-    return completedDate === today
-  }
+  async function toggleCell(pieceId, dateStr) {
+    if (!canEdit) return
+    const key = `${pieceId}_${dateStr}`
+    const current = grid[key] || null
 
-  const profileApiBase = `/api/profile/${encodeURIComponent(activeProfile)}/schedule`
+    // Cycle: null → planned → completed → null
+    let newStatus
+    if (!current) newStatus = 'planned'
+    else if (current === 'planned') newStatus = 'completed'
+    else newStatus = null
 
-  async function addToSchedule(dayIdx) {
-    if (!selectedPiece) return
-    const dayItems = schedule.filter(s => s.day_of_week === dayIdx)
-    const itemData = {
-      piece_id: selectedPiece,
-      day_of_week: dayIdx,
-      focus_notes: focusNotes || null,
-      sort_order: dayItems.length,
-      week_start_date: '2026-01-01',
-      completed: false,
-    }
-    const tempId = crypto.randomUUID()
-    const selectedPieceData = pieces.find(p => p.id === selectedPiece)
+    // Update local state immediately
+    setGrid(prev => {
+      const next = { ...prev }
+      if (newStatus) next[key] = newStatus
+      else delete next[key]
+      return next
+    })
 
+    // Sync to server or queue
+    const body = { action: 'toggle', piece_id: pieceId, date: dateStr, currentStatus: current, profileEmail: isOwnProfile ? undefined : activeProfile }
     if (!isOnline) {
-      await queueMutation({ url: profileApiBase, method: 'POST', body: { action: 'add', ...itemData }, description: 'Add to schedule' })
-      try { await db.practiceSchedule.put({ ...itemData, id: tempId, user_id: activeProfile }) } catch {}
-      setSchedule(prev => [...prev, { ...itemData, id: tempId, pieces: selectedPieceData }])
-      addToast('Added offline — will sync later', 'info')
-      setAddingDay(null); setSelectedPiece(''); setFocusNotes('')
+      await queueMutation({ url: '/api/practice-grid', method: 'POST', body, description: `Toggle practice ${dateStr}` })
       return
     }
-
     try {
-      if (isOwnProfile) {
-        const { error } = await supabase.from('practice_schedule').insert([{ ...itemData, user_id: user.email }])
-        if (error) { addToast('Failed to add: ' + error.message, 'error'); return }
-      } else {
-        const res = await fetch(profileApiBase, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'add', ...itemData })
-        })
-        const data = await res.json()
-        if (data.error) { addToast('Failed to add: ' + data.error, 'error'); return }
-      }
-    } catch {
-      await queueMutation({ url: profileApiBase, method: 'POST', body: { action: 'add', ...itemData }, description: 'Add to schedule' })
-      setSchedule(prev => [...prev, { ...itemData, id: tempId, pieces: selectedPieceData }])
-      addToast('Added offline — will sync later', 'info')
-      setAddingDay(null); setSelectedPiece(''); setFocusNotes('')
-      return
-    }
-    addToast('Added to schedule!', 'success')
-    setAddingDay(null); setSelectedPiece(''); setFocusNotes('')
-    loadData()
-  }
-
-  async function toggleComplete(item) {
-    const doneToday = isCompletedToday(item)
-    const newCompleted = !doneToday
-    const newCompletedAt = newCompleted ? new Date().toISOString() : null
-
-    // Update locally immediately
-    setSchedule(prev => prev.map(s => s.id === item.id ? { ...s, completed: newCompleted, completed_at: newCompletedAt } : s))
-
-    if (!isOnline) {
-      await queueMutation({ url: profileApiBase, method: 'POST', body: { action: 'toggle', id: item.id, completed: newCompleted, completed_at: newCompletedAt }, description: 'Toggle practice complete' })
-      return
-    }
-
-    try {
-      if (isOwnProfile) {
-        await supabase.from('practice_schedule').update({ completed: newCompleted, completed_at: newCompletedAt }).eq('id', item.id)
-      } else {
-        await fetch(profileApiBase, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'toggle', id: item.id, completed: newCompleted, completed_at: newCompletedAt })
-        })
-      }
-      if (newCompleted) {
-        await logActivity({
-          action: 'practice_complete', piece_id: item.piece_id,
-          piece_title: item.pieces?.title, details: `Completed practice on ${DAYS[item.day_of_week]}`,
-          user_email: user.email
-        })
-      }
-    } catch {
-      await queueMutation({ url: profileApiBase, method: 'POST', body: { action: 'toggle', id: item.id, completed: newCompleted, completed_at: newCompletedAt }, description: 'Toggle practice complete' })
-    }
-  }
-
-  async function removeItem(itemId) {
-    setSchedule(prev => prev.filter(s => s.id !== itemId))
-
-    if (!isOnline) {
-      await queueMutation({ url: profileApiBase, method: 'POST', body: { action: 'remove', id: itemId }, description: 'Remove from schedule' })
-      addToast('Removed offline — will sync later', 'info')
-      return
-    }
-
-    try {
-      if (isOwnProfile) {
-        await supabase.from('practice_schedule').delete().eq('id', itemId)
-      } else {
-        await fetch(profileApiBase, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'remove', id: itemId })
-        })
-      }
-    } catch {
-      await queueMutation({ url: profileApiBase, method: 'POST', body: { action: 'remove', id: itemId }, description: 'Remove from schedule' })
-    }
-    setSchedule(prev => prev.filter(s => s.id !== itemId))
-    addToast('Removed from schedule', 'info')
-  }
-
-  async function updateFocus(itemId, newFocus) {
-    if (isOwnProfile) {
-      await supabase.from('practice_schedule').update({ focus_notes: newFocus || null }).eq('id', itemId)
-    } else {
-      await fetch(profileApiBase, {
+      await fetch('/api/practice-grid', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'update_focus', id: itemId, focus_notes: newFocus })
+        body: JSON.stringify(body)
       })
+    } catch {
+      await queueMutation({ url: '/api/practice-grid', method: 'POST', body, description: `Toggle practice ${dateStr}` })
     }
-    setSchedule(prev => prev.map(s => s.id === itemId ? { ...s, focus_notes: newFocus } : s))
   }
 
-  // Auto-scroll to today on load
-  useEffect(() => {
-    if (!loading && todayRef.current) {
-      todayRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  async function saveFocus(pieceId) {
+    const body = { action: 'update_focus', piece_id: pieceId, current_focus: focusDraft, profileEmail: isOwnProfile ? undefined : activeProfile }
+    setPieces(prev => prev.map(p => p.id === pieceId ? { ...p, current_focus: focusDraft } : p))
+    setEditingFocus(null)
+
+    if (!isOnline) {
+      await queueMutation({ url: '/api/practice-grid', method: 'POST', body, description: 'Update focus area' })
+      addToast('Focus saved offline', 'info')
+      return
     }
-  }, [loading])
+    try {
+      await fetch('/api/practice-grid', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      })
+    } catch {
+      await queueMutation({ url: '/api/practice-grid', method: 'POST', body, description: 'Update focus area' })
+    }
+  }
+
+  function exportGrid() {
+    const w = window.open('', '_blank')
+    const dayHeaders = days.map(d => `<th style="padding:4px 8px;font-size:11px;text-align:center;min-width:40px;${d.toISOString().split('T')[0] === todayStr ? 'background:#dbeafe;font-weight:700' : ''}">${d.toLocaleDateString('en-US', { weekday: 'short' })}<br>${d.getMonth() + 1}/${d.getDate()}</th>`).join('')
+    const rows = pieces.map(p => {
+      const cells = days.map(d => {
+        const key = `${p.id}_${d.toISOString().split('T')[0]}`
+        const status = grid[key]
+        const isToday = d.toISOString().split('T')[0] === todayStr
+        return `<td style="text-align:center;padding:6px;${isToday ? 'background:#eff6ff' : ''}">${status === 'completed' ? '✓' : status === 'planned' ? '●' : ''}</td>`
+      }).join('')
+      return `<tr><td style="padding:6px 8px;font-weight:500;font-size:13px;white-space:nowrap">${p.title}</td><td style="padding:6px 8px;font-size:12px;color:#666;max-width:150px">${p.current_focus || ''}</td>${cells}</tr>`
+    }).join('')
+
+    w.document.write(`<!DOCTYPE html><html><head><title>Practice Schedule</title>
+      <style>body{font-family:-apple-system,sans-serif;padding:20px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #e5e7eb}h1{font-size:18px;color:#2563eb}</style></head><body>
+      <h1>Practice Schedule — ${profileDisplayName(activeProfile)}</h1>
+      <p style="color:#666;font-size:13px">● = planned &nbsp; ✓ = completed</p>
+      <table><thead><tr><th style="text-align:left;padding:6px">Piece</th><th style="text-align:left;padding:6px">Focus</th>${dayHeaders}</tr></thead><tbody>${rows}</tbody></table>
+      <p style="margin-top:16px;font-size:11px;color:#999">Exported from Piano Experience — ${new Date().toLocaleDateString()}</p></body></html>`)
+    w.document.close()
+    w.print()
+  }
 
   if (userLoading || loading) return <div style={{ padding: '24px', textAlign: 'center', color: '#666' }}>Loading...</div>
 
-  const todayIdx = (new Date().getDay() + 6) % 7
-
   return (
-    <main style={{ padding: '24px', maxWidth: '900px', margin: '0 auto' }}>
-      <Link href="/" style={{ textDecoration: 'none', color: '#666', fontSize: '14px' }}>← Dashboard</Link>
-      <h1 style={{ margin: '16px 0 8px' }}>{isOwnProfile ? 'Practice Schedule' : `${profileDisplayName(activeProfile)}'s Schedule`}</h1>
-      <p style={{ color: '#666', fontSize: '14px', marginBottom: '16px' }}>Your weekly plan — stays until you change it. Checkmarks reset each day.</p>
+    <main style={{ padding: '24px', maxWidth: '100%', margin: '0 auto' }}>
+      <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+        <Link href="/" style={{ textDecoration: 'none', color: '#666', fontSize: '14px' }}>← Dashboard</Link>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '16px 0 8px' }}>
+          <h1 style={{ fontSize: '24px' }}>
+            {isOwnProfile ? 'Practice Schedule' : `${profileDisplayName(activeProfile)}'s Schedule`}
+          </h1>
+          <button onClick={exportGrid} className="no-print" style={{
+            padding: '8px 16px', background: '#f9fafb', color: '#666', border: '1px solid #d1d5db',
+            borderRadius: '8px', fontSize: '13px', cursor: 'pointer'
+          }}>
+            Export
+          </button>
+        </div>
+        <p style={{ color: '#666', fontSize: '14px', marginBottom: '16px' }}>
+          Tap a cell: empty → <span style={{ color: '#2563eb' }}>● planned</span> → <span style={{ color: '#059669' }}>✓ completed</span> → empty
+        </p>
+      </div>
 
       {pieces.length === 0 ? (
-        <div style={{ background: '#fff', borderRadius: '12px', padding: '40px', textAlign: 'center', color: '#666', border: '1px solid #e5e7eb' }}>
-          <p>No pieces yet. <Link href="/add">Add a piece</Link> first, then schedule your practice.</p>
+        <div style={{ maxWidth: '900px', margin: '0 auto', background: '#fff', borderRadius: '12px', padding: '40px', textAlign: 'center', color: '#666', border: '1px solid #e5e7eb' }}>
+          <div style={{ fontSize: '48px', marginBottom: '12px', opacity: 0.5 }}>🎵</div>
+          <p>No active pieces. <Link href="/add" style={{ color: '#2563eb' }}>Add a piece</Link> to start scheduling.</p>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {DAYS.map((day, idx) => {
-            const dayItems = schedule.filter(s => s.day_of_week === idx)
-            const isToday = idx === todayIdx
-            return (
-              <div key={day} ref={isToday ? todayRef : null} style={{
-                background: isToday ? '#eff6ff' : '#fff',
-                borderRadius: '12px', padding: '20px', border: `1px solid ${isToday ? '#93c5fd' : '#e5e7eb'}`,
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                  <h3 style={{ fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    {day}
-                    {isToday && <span style={{ fontSize: '11px', background: '#2563eb', color: '#fff', padding: '2px 8px', borderRadius: '8px' }}>Today</span>}
-                  </h3>
-                  {canEdit && (
-                    <button onClick={() => setAddingDay(addingDay === idx ? null : idx)} style={{
-                      padding: '4px 12px', background: 'none', border: '1px solid #d1d5db', borderRadius: '6px',
-                      fontSize: '13px', color: '#666', cursor: 'pointer'
-                    }}>
-                      + Add
-                    </button>
+        <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e5e7eb', overflow: 'hidden' }}>
+          <div style={{ display: 'flex' }}>
+            {/* Fixed left column: piece names + focus */}
+            <div style={{ flexShrink: 0, borderRight: '2px solid #e5e7eb', zIndex: 2, background: '#fff' }}>
+              {/* Header */}
+              <div style={{ padding: '8px 12px', borderBottom: '1px solid #e5e7eb', height: '52px', display: 'flex', alignItems: 'center' }}>
+                <span style={{ fontSize: '12px', fontWeight: '600', color: '#999' }}>PIECE / FOCUS</span>
+              </div>
+              {/* Piece rows */}
+              {pieces.map(p => (
+                <div key={p.id} style={{ padding: '8px 12px', borderBottom: '1px solid #f0f0f0', minHeight: '52px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                  <div style={{ fontWeight: '600', fontSize: '14px', lineHeight: '1.3' }}>{p.title}</div>
+                  {editingFocus === p.id ? (
+                    <div style={{ display: 'flex', gap: '4px', marginTop: '2px' }}>
+                      <input value={focusDraft} onChange={e => setFocusDraft(e.target.value)}
+                        autoFocus onKeyDown={e => { if (e.key === 'Enter') saveFocus(p.id); if (e.key === 'Escape') setEditingFocus(null) }}
+                        style={{ flex: 1, padding: '2px 6px', border: '1px solid #93c5fd', borderRadius: '4px', fontSize: '12px', minWidth: '80px' }} />
+                      <button onClick={() => saveFocus(p.id)} style={{ padding: '2px 8px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '4px', fontSize: '11px', cursor: 'pointer' }}>✓</button>
+                    </div>
+                  ) : (
+                    <div onClick={() => { if (canEdit) { setEditingFocus(p.id); setFocusDraft(p.current_focus || '') } }}
+                      style={{ fontSize: '12px', color: p.current_focus ? '#2563eb' : '#ccc', marginTop: '2px', cursor: canEdit ? 'pointer' : 'default', fontStyle: p.current_focus ? 'normal' : 'italic' }}>
+                      {p.current_focus || (canEdit ? 'tap to set focus' : '')}
+                    </div>
                   )}
                 </div>
+              ))}
+            </div>
 
-                {addingDay === idx && (
-                  <div style={{ background: '#f9fafb', borderRadius: '8px', padding: '12px', marginBottom: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <select value={selectedPiece} onChange={e => setSelectedPiece(e.target.value)}
-                      style={{ padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', background: '#fff' }}>
-                      <option value="">Select a piece...</option>
-                      {pieces.map(p => <option key={p.id} value={p.id}>{p.title}{p.composer ? ` — ${p.composer}` : ''}</option>)}
-                    </select>
-                    <input value={focusNotes} onChange={e => setFocusNotes(e.target.value)} placeholder="Focus notes (optional)..."
-                      style={{ padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px' }} />
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button onClick={() => addToSchedule(idx)} style={{ padding: '8px 16px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '13px', cursor: 'pointer' }}>
-                        Add to {day}
-                      </button>
-                      <button onClick={() => setAddingDay(null)} style={{ padding: '8px 16px', background: '#fff', color: '#666', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px', cursor: 'pointer' }}>
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {dayItems.length === 0 ? (
-                  <p style={{ fontSize: '14px', color: '#999' }}>No pieces scheduled</p>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    {dayItems.map(item => {
-                      const done = isCompletedToday(item)
-                      return (
-                      <div key={item.id} style={{
-                        display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px',
-                        background: done ? '#f0fdf4' : '#fff', borderRadius: '8px', border: '1px solid #e5e7eb'
+            {/* Scrollable day columns */}
+            <div ref={scrollRef} style={{ overflowX: 'auto', flex: 1 }}>
+              <div style={{ display: 'flex', minWidth: `${days.length * 48}px` }}>
+                {days.map(d => {
+                  const dateStr = d.toISOString().split('T')[0]
+                  const isToday = dateStr === todayStr
+                  const isPast = d < today
+                  return (
+                    <div key={dateStr} data-today={isToday} style={{ flex: '0 0 48px', borderRight: '1px solid #f0f0f0' }}>
+                      {/* Day header */}
+                      <div style={{
+                        padding: '4px', textAlign: 'center', borderBottom: '1px solid #e5e7eb', height: '52px',
+                        display: 'flex', flexDirection: 'column', justifyContent: 'center',
+                        background: isToday ? '#2563eb' : isPast ? '#f9fafb' : '#fff',
+                        color: isToday ? '#fff' : '#666',
                       }}>
-                        <button onClick={() => toggleComplete(item)} style={{
-                          width: '22px', height: '22px', borderRadius: '6px', border: `2px solid ${done ? '#059669' : '#d1d5db'}`,
-                          background: done ? '#059669' : '#fff', color: '#fff', display: 'flex', alignItems: 'center',
-                          justifyContent: 'center', cursor: 'pointer', fontSize: '12px', flexShrink: 0
-                        }}>
-                          {done && '✓'}
-                        </button>
-                        <div style={{ flex: 1 }}>
-                          <span style={{ fontWeight: '500', fontSize: '14px', textDecoration: done ? 'line-through' : 'none', color: done ? '#059669' : '#1a1a1a' }}>
-                            {item.pieces?.title || 'Unknown'}
-                          </span>
-                          {item.pieces?.composer && <span style={{ color: '#888', fontSize: '13px', marginLeft: '6px' }}>— {item.pieces.composer}</span>}
-                          {item.focus_notes && <p style={{ fontSize: '12px', color: '#888', marginTop: '2px' }}>{item.focus_notes}</p>}
+                        <div style={{ fontSize: '11px', fontWeight: isToday ? '700' : '400' }}>
+                          {d.toLocaleDateString('en-US', { weekday: 'short' })}
                         </div>
-                        <button onClick={() => removeItem(item.id)} style={{ background: 'none', border: 'none', color: '#ccc', cursor: 'pointer', fontSize: '16px', padding: '4px' }}>
-                          ×
-                        </button>
+                        <div style={{ fontSize: '13px', fontWeight: '600' }}>
+                          {d.getDate()}
+                        </div>
                       </div>
-                    )})}
-                  </div>
-                )}
+                      {/* Cells for each piece */}
+                      {pieces.map(p => {
+                        const key = `${p.id}_${dateStr}`
+                        const status = grid[key]
+                        return (
+                          <div key={key} onClick={() => canEdit && toggleCell(p.id, dateStr)} style={{
+                            height: '52px', borderBottom: '1px solid #f0f0f0',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            cursor: canEdit ? 'pointer' : 'default',
+                            background: isToday ? '#eff6ff' : isPast ? '#fafafa' : '#fff',
+                          }}>
+                            {status === 'completed' && (
+                              <span style={{ fontSize: '18px', color: '#059669', fontWeight: '700' }}>✓</span>
+                            )}
+                            {status === 'planned' && (
+                              <span style={{ fontSize: '18px', color: '#2563eb' }}>●</span>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )
+                })}
               </div>
-            )
-          })}
+            </div>
+          </div>
         </div>
       )}
     </main>
   )
-}
-
-function getWeekStart() {
-  const now = new Date()
-  const day = now.getDay()
-  const diff = day === 0 ? 6 : day - 1
-  const monday = new Date(now)
-  monday.setDate(now.getDate() - diff)
-  monday.setHours(0, 0, 0, 0)
-  return monday.toISOString().split('T')[0]
 }

@@ -13,6 +13,7 @@ export default function Dashboard() {
   const { isOnline, fetchOrCache, getCachedProfileData, getCachedTheme } = useOfflineData()
   const [pieces, setPieces] = useState([])
   const [schedule, setSchedule] = useState([])
+  const [practiceGrid, setPracticeGrid] = useState([])
   const [recentActivity, setRecentActivity] = useState([])
   const [theme, setTheme] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -53,26 +54,32 @@ export default function Dashboard() {
 
           const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
 
+          // Calculate date range for grid (7 days back + today)
+          const gridStart = new Date()
+          gridStart.setDate(gridStart.getDate() - 7)
+          const gridStartStr = gridStart.toISOString().split('T')[0]
+          const gridEndStr = new Date().toISOString().split('T')[0]
+
           if (isOwnProfile) {
             const dataPromise = Promise.all([
               supabase.from('pieces').select('*, categories(name)').eq('user_id', user.email).order('updated_at', { ascending: false }),
-              supabase.from('practice_schedule').select('*, pieces(title, composer)').eq('user_id', user.email).order('day_of_week').order('sort_order'),
               fetch(`/api/activity?limit=8&user_email=${encodeURIComponent(user.email)}`, { signal: AbortSignal.timeout(5000) }).then(r => r.json()),
+              fetch(`/api/practice-grid?profile=${encodeURIComponent(user.email)}&start=${gridStartStr}&end=${gridEndStr}`, { signal: AbortSignal.timeout(5000) }).then(r => r.json()),
             ])
-            const [piecesRes, scheduleRes, actRes] = await Promise.race([dataPromise, timeoutPromise])
+            const [piecesRes, actRes, gridRes] = await Promise.race([dataPromise, timeoutPromise])
             setPieces(piecesRes.data || [])
-            setSchedule(scheduleRes.data || [])
             setRecentActivity(actRes.activities || [])
+            setPracticeGrid(gridRes.grid || [])
           } else {
             const dataPromise = Promise.all([
               fetch(`/api/profile/${encodeURIComponent(activeProfile)}/pieces`, { signal: AbortSignal.timeout(5000) }).then(r => r.json()),
-              fetch(`/api/profile/${encodeURIComponent(activeProfile)}/schedule`, { signal: AbortSignal.timeout(5000) }).then(r => r.json()),
               fetch(`/api/activity?limit=8&user_email=${encodeURIComponent(activeProfile)}`, { signal: AbortSignal.timeout(5000) }).then(r => r.json()),
+              fetch(`/api/practice-grid?profile=${encodeURIComponent(activeProfile)}&start=${gridStartStr}&end=${gridEndStr}`, { signal: AbortSignal.timeout(5000) }).then(r => r.json()),
             ])
-            const [piecesRes, scheduleRes, actRes] = await Promise.race([dataPromise, timeoutPromise])
+            const [piecesRes, actRes, gridRes] = await Promise.race([dataPromise, timeoutPromise])
             setPieces(piecesRes.pieces || [])
-            setSchedule(scheduleRes.schedule || [])
             setRecentActivity(actRes.activities || [])
+            setPracticeGrid(gridRes.grid || [])
           }
         } catch {
           // Network failed — cached data already displayed
@@ -93,9 +100,10 @@ export default function Dashboard() {
     byCategory[cat].push(p)
   })
 
-  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-  const todayIdx = (new Date().getDay() + 6) % 7
-  const todaySchedule = schedule.filter(s => s.day_of_week === todayIdx)
+  const todayStr = new Date().toISOString().split('T')[0]
+  const todayGrid = practiceGrid.filter(g => g.date === todayStr)
+  const todayPlanned = todayGrid.filter(g => g.status === 'planned' || g.status === 'completed')
+  const todayCompleted = todayGrid.filter(g => g.status === 'completed')
 
   return (
     <main style={{ padding: '24px', maxWidth: '900px', margin: '0 auto' }}>
@@ -124,7 +132,8 @@ export default function Dashboard() {
               d.setDate(d.getDate() - i)
               const dateStr = d.toLocaleDateString()
               const dayIdx = (d.getDay() + 6) % 7
-              const practiced = schedule.some(s => s.completed_at && new Date(s.completed_at).toLocaleDateString() === dateStr)
+              const isoDateStr = d.toISOString().split('T')[0]
+              const practiced = practiceGrid.some(g => g.date === isoDateStr && g.status === 'completed')
               const isToday = i === 0
               result.push(
                 <div key={i} style={{ textAlign: 'center', flex: 1 }}>
@@ -151,8 +160,8 @@ export default function Dashboard() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '16px', marginBottom: '32px' }}>
         <StatCard label="Total Pieces" value={pieces.length} color="#2563eb" href="/pieces" />
         <StatCard label="Categories" value={Object.keys(byCategory).length} color="#1d4ed8" href="/pieces" />
-        <StatCard label="Today's Practice" value={todaySchedule.length} color="#059669" href="/schedule" />
-        <StatCard label="Completed Today" value={todaySchedule.filter(s => isCompletedToday(s)).length} color="#d97706" href="/schedule" />
+        <StatCard label="Today's Practice" value={todayPlanned.length} color="#059669" href="/schedule" />
+        <StatCard label="Completed Today" value={todayCompleted.length} color="#d97706" href="/schedule" />
       </div>
 
       {/* Today's Practice */}
@@ -161,24 +170,25 @@ export default function Dashboard() {
           <h2 style={{ fontSize: '20px' }}>Today's Practice ({days[todayIdx]})</h2>
           <Link href="/schedule" style={{ fontSize: '14px' }}>View full schedule →</Link>
         </div>
-        {todaySchedule.length === 0 ? (
+        {todayPlanned.length === 0 ? (
           <div style={{ background: '#fff', borderRadius: '12px', padding: '24px', textAlign: 'center', color: '#666', border: '1px solid #e5e7eb' }}>
             No pieces scheduled for today. {canEdit && <Link href="/schedule">Set up your practice schedule</Link>}
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {todaySchedule.map(s => {
-              const done = isCompletedToday(s)
+            {todayPlanned.map(g => {
+              const p = pieces.find(pp => pp.id === g.piece_id)
+              const done = g.status === 'completed'
               return (
-              <div key={s.id} style={{
+              <div key={g.id} style={{
                 background: done ? '#f0fdf4' : '#fff',
                 borderRadius: '10px', padding: '14px 18px', border: `1px solid ${done ? '#86efac' : '#e5e7eb'}`,
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center'
               }}>
                 <div>
-                  <span style={{ fontWeight: '600' }}>{s.pieces?.title || 'Unknown piece'}</span>
-                  {s.pieces?.composer && <span style={{ color: '#666', marginLeft: '8px' }}>— {s.pieces.composer}</span>}
-                  {s.focus_notes && <p style={{ fontSize: '13px', color: '#888', marginTop: '4px' }}>{s.focus_notes}</p>}
+                  <span style={{ fontWeight: '600' }}>{p?.title || 'Unknown piece'}</span>
+                  {p?.composer && <span style={{ color: '#666', marginLeft: '8px' }}>— {p.composer}</span>}
+                  {p?.current_focus && <p style={{ fontSize: '13px', color: '#2563eb', marginTop: '4px' }}>{p.current_focus}</p>}
                 </div>
                 {done && <span style={{ color: '#059669', fontWeight: '600' }}>✓</span>}
               </div>
