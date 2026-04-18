@@ -545,37 +545,6 @@ export default function PieceDetail() {
         </div>
       )}
 
-      {/* Current Focus Area */}
-      <div style={{ background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e5e7eb', marginBottom: '24px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-          <h2 style={{ fontSize: '18px', color: '#2563eb', margin: 0 }}>Current Focus Area</h2>
-        </div>
-        {editingFocusOnDetail ? (
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <input value={focusDetailDraft} onChange={e => setFocusDetailDraft(e.target.value)}
-              autoFocus placeholder="What are you focusing on with this piece?"
-              style={{ flex: 1, padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px' }} />
-            <button onClick={async () => {
-              if (isOwnProfile) {
-                await supabase.from('pieces').update({ current_focus: focusDetailDraft }).eq('id', id)
-              } else {
-                await fetch(pieceApiBase, { method: 'POST', headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ action: 'update_field', field: 'current_focus', value: focusDetailDraft }) })
-              }
-              setPiece(prev => ({ ...prev, current_focus: focusDetailDraft }))
-              setEditingFocusOnDetail(false)
-              addToast('Focus updated!', 'success')
-            }} style={{ padding: '10px 18px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>Save</button>
-            <button onClick={() => setEditingFocusOnDetail(false)} style={{ padding: '10px 14px', background: '#f9fafb', color: '#666', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>Cancel</button>
-          </div>
-        ) : (
-          <div onClick={() => { if (canEdit) { setEditingFocusOnDetail(true); setFocusDetailDraft(piece.current_focus || '') } }}
-            style={{ fontSize: '15px', color: piece.current_focus ? '#374151' : '#999', cursor: canEdit ? 'pointer' : 'default', padding: '8px 0', lineHeight: '1.5' }}>
-            {piece.current_focus || (canEdit ? 'Tap to set a focus area for this piece' : 'No focus area set')}
-          </div>
-        )}
-      </div>
-
       {/* About the Composer */}
       {piece.composer && (
         <div style={{ background: '#fff', borderRadius: '12px', padding: '24px', border: '1px solid #e5e7eb', marginBottom: '24px' }}>
@@ -715,6 +684,43 @@ export default function PieceDetail() {
                 )}
               </div>
             ))}
+          </div>
+        )}
+      </div>
+
+      {/* Current Focus Area */}
+      <div style={{ background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e5e7eb', marginBottom: '24px' }}>
+        <h2 style={{ fontSize: '18px', color: '#2563eb', margin: '0 0 12px' }}>Current Focus Area</h2>
+        {editingFocusOnDetail ? (
+          <div>
+            <textarea value={focusDetailDraft} onChange={e => setFocusDetailDraft(e.target.value)}
+              autoFocus rows={3} placeholder="What are you focusing on with this piece?"
+              style={{ width: '100%', padding: '10px 12px', border: '1px solid #93c5fd', borderRadius: '8px', fontSize: '14px', resize: 'vertical', boxSizing: 'border-box' }} />
+            <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+              <button onClick={async () => {
+                if (isOwnProfile) {
+                  await supabase.from('pieces').update({ current_focus: focusDetailDraft }).eq('id', id)
+                } else {
+                  await fetch(pieceApiBase, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'update_field', field: 'current_focus', value: focusDetailDraft }) })
+                }
+                setPiece(prev => ({ ...prev, current_focus: focusDetailDraft }))
+                setEditingFocusOnDetail(false)
+                addToast('Focus updated!', 'success')
+              }} style={{ padding: '8px 18px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>Save</button>
+              <button onClick={() => setEditingFocusOnDetail(false)} style={{ padding: '8px 14px', background: '#f9fafb', color: '#666', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>Cancel</button>
+            </div>
+          </div>
+        ) : (
+          <div onClick={() => { if (canEdit) { setEditingFocusOnDetail(true); setFocusDetailDraft(piece.current_focus || '') } }}
+            style={{
+              padding: '12px', borderRadius: '8px', fontSize: '15px', lineHeight: '1.5',
+              border: canEdit ? '1px dashed #93c5fd' : '1px solid #e5e7eb',
+              background: canEdit ? '#f8faff' : '#f9fafb',
+              color: piece.current_focus ? '#374151' : '#999',
+              cursor: canEdit ? 'pointer' : 'default',
+            }}>
+            {piece.current_focus || (canEdit ? '✏️ Tap to set a focus area for this piece' : 'No focus area set')}
           </div>
         )}
       </div>
