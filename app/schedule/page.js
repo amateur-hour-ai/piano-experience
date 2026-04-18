@@ -84,15 +84,7 @@ export default function PracticeSchedule() {
           ])
           piecesData = (res.pieces || []).filter(p => !p.archived)
         }
-        // Sort by user's category preference, then priority, then title
-        const sorted = sortPiecesByCategory(piecesData)
-        setPieces(sorted.sort((a, b) => {
-          const catA = a.categories?.name || 'Uncategorized'
-          const catB = b.categories?.name || 'Uncategorized'
-          if (catA !== catB) return 0 // category order already handled by sortPiecesByCategory
-          if (a.is_priority !== b.is_priority) return (b.is_priority ? 1 : 0) - (a.is_priority ? 1 : 0)
-          return 0
-        }))
+        setPieces(sortPiecesByCategory(piecesData))
 
         // Load grid data
         const gridRes = await Promise.race([
