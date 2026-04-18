@@ -1,23 +1,23 @@
 # Piano Experience — Project Instructions
 
 ## What is this?
-A practice companion app for piano students. Users track pieces they're working on, upload sheet music photos (AI analyzes them), manage practice schedules, log experiences, and discover interesting facts about their repertoire. Supports profile sharing so parents and teachers can view and manage student profiles.
+A practice companion app for piano students. Users track pieces, upload sheet music photos (AI analyzes them), manage practice schedules via a perpetual grid, log experiences, and discover interesting facts. Supports profile sharing for parents and teachers.
 
 ## Tech Stack
 - **Framework:** Next.js 16 App Router (JavaScript, no TypeScript)
 - **Database:** Supabase (PostgreSQL + Storage) — project ref: bsahdlwezbbqsxgpoegk
-- **AI:** Anthropic API (Claude Haiku for image analysis, interesting facts, composer bios)
+- **AI:** Anthropic API (Claude Haiku for image analysis, interesting facts, composer bios, piece enrichment)
 - **Email:** Resend (welcome emails, admin notifications, weekly summaries)
+- **PWA/Offline:** @serwist/next (precaches all build artifacts), Dexie.js (IndexedDB), sync queue
 - **Hosting:** Vercel at https://piano-experience.vercel.app
-- **Auth:** @supabase/ssr cookie-based auth, auto-approve on signup, email confirmation required
+- **Auth:** @supabase/ssr cookie-based auth, auto-approve signup, email confirmation
+- **Build:** Uses `--webpack` flag (serwist requires webpack, not turbopack)
 
 ## CRITICAL: Cross-Profile Architecture
-This app has a profile sharing system. Users can grant view or edit access to other users (e.g., parent views daughter's profile).
+Users can grant view or edit access to other users. RLS enforces the Supabase anon client can ONLY access the logged-in user's data.
 
-**RLS (Row Level Security) enforces that the Supabase anon client can ONLY access data belonging to the logged-in user's email.** This means:
-
-- **Own profile** → use direct Supabase client calls (RLS allows it)
-- **Another user's profile** → MUST use `/api/profile/[email]/...` API routes (service role key bypasses RLS, server checks permissions)
+- **Own profile** → direct Supabase client calls
+- **Another user's profile** → MUST use `/api/profile/[email]/...` API routes (service role bypasses RLS)
 
 ### Checklist for EVERY new feature that touches data:
 1. Does it read data? → Add cross-profile path using API route
@@ -25,41 +25,52 @@ This app has a profile sharing system. Users can grant view or edit access to ot
 3. Does it update UI state? → Only update AFTER confirming the API call succeeded
 4. Is the API route handling the new action? → Add it if not
 5. Are edit controls hidden when `!canEdit`? → Check the JSX
+6. Does it work offline? → Add try/catch with queueMutation fallback
+7. Does it need AI/network? → Add `isOnline` guard with clear message
 
-**This is the #1 source of bugs in this project. Do not skip this checklist.**
+## CRITICAL: Offline Architecture
+- @serwist/next precaches all static build artifacts (JS chunks, CSS, pages)
+- Dynamic routes (e.g., `/piece/[id]`) cached at runtime via NetworkFirst with 5s timeout
+- BackgroundCacher prefetches all profile data + page shells to IndexedDB
+- All mutations queue in IndexedDB sync queue when offline, replay on reconnect
+- User + profiles cached in localStorage (survives SW eviction)
+- Use `useParams()` not `use(params)` — the latter suspends offline
+- AI features (analyze, facts, bio, enrich) need offline guards — show clear message
 
-## Database Tables
-- `user_profiles` — id (uuid), email, approved, created_at
-- `pieces` — id, user_id (email), title, composer, book_title, book_editor, key/time signatures, tempo, period, ai_summary, composer_bio, metronome_marking, areas_of_focus, goals, category_id, personal_rating, archived
-- `piece_images` — id, piece_id, image_url, image_type
-- `piece_notes` — id, piece_id, user_id (email), note_type, note, created_at
-- `categories` — id, user_id (email or null), name, sort_order
-- `practice_schedule` — id, user_id (email), piece_id, day_of_week, focus_notes, sort_order, week_start_date, completed, completed_at
-- `interesting_facts` — id, piece_id, fact, created_at
-- `activity_log` — id, user_email, action, piece_id, piece_title, details, created_at
-- `profile_permissions` — id, owner_email, grantee_email, access_level (view/edit)
-- `piece_goals` — id, piece_id, text, completed, sort_order, created_at
-- `tempo_log` — id, piece_id, bpm, note, created_at
-- `practice_strategies` — id, user_email (null=standard), heading, bullets (text[]), sort_order
-- `theme_of_week` — id, image_url, created_at
-- `experience_log` — id, user_email, date, summary, feedback, assignments, created_at
-- Storage bucket: `piece-images` (public)
+## CRITICAL: Async Data Timing
+When one hook depends on another's data (e.g., sorting pieces by category order), the dependent operation must RE-RUN when the source data loads. Store raw data separately, use useEffect to re-process when dependencies arrive. Never assume a hook's data is available during another hook's initial render.
+
+## Database Tables (16)
+- `user_profiles` — id, email, approved
+- `pieces` — id, user_id (email), title, composer, book details, music details, ai_summary, composer_bio, current_focus, is_priority, personal_rating, archived, category_id
+- `piece_images`, `piece_notes`, `piece_goals`, `tempo_log`, `interesting_facts`
+- `categories` — id, user_id (null=system default), name, sort_order
+- `category_sort_preferences` — user_email, category_id, sort_order (per-user ordering)
+- `practice_grid` — user_email, piece_id, date, status (planned/completed)
+- `practice_schedule` — legacy, kept but unused by UI
+- `profile_permissions` — owner_email, grantee_email, access_level
+- `practice_strategies` — user_email (null=standard), heading, bullets[]
+- `theme_of_week`, `experience_log` (with piece_ids[]), `activity_log`
 
 ## Key Patterns
 - **Admin email:** michael.rosenthal@gmail.com
-- **Blue theme:** #2563eb throughout
-- **Inline errors:** Never use browser alert()/confirm() dialogs
+- **Blue theme:** #2563eb, pink priority: #ec4899/#fdf2f8, emoji: 🎵/💗
+- **Inline errors:** Never browser alert()/confirm()
 - **Toast notifications:** For transient confirmations
-- **Sticky footer:** Any page with Save/Cancel buttons uses a fixed-position footer
-- **Image compression:** Always resize to max 1200px and JPEG 80% before sending to AI
-- **Docs page:** Update app/docs/page.js (both user guide AND release notes) with every user-facing change
-- **Supabase queries:** Never use `.single()` unless certain a row exists. Handle "no rows" gracefully.
-- **State updates:** Never update UI state before confirming the API/DB call succeeded.
+- **Sticky footer:** z-index 9999 (above offline bar at 9998)
+- **Image compression:** Resize to max 1200px, JPEG 80% before AI
+- **Docs page:** Update user guide AND release notes with every user-facing change
+- **Supabase queries:** Never `.single()` unless certain row exists
+- **State updates:** Never update UI before confirming API/DB succeeded
+- **Export pages:** Include Print + Back buttons for PWA standalone mode
+- **Category sort:** useSortedCategories hook + sortPiecesByCategory helper — re-sort when categories load
 
 ## Rules
-1. Always commit and push after changes — don't ask to test until deployment is live
+1. Always commit and push — don't ask to test until deployment is live
 2. Verify deployment succeeds before asking user to test
-3. Update docs page before every commit with user-facing changes
-4. Test your work — mentally walk through every user path before asking user to test
-5. For every new feature: run the cross-profile checklist above
-6. When fixing a bug: search for the same class of bug elsewhere before shipping
+3. Update docs before every commit with user-facing changes
+4. Test your work — walk through every user path before asking user to test
+5. Run the cross-profile checklist for every new feature
+6. Run the offline checklist for every new feature
+7. When fixing a bug: search for the same class of bug elsewhere
+8. Never ask the user to do something you can do yourself
