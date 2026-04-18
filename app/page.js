@@ -167,7 +167,7 @@ export default function Dashboard() {
       {/* Today's Practice */}
       <section style={{ marginBottom: '32px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <h2 style={{ fontSize: '20px' }}>Today's Practice ({days[todayIdx]})</h2>
+          <h2 style={{ fontSize: '20px' }}>Today's Practice ({new Date().toLocaleDateString('en-US', { weekday: 'long' })})</h2>
           <Link href="/schedule" style={{ fontSize: '14px' }}>View full schedule →</Link>
         </div>
         {todayPlanned.length === 0 ? (
