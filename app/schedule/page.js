@@ -234,11 +234,11 @@ export default function PracticeSchedule() {
           <p>No active pieces. <Link href="/add" style={{ color: '#2563eb' }}>Add a piece</Link> to start scheduling.</p>
         </div>
       ) : (
-        <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e5e7eb', overflowX: 'auto' }} ref={scrollRef}>
+        <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e5e7eb', overflow: 'auto', maxHeight: '70vh' }} ref={scrollRef}>
           <table style={{ borderCollapse: 'collapse', minWidth: `${140 + days.length * 48}px` }}>
             <thead>
               <tr>
-                <th style={{ position: 'sticky', left: 0, zIndex: 2, background: '#fff', padding: '8px 12px', textAlign: 'left', borderBottom: '2px solid #e5e7eb', borderRight: '2px solid #e5e7eb', fontSize: '12px', fontWeight: '600', color: '#999', minWidth: '130px', maxWidth: '160px' }}>
+                <th style={{ position: 'sticky', left: 0, top: 0, zIndex: 3, background: '#fff', padding: '8px 12px', textAlign: 'left', borderBottom: '2px solid #e5e7eb', borderRight: '2px solid #e5e7eb', fontSize: '12px', fontWeight: '600', color: '#999', minWidth: '130px', maxWidth: '160px' }}>
                   PIECE / FOCUS
                 </th>
                 {days.map(d => {
@@ -247,9 +247,11 @@ export default function PracticeSchedule() {
                   const isPast = d < today
                   return (
                     <th key={dateStr} data-today={isToday} style={{
-                      padding: '6px 4px', textAlign: 'center', borderBottom: '2px solid #e5e7eb',
+                      position: 'sticky', top: 0, zIndex: 2,
+                      padding: '6px 4px', textAlign: 'center',
+                      borderBottom: '2px solid #e5e7eb', borderLeft: '1px solid #e5e7eb',
                       minWidth: '44px', maxWidth: '48px',
-                      background: isToday ? '#2563eb' : isPast ? '#f9fafb' : '#fff',
+                      background: isToday ? '#2563eb' : isPast ? '#f0f0f0' : '#fff',
                       color: isToday ? '#fff' : '#666', fontWeight: isToday ? '700' : '400',
                     }}>
                       <div style={{ fontSize: '10px' }}>{d.toLocaleDateString('en-US', { weekday: 'short' })}</div>
@@ -275,7 +277,7 @@ export default function PracticeSchedule() {
                     </tr>
                   )}
                   <tr key={p.id} style={{ background: p.is_priority ? '#fdf2f8' : undefined }}>
-                  <td style={{ position: 'sticky', left: 0, zIndex: 1, background: p.is_priority ? '#fdf2f8' : '#fff', padding: '8px 10px', borderBottom: '1px solid #f0f0f0', borderRight: '2px solid #e5e7eb', verticalAlign: 'top', minWidth: '130px', maxWidth: '160px' }}>
+                  <td style={{ position: 'sticky', left: 0, zIndex: 1, background: p.is_priority ? '#fdf2f8' : '#fff', padding: '8px 10px', borderBottom: '1px solid #e5e7eb', borderRight: '2px solid #e5e7eb', verticalAlign: 'top', minWidth: '130px', maxWidth: '160px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                       {canEdit && (
                         <button onClick={() => togglePriority(p.id, p.is_priority)} style={{
@@ -310,9 +312,10 @@ export default function PracticeSchedule() {
                     const status = grid[key]
                     return (
                       <td key={key} onClick={() => canEdit && toggleCell(p.id, dateStr)} style={{
-                        textAlign: 'center', borderBottom: '1px solid #f0f0f0',
+                        textAlign: 'center',
+                        borderBottom: '1px solid #e5e7eb', borderLeft: '1px solid #e5e7eb',
                         cursor: canEdit ? 'pointer' : 'default', padding: '8px 4px',
-                        background: isToday ? (p.is_priority ? '#fce7f3' : '#eff6ff') : p.is_priority ? '#fdf2f8' : isPast ? '#fafafa' : '#fff',
+                        background: isToday ? (p.is_priority ? '#fce7f3' : '#dbeafe') : p.is_priority ? '#fdf2f8' : isPast ? '#fafafa' : '#fff',
                         minWidth: '44px',
                       }}>
                         {status === 'completed' && <span style={{ fontSize: '16px' }}>💗</span>}
