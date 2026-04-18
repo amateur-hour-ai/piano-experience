@@ -376,7 +376,12 @@ export default function PieceDetail() {
       .meta{color:#666;font-size:14px}.field{margin-bottom:8px}.label{font-size:12px;color:#999}.value{font-size:14px}
       .note{padding:8px 12px;background:#f9fafb;border-radius:6px;margin-bottom:6px;font-size:14px;border-left:3px solid #2563eb}
       .note-meta{font-size:12px;color:#999;margin-bottom:4px}ul{padding-left:20px}li{margin-bottom:4px;font-size:14px}
-      .fact{padding:8px;background:#eff6ff;border-radius:6px;margin-bottom:6px;font-size:14px}</style></head><body>
+      .fact{padding:8px;background:#eff6ff;border-radius:6px;margin-bottom:6px;font-size:14px}
+      .no-print{} @media print{.no-print{display:none!important}}</style></head><body>
+      <div class="no-print" style="margin-bottom:16px;display:flex;gap:12px">
+        <button onclick="window.print()" style="padding:10px 20px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer">Print</button>
+        <button onclick="window.close();if(!window.closed)history.back()" style="padding:10px 20px;background:#f9fafb;color:#666;border:1px solid #d1d5db;border-radius:8px;font-size:14px;cursor:pointer">← Back to App</button>
+      </div>
       <h1>${piece.title || 'Untitled'}</h1>
       ${piece.composer ? `<p class="meta">${piece.composer}</p>` : ''}
       ${piece.categories?.name ? `<p class="meta">${piece.categories.name}</p>` : ''}

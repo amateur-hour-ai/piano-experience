@@ -119,9 +119,10 @@ function UserGuide() {
         <p style={{ fontSize: '15px', lineHeight: '1.7', color: '#333', marginBottom: '16px' }}>
           The practice schedule is a grid showing all your active pieces across 14 days (7 past + today + 6 future). Scroll left to see past days or right for upcoming days.
         </p>
-        <Step n="1">Tap any cell to plan: empty → <strong>blue dot</strong> (planned) → <strong>green check</strong> (completed) → empty again.</Step>
-        <Step n="2">Set a focus area for each piece by tapping the focus text next to the piece name.</Step>
-        <Step n="3">Use the <strong>Export</strong> button to print your schedule.</Step>
+        <Step n="1">Pieces are organized by category. Tap the ★ star to mark priority pieces (highlighted in pink).</Step>
+        <Step n="2">Tap any cell to plan: empty → 🎵 (planned) → 💗 (completed) → empty again.</Step>
+        <Step n="3">Set a focus area for each piece by tapping the focus text next to the piece name.</Step>
+        <Step n="4">Use the <strong>Export</strong> button to print your schedule.</Step>
         <Note>You can also edit focus areas from the piece detail page. The dashboard shows today's planned pieces and your practice streak.</Note>
       </Section>
 
@@ -207,6 +208,17 @@ function ReleaseNotes() {
         'Horizontally scrollable grid with today highlighted and centered',
         'Export schedule as printable PDF',
         'Dashboard reads from new practice grid for today\'s practice and streak',
+      ]
+    },
+    {
+      version: '5.1',
+      date: '2026-04-18',
+      changes: [
+        'Practice schedule pieces grouped by category with section headers',
+        'Priority pieces highlighted in pink with pink ★ stars',
+        'Fun emoji icons — 🎵 for planned, 💗 for completed',
+        'Export pages now have Print and Back buttons for PWA standalone mode',
+        'Current Focus Area moved below Notes on piece detail page with editable styling',
       ]
     },
     {
