@@ -208,7 +208,7 @@ export default function PracticeSchedule() {
         <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e5e7eb', overflow: 'hidden' }}>
           <div style={{ display: 'flex' }}>
             {/* Fixed left column: piece names + focus */}
-            <div style={{ flexShrink: 0, borderRight: '2px solid #e5e7eb', zIndex: 2, background: '#fff' }}>
+            <div style={{ flexShrink: 0, width: '140px', maxWidth: '40vw', borderRight: '2px solid #e5e7eb', zIndex: 2, background: '#fff' }}>
               {/* Header */}
               <div style={{ padding: '8px 12px', borderBottom: '1px solid #e5e7eb', height: '52px', display: 'flex', alignItems: 'center' }}>
                 <span style={{ fontSize: '12px', fontWeight: '600', color: '#999' }}>PIECE / FOCUS</span>
@@ -216,7 +216,7 @@ export default function PracticeSchedule() {
               {/* Piece rows */}
               {pieces.map(p => (
                 <div key={p.id} style={{ padding: '8px 12px', borderBottom: '1px solid #f0f0f0', minHeight: '52px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                  <div style={{ fontWeight: '600', fontSize: '14px', lineHeight: '1.3' }}>{p.title}</div>
+                  <div style={{ fontWeight: '600', fontSize: '13px', lineHeight: '1.3', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.title}</div>
                   {editingFocus === p.id ? (
                     <div style={{ display: 'flex', gap: '4px', marginTop: '2px' }}>
                       <input value={focusDraft} onChange={e => setFocusDraft(e.target.value)}
@@ -226,7 +226,7 @@ export default function PracticeSchedule() {
                     </div>
                   ) : (
                     <div onClick={() => { if (canEdit) { setEditingFocus(p.id); setFocusDraft(p.current_focus || '') } }}
-                      style={{ fontSize: '12px', color: p.current_focus ? '#2563eb' : '#ccc', marginTop: '2px', cursor: canEdit ? 'pointer' : 'default', fontStyle: p.current_focus ? 'normal' : 'italic' }}>
+                      style={{ fontSize: '11px', color: p.current_focus ? '#2563eb' : '#ccc', marginTop: '2px', cursor: canEdit ? 'pointer' : 'default', fontStyle: p.current_focus ? 'normal' : 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {p.current_focus || (canEdit ? 'tap to set focus' : '')}
                     </div>
                   )}
