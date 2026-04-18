@@ -178,12 +178,12 @@ export default function ExperienceLog() {
               <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>Pieces Discussed</label>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 {pieces.filter(p => !p.archived).map(p => {
-                  const selected = form.piece_ids.includes(p.id)
+                  const selected = (form.piece_ids || []).includes(p.id)
                   return (
                     <button key={p.id} type="button" onClick={() => {
                       setForm(prev => ({
                         ...prev,
-                        piece_ids: selected ? prev.piece_ids.filter(id => id !== p.id) : [...prev.piece_ids, p.id]
+                        piece_ids: selected ? (prev.piece_ids || []).filter(id => id !== p.id) : [...(prev.piece_ids || []), p.id]
                       }))
                     }} style={{
                       padding: '10px 14px', textAlign: 'left', borderRadius: '8px', cursor: 'pointer',
@@ -207,7 +207,7 @@ export default function ExperienceLog() {
           position: 'fixed', bottom: 0, left: 0, right: 0,
           background: '#fff', borderTop: '1px solid #e5e7eb',
           padding: '12px 24px', display: 'flex', gap: '12px',
-          justifyContent: 'center', zIndex: 50,
+          justifyContent: 'center', zIndex: 9999,
           boxShadow: '0 -2px 10px rgba(0,0,0,0.05)'
         }}>
           <button onClick={saveExperience} style={{

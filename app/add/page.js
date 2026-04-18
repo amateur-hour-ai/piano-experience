@@ -499,7 +499,7 @@ export default function AddPiece() {
           position: 'fixed', bottom: 0, left: 0, right: 0,
           background: '#fff', borderTop: '1px solid #e5e7eb',
           padding: '12px 24px', display: 'flex', gap: '12px',
-          justifyContent: 'center', zIndex: 50,
+          justifyContent: 'center', zIndex: 9999,
           boxShadow: '0 -2px 10px rgba(0,0,0,0.05)'
         }}>
           <button onClick={handleSave} disabled={saving || analyzing} style={{
