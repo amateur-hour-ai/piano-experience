@@ -15,8 +15,9 @@ export default function PracticeSchedule() {
   const { activeProfile, isOwnProfile, canEdit, profileDisplayName } = useActiveProfile()
   const { addToast } = useToast()
   const { isOnline, getCachedProfileData } = useOfflineData()
-  const { sortPiecesByCategory } = useSortedCategories()
+  const { categories: sortedCats, sortPiecesByCategory } = useSortedCategories()
   const [pieces, setPieces] = useState([])
+  const [rawPieces, setRawPieces] = useState([])
   const [grid, setGrid] = useState({}) // key: `${pieceId}_${date}` → status
   const [loading, setLoading] = useState(true)
   const [editingFocus, setEditingFocus] = useState(null) // piece id being edited
@@ -44,6 +45,13 @@ export default function PracticeSchedule() {
     loadData()
   }, [userLoading, user, activeProfile])
 
+  // Re-sort pieces when category preferences load
+  useEffect(() => {
+    if (rawPieces.length > 0 && sortedCats.length > 0) {
+      setPieces(sortPiecesByCategory(rawPieces))
+    }
+  }, [sortedCats, rawPieces])
+
   // Auto-scroll to today on load
   useEffect(() => {
     if (!loading && scrollRef.current) {
@@ -61,7 +69,9 @@ export default function PracticeSchedule() {
     // Cache first
     const cached = await getCachedProfileData(activeProfile)
     if (cached?.pieces) {
-      setPieces(cached.pieces.filter(p => !p.archived))
+      const activePieces = cached.pieces.filter(p => !p.archived)
+      setRawPieces(activePieces)
+      setPieces(sortPiecesByCategory(activePieces))
       setLoading(false)
     }
 
@@ -84,6 +94,7 @@ export default function PracticeSchedule() {
           ])
           piecesData = (res.pieces || []).filter(p => !p.archived)
         }
+        setRawPieces(piecesData)
         setPieces(sortPiecesByCategory(piecesData))
 
         // Load grid data
