@@ -265,19 +265,13 @@ export default function PracticeSchedule() {
               {pieces.map((p, idx) => {
                 const cat = p.categories?.name || 'Uncategorized'
                 const prevCat = idx > 0 ? (pieces[idx - 1].categories?.name || 'Uncategorized') : null
-                const showCatHeader = cat !== prevCat
-                return (<>
-                  {showCatHeader && (
-                    <tr key={`cat-${cat}`}>
-                      <td colSpan={days.length + 1} style={{
-                        position: 'sticky', left: 0, padding: '10px 12px 6px',
-                        fontSize: '12px', fontWeight: '700', color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.5px',
-                        background: '#f0f7ff', borderBottom: '1px solid #dbeafe',
-                      }}>{cat}</td>
-                    </tr>
-                  )}
+                const isFirstInCategory = cat !== prevCat
+                return (
                   <tr key={p.id} style={{ background: p.is_priority ? '#fdf2f8' : undefined }}>
-                  <td style={{ position: 'sticky', left: 0, zIndex: 1, background: p.is_priority ? '#fdf2f8' : '#fff', padding: '8px 10px', borderBottom: '1px solid #e5e7eb', borderRight: '2px solid #e5e7eb', verticalAlign: 'top', minWidth: '130px', maxWidth: '160px' }}>
+                  <td style={{ position: 'sticky', left: 0, zIndex: 1, background: p.is_priority ? '#fdf2f8' : '#fff', padding: isFirstInCategory ? '14px 10px 8px' : '8px 10px', borderBottom: '1px solid #e5e7eb', borderRight: '2px solid #e5e7eb', verticalAlign: 'top', minWidth: '130px', maxWidth: '160px' }}>
+                    {isFirstInCategory && (
+                      <div style={{ fontSize: '10px', color: '#999', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>{cat}</div>
+                    )}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                       {canEdit && (
                         <button onClick={() => togglePriority(p.id, p.is_priority)} style={{
@@ -324,7 +318,7 @@ export default function PracticeSchedule() {
                     )
                   })}
                 </tr>
-                </>)
+              )
               })}
             </tbody>
           </table>
