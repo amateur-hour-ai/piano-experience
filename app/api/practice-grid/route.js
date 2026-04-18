@@ -91,5 +91,12 @@ export async function POST(request) {
     return Response.json({ success: true })
   }
 
+  if (action === 'toggle_priority') {
+    const { piece_id, is_priority } = body
+    const { error } = await supabase.from('pieces').update({ is_priority }).eq('id', piece_id)
+    if (error) return Response.json({ error: error.message }, { status: 500 })
+    return Response.json({ success: true })
+  }
+
   return Response.json({ error: 'Unknown action' }, { status: 400 })
 }

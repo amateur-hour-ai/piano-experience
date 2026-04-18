@@ -82,7 +82,7 @@ export default function PracticeSchedule() {
           ])
           piecesData = (res.pieces || []).filter(p => !p.archived)
         }
-        setPieces(piecesData)
+        setPieces(piecesData.sort((a, b) => (b.is_priority ? 1 : 0) - (a.is_priority ? 1 : 0) || (a.title || '').localeCompare(b.title || '')))
 
         // Load grid data
         const gridRes = await Promise.race([
@@ -154,6 +154,25 @@ export default function PracticeSchedule() {
     }
   }
 
+  async function togglePriority(pieceId, currentPriority) {
+    const newPriority = !currentPriority
+    setPieces(prev => prev.map(p => p.id === pieceId ? { ...p, is_priority: newPriority } : p))
+
+    const body = { action: 'toggle_priority', piece_id: pieceId, is_priority: newPriority, profileEmail: isOwnProfile ? undefined : activeProfile }
+    if (!isOnline) {
+      await queueMutation({ url: '/api/practice-grid', method: 'POST', body, description: 'Toggle priority' })
+      return
+    }
+    try {
+      await fetch('/api/practice-grid', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      })
+    } catch {
+      await queueMutation({ url: '/api/practice-grid', method: 'POST', body, description: 'Toggle priority' })
+    }
+  }
+
   function exportGrid() {
     const w = window.open('', '_blank')
     const dayHeaders = days.map(d => `<th style="padding:4px 8px;font-size:11px;text-align:center;min-width:40px;${d.toISOString().split('T')[0] === todayStr ? 'background:#dbeafe;font-weight:700' : ''}">${d.toLocaleDateString('en-US', { weekday: 'short' })}<br>${d.getMonth() + 1}/${d.getDate()}</th>`).join('')
@@ -164,7 +183,7 @@ export default function PracticeSchedule() {
         const isToday = d.toISOString().split('T')[0] === todayStr
         return `<td style="text-align:center;padding:6px;${isToday ? 'background:#eff6ff' : ''}">${status === 'completed' ? '✓' : status === 'planned' ? '●' : ''}</td>`
       }).join('')
-      return `<tr><td style="padding:6px 8px;font-weight:500;font-size:13px;white-space:nowrap">${p.title}</td><td style="padding:6px 8px;font-size:12px;color:#666;max-width:150px">${p.current_focus || ''}</td>${cells}</tr>`
+      return `<tr style="${p.is_priority ? 'background:#fefce8' : ''}"><td style="padding:6px 8px;font-weight:500;font-size:13px;white-space:nowrap">${p.is_priority ? '★ ' : ''}${p.title}</td><td style="padding:6px 8px;font-size:12px;color:#666;max-width:150px">${p.current_focus || ''}</td>${cells}</tr>`
     }).join('')
 
     w.document.write(`<!DOCTYPE html><html><head><title>Practice Schedule</title>
@@ -232,9 +251,17 @@ export default function PracticeSchedule() {
             </thead>
             <tbody>
               {pieces.map(p => (
-                <tr key={p.id}>
-                  <td style={{ position: 'sticky', left: 0, zIndex: 1, background: '#fff', padding: '8px 10px', borderBottom: '1px solid #f0f0f0', borderRight: '2px solid #e5e7eb', verticalAlign: 'top', minWidth: '130px', maxWidth: '160px' }}>
-                    <div style={{ fontWeight: '600', fontSize: '13px', lineHeight: '1.3', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.title}</div>
+                <tr key={p.id} style={{ background: p.is_priority ? '#fefce8' : undefined }}>
+                  <td style={{ position: 'sticky', left: 0, zIndex: 1, background: p.is_priority ? '#fefce8' : '#fff', padding: '8px 10px', borderBottom: '1px solid #f0f0f0', borderRight: '2px solid #e5e7eb', verticalAlign: 'top', minWidth: '130px', maxWidth: '160px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      {canEdit && (
+                        <button onClick={() => togglePriority(p.id, p.is_priority)} style={{
+                          background: 'none', border: 'none', cursor: 'pointer', padding: '0', fontSize: '14px', flexShrink: 0,
+                          color: p.is_priority ? '#d97706' : '#ddd',
+                        }}>★</button>
+                      )}
+                      <div style={{ fontWeight: '600', fontSize: '13px', lineHeight: '1.3', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.title}</div>
+                    </div>
                     {editingFocus === p.id ? (
                       <div style={{ marginTop: '2px' }}>
                         <textarea value={focusDraft} onChange={e => setFocusDraft(e.target.value)}
@@ -262,7 +289,7 @@ export default function PracticeSchedule() {
                       <td key={key} onClick={() => canEdit && toggleCell(p.id, dateStr)} style={{
                         textAlign: 'center', borderBottom: '1px solid #f0f0f0',
                         cursor: canEdit ? 'pointer' : 'default', padding: '8px 4px',
-                        background: isToday ? '#eff6ff' : isPast ? '#fafafa' : '#fff',
+                        background: isToday ? (p.is_priority ? '#fef9c3' : '#eff6ff') : p.is_priority ? '#fefce8' : isPast ? '#fafafa' : '#fff',
                         minWidth: '44px',
                       }}>
                         {status === 'completed' && <span style={{ fontSize: '18px', color: '#059669', fontWeight: '700' }}>✓</span>}
