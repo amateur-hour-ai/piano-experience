@@ -205,84 +205,75 @@ export default function PracticeSchedule() {
           <p>No active pieces. <Link href="/add" style={{ color: '#2563eb' }}>Add a piece</Link> to start scheduling.</p>
         </div>
       ) : (
-        <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e5e7eb', overflow: 'hidden' }}>
-          <div style={{ display: 'flex' }}>
-            {/* Fixed left column: piece names + focus */}
-            <div style={{ flexShrink: 0, width: '140px', maxWidth: '40vw', borderRight: '2px solid #e5e7eb', zIndex: 2, background: '#fff' }}>
-              {/* Header */}
-              <div style={{ padding: '8px 12px', borderBottom: '1px solid #e5e7eb', height: '52px', display: 'flex', alignItems: 'center' }}>
-                <span style={{ fontSize: '12px', fontWeight: '600', color: '#999' }}>PIECE / FOCUS</span>
-              </div>
-              {/* Piece rows */}
-              {pieces.map(p => (
-                <div key={p.id} style={{ padding: '8px 12px', borderBottom: '1px solid #f0f0f0', minHeight: '52px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                  <div style={{ fontWeight: '600', fontSize: '13px', lineHeight: '1.3', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.title}</div>
-                  {editingFocus === p.id ? (
-                    <div style={{ display: 'flex', gap: '4px', marginTop: '2px' }}>
-                      <input value={focusDraft} onChange={e => setFocusDraft(e.target.value)}
-                        autoFocus onKeyDown={e => { if (e.key === 'Enter') saveFocus(p.id); if (e.key === 'Escape') setEditingFocus(null) }}
-                        style={{ flex: 1, padding: '2px 6px', border: '1px solid #93c5fd', borderRadius: '4px', fontSize: '12px', minWidth: '80px' }} />
-                      <button onClick={() => saveFocus(p.id)} style={{ padding: '2px 8px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '4px', fontSize: '11px', cursor: 'pointer' }}>✓</button>
-                    </div>
-                  ) : (
-                    <div onClick={() => { if (canEdit) { setEditingFocus(p.id); setFocusDraft(p.current_focus || '') } }}
-                      style={{ fontSize: '11px', color: p.current_focus ? '#2563eb' : '#ccc', marginTop: '2px', cursor: canEdit ? 'pointer' : 'default', fontStyle: p.current_focus ? 'normal' : 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {p.current_focus || (canEdit ? 'tap to set focus' : '')}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {/* Scrollable day columns */}
-            <div ref={scrollRef} style={{ overflowX: 'auto', flex: 1 }}>
-              <div style={{ display: 'flex', minWidth: `${days.length * 48}px` }}>
+        <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e5e7eb', overflowX: 'auto' }} ref={scrollRef}>
+          <table style={{ borderCollapse: 'collapse', minWidth: `${140 + days.length * 48}px` }}>
+            <thead>
+              <tr>
+                <th style={{ position: 'sticky', left: 0, zIndex: 2, background: '#fff', padding: '8px 12px', textAlign: 'left', borderBottom: '2px solid #e5e7eb', borderRight: '2px solid #e5e7eb', fontSize: '12px', fontWeight: '600', color: '#999', minWidth: '130px', maxWidth: '160px' }}>
+                  PIECE / FOCUS
+                </th>
                 {days.map(d => {
                   const dateStr = d.toISOString().split('T')[0]
                   const isToday = dateStr === todayStr
                   const isPast = d < today
                   return (
-                    <div key={dateStr} data-today={isToday} style={{ flex: '0 0 48px', borderRight: '1px solid #f0f0f0' }}>
-                      {/* Day header */}
-                      <div style={{
-                        padding: '4px', textAlign: 'center', borderBottom: '1px solid #e5e7eb', height: '52px',
-                        display: 'flex', flexDirection: 'column', justifyContent: 'center',
-                        background: isToday ? '#2563eb' : isPast ? '#f9fafb' : '#fff',
-                        color: isToday ? '#fff' : '#666',
-                      }}>
-                        <div style={{ fontSize: '11px', fontWeight: isToday ? '700' : '400' }}>
-                          {d.toLocaleDateString('en-US', { weekday: 'short' })}
-                        </div>
-                        <div style={{ fontSize: '13px', fontWeight: '600' }}>
-                          {d.getDate()}
-                        </div>
-                      </div>
-                      {/* Cells for each piece */}
-                      {pieces.map(p => {
-                        const key = `${p.id}_${dateStr}`
-                        const status = grid[key]
-                        return (
-                          <div key={key} onClick={() => canEdit && toggleCell(p.id, dateStr)} style={{
-                            height: '52px', borderBottom: '1px solid #f0f0f0',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            cursor: canEdit ? 'pointer' : 'default',
-                            background: isToday ? '#eff6ff' : isPast ? '#fafafa' : '#fff',
-                          }}>
-                            {status === 'completed' && (
-                              <span style={{ fontSize: '18px', color: '#059669', fontWeight: '700' }}>✓</span>
-                            )}
-                            {status === 'planned' && (
-                              <span style={{ fontSize: '18px', color: '#2563eb' }}>●</span>
-                            )}
-                          </div>
-                        )
-                      })}
-                    </div>
+                    <th key={dateStr} data-today={isToday} style={{
+                      padding: '6px 4px', textAlign: 'center', borderBottom: '2px solid #e5e7eb',
+                      minWidth: '44px', maxWidth: '48px',
+                      background: isToday ? '#2563eb' : isPast ? '#f9fafb' : '#fff',
+                      color: isToday ? '#fff' : '#666', fontWeight: isToday ? '700' : '400',
+                    }}>
+                      <div style={{ fontSize: '10px' }}>{d.toLocaleDateString('en-US', { weekday: 'short' })}</div>
+                      <div style={{ fontSize: '13px', fontWeight: '600' }}>{d.getDate()}</div>
+                    </th>
                   )
                 })}
-              </div>
-            </div>
-          </div>
+              </tr>
+            </thead>
+            <tbody>
+              {pieces.map(p => (
+                <tr key={p.id}>
+                  <td style={{ position: 'sticky', left: 0, zIndex: 1, background: '#fff', padding: '8px 10px', borderBottom: '1px solid #f0f0f0', borderRight: '2px solid #e5e7eb', verticalAlign: 'top', minWidth: '130px', maxWidth: '160px' }}>
+                    <div style={{ fontWeight: '600', fontSize: '13px', lineHeight: '1.3', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.title}</div>
+                    {editingFocus === p.id ? (
+                      <div style={{ marginTop: '2px' }}>
+                        <textarea value={focusDraft} onChange={e => setFocusDraft(e.target.value)}
+                          autoFocus rows={2} onKeyDown={e => { if (e.key === 'Escape') setEditingFocus(null) }}
+                          style={{ width: '100%', padding: '2px 6px', border: '1px solid #93c5fd', borderRadius: '4px', fontSize: '11px', resize: 'vertical', boxSizing: 'border-box' }} />
+                        <div style={{ display: 'flex', gap: '4px', marginTop: '2px' }}>
+                          <button onClick={() => saveFocus(p.id)} style={{ padding: '2px 8px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '4px', fontSize: '11px', cursor: 'pointer' }}>Save</button>
+                          <button onClick={() => setEditingFocus(null)} style={{ padding: '2px 8px', background: '#f9fafb', color: '#666', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '11px', cursor: 'pointer' }}>Cancel</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div onClick={() => { if (canEdit) { setEditingFocus(p.id); setFocusDraft(p.current_focus || '') } }}
+                        style={{ fontSize: '11px', color: p.current_focus ? '#2563eb' : '#ccc', marginTop: '2px', cursor: canEdit ? 'pointer' : 'default', fontStyle: p.current_focus ? 'normal' : 'italic', lineHeight: '1.4', wordBreak: 'break-word' }}>
+                        {p.current_focus || (canEdit ? 'tap to set focus' : '')}
+                      </div>
+                    )}
+                  </td>
+                  {days.map(d => {
+                    const dateStr = d.toISOString().split('T')[0]
+                    const isToday = dateStr === todayStr
+                    const isPast = d < today
+                    const key = `${p.id}_${dateStr}`
+                    const status = grid[key]
+                    return (
+                      <td key={key} onClick={() => canEdit && toggleCell(p.id, dateStr)} style={{
+                        textAlign: 'center', borderBottom: '1px solid #f0f0f0',
+                        cursor: canEdit ? 'pointer' : 'default', padding: '8px 4px',
+                        background: isToday ? '#eff6ff' : isPast ? '#fafafa' : '#fff',
+                        minWidth: '44px',
+                      }}>
+                        {status === 'completed' && <span style={{ fontSize: '18px', color: '#059669', fontWeight: '700' }}>✓</span>}
+                        {status === 'planned' && <span style={{ fontSize: '18px', color: '#2563eb' }}>●</span>}
+                      </td>
+                    )
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </main>
