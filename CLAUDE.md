@@ -64,6 +64,7 @@ When one hook depends on another's data (e.g., sorting pieces by category order)
 - **State updates:** Never update UI before confirming API/DB succeeded
 - **Export pages:** Include Print + Back buttons for PWA standalone mode
 - **Category sort:** useSortedCategories hook + sortPiecesByCategory helper — re-sort when categories load
+- **manifest.json:** DO NOT change `start_url`, `display`, or `scope` without notifying the user first — these changes require all PWA users to remove and re-add the app from their homescreen
 
 ## Rules
 1. Always commit and push — don't ask to test until deployment is live
