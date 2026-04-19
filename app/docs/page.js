@@ -197,6 +197,12 @@ function UserGuide() {
         <Note>The app launches full-screen like a native app and loads faster from your home screen.</Note>
       </Section>
 
+      <Section title="Settings">
+        <p style={{ fontSize: '15px', lineHeight: '1.7', color: '#333' }}>
+          Go to <strong>Settings</strong> from the menu to manage your preferences. Currently you can toggle the <strong>Weekly Practice Summary</strong> email on or off — this email is sent every Friday at 8pm with your week's practice highlights.
+        </p>
+      </Section>
+
       <Section title="Account">
         <p style={{ fontSize: '15px', lineHeight: '1.7', color: '#333' }}>
           Sign up with your email and password. Your account is automatically approved — no waiting required. To sign out, tap the menu in the top right and select <strong>Sign Out</strong>.
@@ -230,6 +236,9 @@ function ReleaseNotes() {
         'Activity feed now tracks practice completions, goals, and experience entries',
         'Cross-profile actions logged to the correct profile with performer name',
         'Timezone fix — dates use local time consistently (no more UTC mismatch in evenings)',
+        'Dashboard consolidated to 2 cards — Total Pieces + Today\'s Practice (shows completed/planned)',
+        'Parent/Teacher Dashboard now reads from the practice grid for accurate practice days',
+        'Menu organized into labeled sections — Practice, Tools, Account',
       ]
     },
     {
