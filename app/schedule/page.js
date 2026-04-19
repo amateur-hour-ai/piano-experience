@@ -9,6 +9,7 @@ import { useToast } from '@/app/ToastProvider'
 import { useOfflineData } from '@/lib/useOfflineData'
 import { queueMutation } from '@/lib/syncManager'
 import { useSortedCategories } from '@/lib/useSortedCategories'
+import { toLocalDateString } from '@/lib/dateUtils'
 
 export default function PracticeSchedule() {
   const { user, loading: userLoading } = useCurrentUser()
@@ -38,7 +39,7 @@ export default function PracticeSchedule() {
     d.setDate(d.getDate() + i)
     days.push(d)
   }
-  const todayStr = today.toISOString().split('T')[0]
+  const todayStr = toLocalDateString(today)
 
   useEffect(() => {
     if (userLoading || !user || !activeProfile) return
@@ -63,8 +64,8 @@ export default function PracticeSchedule() {
   }, [loading])
 
   async function loadData() {
-    const startDate = days[0].toISOString().split('T')[0]
-    const endDate = days[days.length - 1].toISOString().split('T')[0]
+    const startDate = toLocalDateString(days[0])
+    const endDate = toLocalDateString(days[days.length - 1])
 
     // Cache first
     const cached = await getCachedProfileData(activeProfile)
@@ -188,12 +189,12 @@ export default function PracticeSchedule() {
 
   function exportGrid() {
     const w = window.open('', '_blank')
-    const dayHeaders = days.map(d => `<th style="padding:4px 8px;font-size:11px;text-align:center;min-width:40px;${d.toISOString().split('T')[0] === todayStr ? 'background:#dbeafe;font-weight:700' : ''}">${d.toLocaleDateString('en-US', { weekday: 'short' })}<br>${d.getMonth() + 1}/${d.getDate()}</th>`).join('')
+    const dayHeaders = days.map(d => `<th style="padding:4px 8px;font-size:11px;text-align:center;min-width:40px;${toLocalDateString(d) === todayStr ? 'background:#dbeafe;font-weight:700' : ''}">${d.toLocaleDateString('en-US', { weekday: 'short' })}<br>${d.getMonth() + 1}/${d.getDate()}</th>`).join('')
     const rows = pieces.map(p => {
       const cells = days.map(d => {
-        const key = `${p.id}_${d.toISOString().split('T')[0]}`
+        const key = `${p.id}_${toLocalDateString(d)}`
         const status = grid[key]
-        const isToday = d.toISOString().split('T')[0] === todayStr
+        const isToday = toLocalDateString(d) === todayStr
         return `<td style="text-align:center;padding:6px;${isToday ? 'background:#eff6ff' : ''}">${status === 'completed' ? '💗' : status === 'planned' ? '🎵' : ''}</td>`
       }).join('')
       return `<tr style="${p.is_priority ? 'background:#fdf2f8' : ''}"><td style="padding:6px 8px;font-weight:500;font-size:13px;white-space:nowrap">${p.is_priority ? '★ ' : ''}${p.title}</td><td style="padding:6px 8px;font-size:12px;color:#666;max-width:150px">${p.current_focus || ''}</td>${cells}</tr>`
@@ -249,7 +250,7 @@ export default function PracticeSchedule() {
                   PIECE / FOCUS
                 </th>
                 {days.map(d => {
-                  const dateStr = d.toISOString().split('T')[0]
+                  const dateStr = toLocalDateString(d)
                   const isToday = dateStr === todayStr
                   const isPast = d < today
                   return (
@@ -306,7 +307,7 @@ export default function PracticeSchedule() {
                     )}
                   </td>
                   {days.map(d => {
-                    const dateStr = d.toISOString().split('T')[0]
+                    const dateStr = toLocalDateString(d)
                     const isToday = dateStr === todayStr
                     const isPast = d < today
                     const key = `${p.id}_${dateStr}`

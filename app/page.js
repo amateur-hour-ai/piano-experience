@@ -7,6 +7,7 @@ import { useCurrentUser } from '@/lib/useCurrentUser'
 import { useActiveProfile } from '@/lib/useActiveProfile'
 import { useOfflineData } from '@/lib/useOfflineData'
 import { useSortedCategories } from '@/lib/useSortedCategories'
+import { toLocalDateString } from '@/lib/dateUtils'
 
 export default function Dashboard() {
   const { user, loading: userLoading } = useCurrentUser()
@@ -59,8 +60,8 @@ export default function Dashboard() {
           // Calculate date range for grid (7 days back + today)
           const gridStart = new Date()
           gridStart.setDate(gridStart.getDate() - 7)
-          const gridStartStr = gridStart.toISOString().split('T')[0]
-          const gridEndStr = new Date().toISOString().split('T')[0]
+          const gridStartStr = toLocalDateString(gridStart)
+          const gridEndStr = toLocalDateString()
 
           if (isOwnProfile) {
             const dataPromise = Promise.all([
@@ -110,7 +111,7 @@ export default function Dashboard() {
     return orderA - orderB
   })
 
-  const todayStr = new Date().toISOString().split('T')[0]
+  const todayStr = toLocalDateString()
   const todayGrid = practiceGrid.filter(g => g.date === todayStr)
   const todayPlanned = todayGrid.filter(g => g.status === 'planned' || g.status === 'completed')
   const todayCompleted = todayGrid.filter(g => g.status === 'completed')
@@ -142,7 +143,7 @@ export default function Dashboard() {
               d.setDate(d.getDate() - i)
               const dateStr = d.toLocaleDateString()
               const dayIdx = (d.getDay() + 6) % 7
-              const isoDateStr = d.toISOString().split('T')[0]
+              const isoDateStr = toLocalDateString(d)
               const practiced = practiceGrid.some(g => g.date === isoDateStr && g.status === 'completed')
               const isToday = i === 0
               result.push(
