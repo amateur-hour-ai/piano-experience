@@ -6,6 +6,7 @@ import { useCurrentUser } from '@/lib/useCurrentUser'
 import { useActiveProfile } from '@/lib/useActiveProfile'
 import { useToast } from '@/app/ToastProvider'
 import { useOfflineData } from '@/lib/useOfflineData'
+import { logActivity } from '@/lib/logActivity'
 import { queueMutation } from '@/lib/syncManager'
 import db from '@/lib/offlineStore'
 
@@ -92,6 +93,7 @@ export default function ExperienceLog() {
       await queueMutation({ url: '/api/experiences', method: 'POST', body, description: `${action} experience` })
       addToast('Saved offline — will sync later', 'info')
     }
+    logActivity({ action: editingId ? 'update_experience' : 'log_experience', details: `${form.date}${form.summary ? ': ' + form.summary.substring(0, 50) : ''}`, profile_email: activeProfile, performed_by: user.email })
     setAdding(false)
     setEditingId(null)
     loadExperiences()

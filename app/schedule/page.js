@@ -7,6 +7,7 @@ import { useCurrentUser } from '@/lib/useCurrentUser'
 import { useActiveProfile } from '@/lib/useActiveProfile'
 import { useToast } from '@/app/ToastProvider'
 import { useOfflineData } from '@/lib/useOfflineData'
+import { logActivity } from '@/lib/logActivity'
 import { queueMutation } from '@/lib/syncManager'
 import { useSortedCategories } from '@/lib/useSortedCategories'
 import { toLocalDateString } from '@/lib/dateUtils'
@@ -131,6 +132,12 @@ export default function PracticeSchedule() {
       else delete next[key]
       return next
     })
+
+    // Log completion
+    if (newStatus === 'completed') {
+      const p = pieces.find(pp => pp.id === pieceId)
+      logActivity({ action: 'practice_completed', piece_id: pieceId, piece_title: p?.title, details: `Completed practice`, profile_email: activeProfile, performed_by: user.email })
+    }
 
     // Sync to server or queue
     const body = { action: 'toggle', piece_id: pieceId, date: dateStr, currentStatus: current, profileEmail: isOwnProfile ? undefined : activeProfile }

@@ -296,7 +296,8 @@ export default function AddPiece() {
         piece_id: piece.id,
         piece_title: form.title,
         details: `Added new piece${form.composer ? ` by ${form.composer}` : ''}`,
-        user_email: user.email
+        profile_email: activeProfile,
+        performed_by: user.email
       })
 
       addToast('Piece saved!', 'success')

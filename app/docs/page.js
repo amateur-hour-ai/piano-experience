@@ -227,6 +227,9 @@ function ReleaseNotes() {
         'Manage Categories page — reorder categories with up/down arrows, add/rename/delete custom categories',
         'Per-user category sort order — your preferred order applies on dashboard, schedule, pieces list, and everywhere categories appear',
         'Settings page — toggle weekly practice summary email on or off',
+        'Activity feed now tracks practice completions, goals, and experience entries',
+        'Cross-profile actions logged to the correct profile with performer name',
+        'Timezone fix — dates use local time consistently (no more UTC mismatch in evenings)',
       ]
     },
     {

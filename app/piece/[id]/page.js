@@ -181,7 +181,7 @@ export default function PieceDetail() {
     if (error) {
       addToast('Failed to save: ' + error.message, 'error')
     } else {
-      await logActivity({ action: 'edit_piece', piece_id: id, piece_title: form.title, details: 'Updated piece details', user_email: user.email })
+      await logActivity({ action: 'edit_piece', piece_id: id, piece_title: form.title, details: 'Updated piece details', profile_email: activeProfile, performed_by: user.email })
       addToast('Changes saved!', 'success')
       setEditing(false)
       loadPiece()
@@ -202,7 +202,7 @@ export default function PieceDetail() {
         body: JSON.stringify({ action: 'delete' })
       })
     }
-    await logActivity({ action: 'delete_piece', piece_id: id, piece_title: piece.title, details: 'Deleted piece', user_email: user.email })
+    await logActivity({ action: 'delete_piece', piece_id: id, piece_title: piece.title, details: 'Deleted piece', profile_email: activeProfile, performed_by: user.email })
     addToast('Piece deleted', 'info')
     router.push('/pieces')
   }
@@ -225,7 +225,7 @@ export default function PieceDetail() {
           const data = await res.json()
           if (data.error) { addToast('Failed to add note', 'error'); return }
         }
-        await logActivity({ action: 'add_note', piece_id: id, piece_title: piece.title, details: `Added ${noteType} note`, user_email: user.email })
+        await logActivity({ action: 'add_note', piece_id: id, piece_title: piece.title, details: `Added ${noteType} note`, profile_email: activeProfile, performed_by: user.email })
       } catch {
         // Network failed — queue it
         await queueOfflineNote(noteData, tempId)
@@ -294,6 +294,7 @@ export default function PieceDetail() {
 
   async function addGoal() {
     if (!newGoalText.trim()) return
+    logActivity({ action: 'add_goal', piece_id: id, piece_title: piece?.title, details: `Goal: ${newGoalText.trim().substring(0, 50)}`, profile_email: activeProfile, performed_by: user.email })
     const tempId = crypto.randomUUID()
     const goalData = { id: tempId, piece_id: id, text: newGoalText.trim(), completed: false, sort_order: goals.length, created_at: new Date().toISOString() }
 
@@ -328,6 +329,10 @@ export default function PieceDetail() {
   }
 
   async function toggleGoal(goalId, completed) {
+    if (!completed) {
+      const goal = goals.find(g => g.id === goalId)
+      logActivity({ action: 'goal_completed', piece_id: id, piece_title: piece?.title, details: `Completed goal: ${goal?.text?.substring(0, 50) || ''}`, profile_email: activeProfile, performed_by: user.email })
+    }
     // Update locally immediately
     setGoals(prev => prev.map(g => g.id === goalId ? { ...g, completed: !completed } : g))
 
