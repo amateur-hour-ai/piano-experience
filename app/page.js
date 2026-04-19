@@ -168,11 +168,14 @@ export default function Dashboard() {
       </div>
 
       {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '16px', marginBottom: '32px' }}>
-        <StatCard label="Total Pieces" value={pieces.length} color="#2563eb" href="/pieces" />
-        <StatCard label="Categories" value={Object.keys(byCategory).length} color="#1d4ed8" href="/pieces" />
-        <StatCard label="Today's Practice" value={todayPlanned.length} color="#059669" href="/schedule" />
-        <StatCard label="Completed Today" value={todayCompleted.length} color="#d97706" href="/schedule" />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', marginBottom: '32px' }}>
+        <StatCard label="Total Pieces" value={pieces.filter(p => !p.archived).length} color="#2563eb" href="/pieces" />
+        <StatCard
+          label="Today's Practice"
+          value={todayPlanned.length > 0 ? `${todayCompleted.length}/${todayPlanned.length}` : 'None planned'}
+          color={todayPlanned.length > 0 && todayCompleted.length === todayPlanned.length ? '#059669' : '#2563eb'}
+          href="/schedule"
+        />
       </div>
 
       {/* Today's Practice */}
