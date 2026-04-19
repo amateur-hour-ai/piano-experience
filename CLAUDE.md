@@ -69,9 +69,10 @@ When one hook depends on another's data (e.g., sorting pieces by category order)
 ## Rules
 1. Always commit and push — don't ask to test until deployment is live
 2. Verify deployment succeeds before asking user to test
-3. Update docs before every commit with user-facing changes
-4. Test your work — walk through every user path before asking user to test
-5. Run the cross-profile checklist for every new feature
-6. Run the offline checklist for every new feature
-7. When fixing a bug: search for the same class of bug elsewhere
-8. Never ask the user to do something you can do yourself
+3. Update docs (release notes + user guide) with EVERY deploy — never wait to be asked. This includes bug fixes, not just features.
+4. Update memory and CLAUDE.md proactively after significant changes — don't wait to be asked
+5. Test your work — walk through every user path before asking user to test
+6. Run the cross-profile checklist for every new feature
+7. Run the offline checklist for every new feature
+8. When fixing a bug: search for the same class of bug elsewhere
+9. Never ask the user to do something you can do yourself
