@@ -21,6 +21,7 @@ export default function PracticeSchedule() {
   const [pieces, setPieces] = useState([])
   const [rawPieces, setRawPieces] = useState([])
   const [grid, setGrid] = useState({}) // key: `${pieceId}_${date}` → status
+  const [practiceDays, setPracticeDays] = useState(new Set()) // dates marked as practice days
   const [loading, setLoading] = useState(true)
   const [editingFocus, setEditingFocus] = useState(null) // piece id being edited
   const [focusDraft, setFocusDraft] = useState('')
@@ -109,6 +110,7 @@ export default function PracticeSchedule() {
           gridMap[`${item.piece_id}_${item.date}`] = item.status
         }
         setGrid(gridMap)
+        setPracticeDays(new Set(gridRes.practiceDays || []))
       } catch {}
     }
     setLoading(false)
@@ -172,6 +174,30 @@ export default function PracticeSchedule() {
       })
     } catch {
       await queueMutation({ url: '/api/practice-grid', method: 'POST', body, description: 'Update focus area' })
+    }
+  }
+
+  async function togglePracticeDay(dateStr) {
+    const isPlanned = practiceDays.has(dateStr)
+    setPracticeDays(prev => {
+      const next = new Set(prev)
+      if (isPlanned) next.delete(dateStr)
+      else next.add(dateStr)
+      return next
+    })
+
+    const body = { action: 'toggle_practice_day', date: dateStr, isPlanned, profileEmail: isOwnProfile ? undefined : activeProfile }
+    if (!isOnline) {
+      await queueMutation({ url: '/api/practice-grid', method: 'POST', body, description: 'Toggle practice day' })
+      return
+    }
+    try {
+      await fetch('/api/practice-grid', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      })
+    } catch {
+      await queueMutation({ url: '/api/practice-grid', method: 'POST', body, description: 'Toggle practice day' })
     }
   }
 
@@ -263,12 +289,18 @@ export default function PracticeSchedule() {
                   return (
                     <th key={dateStr} data-today={isToday} style={{
                       position: 'sticky', top: 0, zIndex: 2,
-                      padding: '6px 4px', textAlign: 'center',
+                      padding: '4px 2px', textAlign: 'center',
                       borderBottom: '2px solid #e5e7eb', borderLeft: '1px solid #e5e7eb',
                       minWidth: '44px', maxWidth: '48px',
-                      background: isToday ? '#2563eb' : isPast ? '#f0f0f0' : '#fff',
+                      background: isToday ? '#2563eb' : practiceDays.has(dateStr) ? '#f3e8ff' : isPast ? '#f0f0f0' : '#fff',
                       color: isToday ? '#fff' : '#666', fontWeight: isToday ? '700' : '400',
                     }}>
+                      {canEdit && (
+                        <button onClick={() => togglePracticeDay(dateStr)} style={{
+                          background: 'none', border: 'none', cursor: 'pointer', padding: '0', fontSize: '12px',
+                          color: practiceDays.has(dateStr) ? '#9333ea' : (isToday ? 'rgba(255,255,255,0.5)' : '#ddd'),
+                        }}>★</button>
+                      )}
                       <div style={{ fontSize: '10px' }}>{d.toLocaleDateString('en-US', { weekday: 'short' })}</div>
                       <div style={{ fontSize: '13px', fontWeight: '600' }}>{d.getDate()}</div>
                     </th>
@@ -324,7 +356,11 @@ export default function PracticeSchedule() {
                         textAlign: 'center',
                         borderBottom: '1px solid #e5e7eb', borderLeft: '1px solid #e5e7eb',
                         cursor: canEdit ? 'pointer' : 'default', padding: '8px 4px',
-                        background: isToday ? (p.is_priority ? '#fce7f3' : '#dbeafe') : p.is_priority ? '#fdf2f8' : isPast ? '#fafafa' : '#fff',
+                        background: isToday ? (p.is_priority ? '#fce7f3' : '#dbeafe')
+                          : p.is_priority && practiceDays.has(dateStr) ? '#f5e6ff'
+                          : p.is_priority ? '#fdf2f8'
+                          : practiceDays.has(dateStr) ? '#f3e8ff'
+                          : isPast ? '#fafafa' : '#fff',
                         minWidth: '44px',
                       }}>
                         {status === 'completed' && <span style={{ fontSize: '16px' }}>💗</span>}

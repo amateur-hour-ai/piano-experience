@@ -40,7 +40,13 @@ export async function GET(request) {
   const { data, error } = await query.order('date')
   if (error) return Response.json({ error: error.message }, { status: 500 })
 
-  return Response.json({ grid: data || [] })
+  // Also fetch planned practice days
+  let daysQuery = supabase.from('practice_days').select('date').eq('user_email', profileEmail)
+  if (startDate) daysQuery = daysQuery.gte('date', startDate)
+  if (endDate) daysQuery = daysQuery.lte('date', endDate)
+  const { data: practiceDays } = await daysQuery
+
+  return Response.json({ grid: data || [], practiceDays: (practiceDays || []).map(d => d.date) })
 }
 
 export async function POST(request) {
@@ -95,6 +101,16 @@ export async function POST(request) {
     const { piece_id, is_priority } = body
     const { error } = await supabase.from('pieces').update({ is_priority }).eq('id', piece_id)
     if (error) return Response.json({ error: error.message }, { status: 500 })
+    return Response.json({ success: true })
+  }
+
+  if (action === 'toggle_practice_day') {
+    const { date, isPlanned } = body
+    if (isPlanned) {
+      await supabase.from('practice_days').delete().eq('user_email', profileEmail).eq('date', date)
+    } else {
+      await supabase.from('practice_days').upsert({ user_email: profileEmail, date }, { onConflict: 'user_email,date' })
+    }
     return Response.json({ success: true })
   }
 
