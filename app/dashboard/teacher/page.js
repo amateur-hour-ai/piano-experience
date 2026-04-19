@@ -21,19 +21,22 @@ export default function TeacherDashboard() {
     const results = []
     for (const profile of availableProfiles) {
       try {
-        const [piecesRes, schedRes, actRes] = await Promise.all([
+        const weekAgo = new Date()
+        weekAgo.setDate(weekAgo.getDate() - 7)
+        const startDate = `${weekAgo.getFullYear()}-${String(weekAgo.getMonth() + 1).padStart(2, '0')}-${String(weekAgo.getDate()).padStart(2, '0')}`
+        const today = new Date()
+        const endDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+
+        const [piecesRes, gridRes, actRes] = await Promise.all([
           fetch(`/api/profile/${encodeURIComponent(profile.email)}/pieces`).then(r => r.json()),
-          fetch(`/api/profile/${encodeURIComponent(profile.email)}/schedule`).then(r => r.json()),
+          fetch(`/api/practice-grid?profile=${encodeURIComponent(profile.email)}&start=${startDate}&end=${endDate}`).then(r => r.json()),
           fetch(`/api/activity?user_email=${encodeURIComponent(profile.email)}&limit=5`).then(r => r.json()),
         ])
 
-        // Calculate practice days in last 7 days
-        const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+        // Calculate practice days in last 7 days from practice_grid
         const practiceDays = new Set()
-        schedRes.schedule?.forEach(s => {
-          if (s.completed_at && new Date(s.completed_at) >= weekAgo) {
-            practiceDays.add(new Date(s.completed_at).toLocaleDateString())
-          }
+        gridRes.grid?.forEach(g => {
+          if (g.status === 'completed') practiceDays.add(g.date)
         })
 
         results.push({
