@@ -85,7 +85,7 @@ export default function PracticeSchedule() {
         let piecesData
         if (isOwnProfile) {
           const res = await Promise.race([
-            supabase.from('pieces').select('id, title, composer, current_focus, archived, categories(name)').eq('user_id', user.email).eq('archived', false).order('title'),
+            supabase.from('pieces').select('id, title, composer, current_focus, archived, is_priority, category_id, categories(name)').eq('user_id', user.email).eq('archived', false).order('title'),
             timeoutPromise
           ])
           piecesData = res.data || []
