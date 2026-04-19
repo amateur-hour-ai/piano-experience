@@ -25,19 +25,34 @@ export default function NavBar() {
 
   const hasMultipleProfiles = (availableProfiles || []).length > 0
 
-  const links = [
-    { href: '/', label: 'Dashboard' },
-    { href: '/pieces', label: isOwnProfile ? 'My Pieces' : 'Pieces' },
-    ...(canEdit ? [{ href: '/add', label: 'Add Piece' }] : []),
-    { href: '/schedule', label: 'Practice Schedule' },
-    { href: '/experiences', label: 'Experience Log' },
-    { href: '/strategies', label: 'Practice Strategies' },
-    ...(hasMultipleProfiles ? [{ href: '/dashboard/teacher', label: 'Parent/Teacher View' }] : []),
-    { href: '/categories', label: 'Manage Categories' },
-    { href: '/permissions', label: 'Sharing' },
-    { href: '/settings', label: 'Settings' },
-    ...(isAdmin ? [{ href: '/admin/users', label: 'Manage Users' }] : []),
-    { href: '/docs', label: 'Documentation' },
+  const menuSections = [
+    {
+      label: 'Practice',
+      items: [
+        { href: '/', label: 'Dashboard' },
+        { href: '/pieces', label: isOwnProfile ? 'My Pieces' : 'Pieces' },
+        { href: '/schedule', label: 'Practice Schedule' },
+      ]
+    },
+    {
+      label: 'Tools',
+      items: [
+        ...(canEdit ? [{ href: '/add', label: 'Add Piece' }] : []),
+        { href: '/experiences', label: 'Experience Log' },
+        { href: '/strategies', label: 'Practice Strategies' },
+      ]
+    },
+    {
+      label: 'Account',
+      items: [
+        { href: '/categories', label: 'Manage Categories' },
+        ...(hasMultipleProfiles ? [{ href: '/dashboard/teacher', label: 'Parent/Teacher View' }] : []),
+        { href: '/permissions', label: 'Sharing' },
+        { href: '/settings', label: 'Settings' },
+        ...(isAdmin ? [{ href: '/admin/users', label: 'Manage Users' }] : []),
+        { href: '/docs', label: 'Documentation' },
+      ]
+    },
   ]
 
   return (
@@ -121,24 +136,35 @@ export default function NavBar() {
             <div style={{
               position: 'fixed', top: '60px', right: '8px',
               background: '#fff', borderRadius: '12px', boxShadow: '0 8px 30px rgba(0,0,0,0.15)',
-              minWidth: '200px', maxWidth: '280px', zIndex: 100, overflow: 'hidden'
+              minWidth: '200px', maxWidth: '280px', maxHeight: 'calc(100vh - 80px)', overflowY: 'auto',
+              zIndex: 100,
             }}>
-              {links.map(({ href, label }) => (
-                <Link
-                  key={href}
-                  href={href}
-                  onClick={() => setMenuOpen(false)}
-                  style={{ display: 'block', padding: '14px 20px', textDecoration: 'none', color: '#1a1a1a', fontSize: '15px', borderBottom: '1px solid #f0f0f0' }}
-                >
-                  {label}
-                </Link>
+              {menuSections.map((section, sIdx) => (
+                <div key={section.label}>
+                  <div style={{ padding: '8px 20px 4px', fontSize: '10px', fontWeight: '600', color: '#999', textTransform: 'uppercase', letterSpacing: '0.5px', background: '#fff' }}>
+                    {section.label}
+                  </div>
+                  {section.items.map(({ href, label }) => (
+                    <Link
+                      key={href}
+                      href={href}
+                      onClick={() => setMenuOpen(false)}
+                      style={{ display: 'block', padding: '10px 20px', textDecoration: 'none', color: '#1a1a1a', fontSize: '14px', borderBottom: '1px solid #f8f8f8' }}
+                    >
+                      {label}
+                    </Link>
+                  ))}
+                  {sIdx < menuSections.length - 1 && <div style={{ borderBottom: '1px solid #e5e7eb' }} />}
+                </div>
               ))}
-              <button
-                onClick={handleSignOut}
-                style={{ display: 'block', width: '100%', padding: '14px 20px', textAlign: 'left', background: 'none', border: 'none', color: '#dc2626', fontSize: '15px', cursor: 'pointer' }}
-              >
-                Sign Out
-              </button>
+              <div style={{ borderTop: '1px solid #e5e7eb' }}>
+                <button
+                  onClick={handleSignOut}
+                  style={{ display: 'block', width: '100%', padding: '10px 20px', textAlign: 'left', background: 'none', border: 'none', color: '#dc2626', fontSize: '14px', cursor: 'pointer' }}
+                >
+                  Sign Out
+                </button>
+              </div>
             </div>
           </>
         )}
