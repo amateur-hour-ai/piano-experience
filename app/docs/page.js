@@ -226,6 +226,7 @@ function ReleaseNotes() {
       changes: [
         'Manage Categories page — reorder categories with up/down arrows, add/rename/delete custom categories',
         'Per-user category sort order — your preferred order applies on dashboard, schedule, pieces list, and everywhere categories appear',
+        'Settings page — toggle weekly practice summary email on or off',
       ]
     },
     {

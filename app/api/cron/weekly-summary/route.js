@@ -15,14 +15,16 @@ export async function GET(request) {
   const supabase = adminSupabase()
   const resend = new Resend(process.env.RESEND_API_KEY)
 
-  // Get all users
-  const { data: users } = await supabase.from('user_profiles').select('email')
+  // Get all users who have the weekly email enabled
+  const { data: users } = await supabase.from('user_profiles').select('email, weekly_email_enabled')
   if (!users?.length) return Response.json({ message: 'No users' })
 
   const now = new Date()
   const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000)
 
   for (const user of users) {
+    // Skip users who opted out
+    if (user.weekly_email_enabled === false) continue
     try {
       // Get completed schedule items this week
       const { data: completed } = await supabase.from('practice_schedule')
