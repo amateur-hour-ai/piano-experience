@@ -292,7 +292,7 @@ export default function PracticeSchedule() {
                       padding: '4px 2px', textAlign: 'center',
                       borderBottom: '2px solid #e5e7eb', borderLeft: '1px solid #e5e7eb',
                       minWidth: '44px', maxWidth: '48px',
-                      background: isToday ? '#2563eb' : practiceDays.has(dateStr) ? '#f3e8ff' : isPast ? '#f0f0f0' : '#fff',
+                      background: isToday ? '#2563eb' : practiceDays.has(dateStr) ? '#e8e4ff' : isPast ? '#f0f0f0' : '#fff',
                       color: isToday ? '#fff' : '#666', fontWeight: isToday ? '700' : '400',
                     }}>
                       {canEdit && (
@@ -357,10 +357,11 @@ export default function PracticeSchedule() {
                         borderBottom: '1px solid #e5e7eb', borderLeft: '1px solid #e5e7eb',
                         cursor: canEdit ? 'pointer' : 'default', padding: '8px 4px',
                         background: isToday ? (p.is_priority ? '#fce7f3' : '#dbeafe')
+                          : p.is_priority && practiceDays.has(dateStr) ? '#f0e4f8'
                           : p.is_priority ? '#fdf2f8'
-                          : practiceDays.has(dateStr) ? '#f3e8ff'
+                          : practiceDays.has(dateStr) ? '#e8e4ff'
                           : isPast ? '#fafafa' : '#fff',
-                        borderLeft: practiceDays.has(dateStr) && !isToday ? '3px solid #c084fc' : '1px solid #e5e7eb',
+                        borderLeft: '1px solid #e5e7eb',
                         minWidth: '44px',
                       }}>
                         {status === 'completed' && <span style={{ fontSize: '16px' }}>💗</span>}
