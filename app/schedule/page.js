@@ -357,7 +357,6 @@ export default function PracticeSchedule() {
                         borderBottom: '1px solid #e5e7eb', borderLeft: '1px solid #e5e7eb',
                         cursor: canEdit ? 'pointer' : 'default', padding: '8px 4px',
                         background: isToday ? (p.is_priority ? '#fce7f3' : '#dbeafe')
-                          : p.is_priority && practiceDays.has(dateStr) ? '#f5e6ff'
                           : p.is_priority ? '#fdf2f8'
                           : practiceDays.has(dateStr) ? '#f3e8ff'
                           : isPast ? '#fafafa' : '#fff',
