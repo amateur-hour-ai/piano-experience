@@ -215,15 +215,11 @@ function UserGuide() {
 function ReleaseNotes() {
   const releases = [
     {
-      version: '5.0',
-      date: '2026-04-18',
+      version: '5.4',
+      date: '2026-04-22',
       changes: [
-        'Redesigned Practice Schedule as a perpetual grid — all pieces × 14 days (7 past + today + 6 future)',
-        'Tap cells to cycle: empty → planned (blue dot) → completed (green check) → empty',
-        'Focus areas editable inline on the grid and on each piece detail page',
-        'Horizontally scrollable grid with today highlighted and centered',
-        'Export schedule as printable PDF',
-        'Dashboard reads from new practice grid for today\'s practice and streak',
+        'Practice day column colors improved — blue-violet shade now distinct from pink priority rows',
+        'Pink and purple overlap is now visually clear when both priority piece and practice day intersect',
       ]
     },
     {
@@ -258,6 +254,18 @@ function ReleaseNotes() {
         'Fun emoji icons — 🎵 for planned, 💗 for completed',
         'Export pages now have Print and Back buttons for PWA standalone mode',
         'Current Focus Area moved below Notes on piece detail page with editable styling',
+      ]
+    },
+    {
+      version: '5.0',
+      date: '2026-04-18',
+      changes: [
+        'Redesigned Practice Schedule as a perpetual grid — all pieces × 14 days (7 past + today + 6 future)',
+        'Tap cells to cycle: empty → 🎵 planned → 💗 completed → empty',
+        'Focus areas editable inline on the grid and on each piece detail page',
+        'Horizontally scrollable grid with today highlighted and centered',
+        'Export schedule as printable PDF',
+        'Dashboard reads from new practice grid for today\'s practice and streak',
       ]
     },
     {
