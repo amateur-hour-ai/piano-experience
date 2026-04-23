@@ -360,6 +360,7 @@ export default function PracticeSchedule() {
                           : p.is_priority ? '#fdf2f8'
                           : practiceDays.has(dateStr) ? '#f3e8ff'
                           : isPast ? '#fafafa' : '#fff',
+                        borderLeft: practiceDays.has(dateStr) && !isToday ? '3px solid #c084fc' : '1px solid #e5e7eb',
                         minWidth: '44px',
                       }}>
                         {status === 'completed' && <span style={{ fontSize: '16px' }}>💗</span>}
