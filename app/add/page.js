@@ -49,9 +49,13 @@ export default function AddPiece() {
 
   useEffect(() => {
     if (userLoading || !user) return
+    // Load from cache first, then try network
+    import('@/lib/offlineStore').then(({ default: db }) => {
+      db.categories.toArray().then(cached => { if (cached?.length) setCategories(cached) })
+    }).catch(() => {})
     supabase.from('categories').select('*').or(`user_id.eq.${user.email},user_id.is.null`).order('sort_order').then(({ data }) => {
-      setCategories(data || [])
-    })
+      if (data?.length) setCategories(data)
+    }).catch(() => {})
   }, [userLoading, user])
 
   function updateForm(field, value) {

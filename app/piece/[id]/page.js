@@ -204,6 +204,13 @@ export default function PieceDetail() {
         body: JSON.stringify({ action: 'delete' })
       })
     }
+    // Clean IndexedDB cache
+    try {
+      await db.pieces.delete(id)
+      await db.pieceNotes.where('piece_id').equals(id).delete()
+      await db.interestingFacts.where('piece_id').equals(id).delete()
+      await db.pieceGoals.where('piece_id').equals(id).delete()
+    } catch {}
     await logActivity({ action: 'delete_piece', piece_id: id, piece_title: piece.title, details: 'Deleted piece', profile_email: activeProfile, performed_by: user.email })
     addToast('Piece deleted', 'info')
     router.push('/pieces')
@@ -289,6 +296,7 @@ export default function PieceDetail() {
       await fetch(pieceApiBase, { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'delete_note', noteId }) })
     }
+    try { await db.pieceNotes.delete(noteId) } catch {}
     setDeletingNoteId(null)
     addToast('Note deleted', 'info')
     loadPiece()
@@ -373,6 +381,7 @@ export default function PieceDetail() {
     } catch {
       await queueMutation({ url: pieceApiBase, method: 'POST', body: { action: 'delete_goal', goalId }, description: 'Delete goal' })
     }
+    try { await db.pieceGoals.delete(goalId) } catch {}
   }
 
   function exportPiece() {
@@ -627,6 +636,7 @@ export default function PieceDetail() {
                           body: JSON.stringify({ action: 'delete_fact', factId: f.id }) })
                       }
                       setFacts(prev => prev.filter(ff => ff.id !== f.id))
+                      try { await db.interestingFacts.delete(f.id) } catch {}
                       setDeletingFactId(null)
                       addToast('Fact deleted', 'info')
                     }} style={{ padding: '4px 10px', background: '#dc2626', color: '#fff', border: 'none', borderRadius: '4px', fontSize: '12px', cursor: 'pointer' }}>Yes</button>

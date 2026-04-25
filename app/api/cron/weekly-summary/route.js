@@ -19,11 +19,11 @@ export async function GET(request) {
   const { data: users } = await supabase.from('user_profiles').select('email, weekly_email_enabled, weekly_email_day')
   if (!users?.length) return Response.json({ message: 'No users' })
 
-  // Current day of week in CT (0=Monday, 6=Sunday)
+  // Current day of week in CT — DST-safe using toLocaleDateString
   const now = new Date()
-  const ctOffset = -5 // Central Time (approximate — doesn't account for DST perfectly)
-  const ctNow = new Date(now.getTime() + ctOffset * 60 * 60 * 1000)
-  const todayDayOfWeek = (ctNow.getUTCDay() + 6) % 7 // Convert Sun=0 to Mon=0
+  const ctDayName = now.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'America/Chicago' })
+  const dayMap = { Monday: 0, Tuesday: 1, Wednesday: 2, Thursday: 3, Friday: 4, Saturday: 5, Sunday: 6 }
+  const todayDayOfWeek = dayMap[ctDayName]
 
   const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000)
 
