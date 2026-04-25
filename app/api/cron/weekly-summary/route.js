@@ -89,7 +89,7 @@ export async function GET(request) {
 
       // Send to user
       await resend.emails.send({
-        from: 'onboarding@resend.dev',
+        from: 'Piano Experience <hello@pianoexperience.app>',
         to: user.email,
         subject: `Your Weekly Practice Summary — ${now.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}`,
         html
@@ -101,7 +101,7 @@ export async function GET(request) {
       if (viewers?.length) {
         for (const viewer of viewers) {
           await resend.emails.send({
-            from: 'onboarding@resend.dev',
+            from: 'Piano Experience <hello@pianoexperience.app>',
             to: viewer.grantee_email,
             subject: `${user.email.split('@')[0]}'s Weekly Practice Summary`,
             html

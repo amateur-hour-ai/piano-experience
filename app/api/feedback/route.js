@@ -45,7 +45,7 @@ export async function POST(request) {
     try {
       const resend = new Resend(process.env.RESEND_API_KEY)
       await resend.emails.send({
-        from: 'onboarding@resend.dev',
+        from: 'Piano Experience <hello@pianoexperience.app>',
         to: ADMIN_EMAIL,
         subject: `Piano Experience Feedback — ${body.type || 'Suggestion'} from ${email}`,
         html: `<h2>New Feedback</h2><p><strong>From:</strong> ${email}</p><p><strong>Type:</strong> ${body.type || 'Suggestion'}</p><p><strong>Message:</strong></p><p>${body.message}</p>`

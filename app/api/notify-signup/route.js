@@ -26,7 +26,7 @@ export async function POST(request) {
     // Notify admin
     const resend = new Resend(process.env.RESEND_API_KEY)
     await resend.emails.send({
-      from: 'onboarding@resend.dev',
+      from: 'Piano Experience <hello@pianoexperience.app>',
       to: 'michael.rosenthal@gmail.com',
       subject: 'New user signup - Piano Experience',
       html: `
@@ -38,7 +38,7 @@ export async function POST(request) {
 
     // Send welcome email to user
     await resend.emails.send({
-      from: 'onboarding@resend.dev',
+      from: 'Piano Experience <hello@pianoexperience.app>',
       to: email,
       subject: 'Welcome to Piano Experience!',
       html: `
