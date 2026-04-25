@@ -28,7 +28,7 @@ export async function GET(request) {
   const supabase = adminSupabase()
 
   if (standardOnly) {
-    const { data } = await supabase.from('practice_strategies').select('*').is('user_email', null).order('sort_order')
+    const { data } = await supabase.from('practice_strategies').select('*').is('user_email', null).is('deleted_at', null).order('sort_order')
     return Response.json({ strategies: data || [], isStandard: true })
   }
 
@@ -41,12 +41,12 @@ export async function GET(request) {
 
   // Get user's strategies
   let { data: userStrategies } = await supabase.from('practice_strategies')
-    .select('*').eq('user_email', profileEmail).order('sort_order')
+    .select('*').eq('user_email', profileEmail).is('deleted_at', null).order('sort_order')
 
   // If user has no strategies, copy from standard
   if (!userStrategies || userStrategies.length === 0) {
     const { data: standards } = await supabase.from('practice_strategies')
-      .select('*').is('user_email', null).order('sort_order')
+      .select('*').is('user_email', null).is('deleted_at', null).order('sort_order')
 
     if (standards && standards.length > 0) {
       const copies = standards.map((s, i) => ({
@@ -99,7 +99,7 @@ export async function POST(request) {
 
   if (action === 'delete_standard') {
     if (myEmail !== ADMIN_EMAIL) return Response.json({ error: 'Admin only' }, { status: 403 })
-    await supabase.from('practice_strategies').delete().eq('id', body.id).is('user_email', null)
+    await supabase.from('practice_strategies').update({ deleted_at: new Date().toISOString() }).eq('id', body.id).is('user_email', null)
     return Response.json({ success: true })
   }
 
@@ -119,7 +119,7 @@ export async function POST(request) {
   }
 
   if (action === 'delete') {
-    await supabase.from('practice_strategies').delete().eq('id', body.id).eq('user_email', targetEmail)
+    await supabase.from('practice_strategies').update({ deleted_at: new Date().toISOString() }).eq('id', body.id).eq('user_email', targetEmail)
     return Response.json({ success: true })
   }
 

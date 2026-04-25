@@ -39,10 +39,10 @@ export async function GET(request, { params }) {
   const [pieceRes, imagesRes, notesRes, factsRes, catsRes, goalsRes, tempoRes] = await Promise.all([
     supabase.from('pieces').select('*, categories(name)').eq('id', id).eq('user_id', decodedEmail).single(),
     supabase.from('piece_images').select('*').eq('piece_id', id).order('created_at'),
-    supabase.from('piece_notes').select('*').eq('piece_id', id).order('created_at', { ascending: false }),
-    supabase.from('interesting_facts').select('*').eq('piece_id', id).order('created_at', { ascending: false }),
+    supabase.from('piece_notes').select('*').eq('piece_id', id).is('deleted_at', null).order('created_at', { ascending: false }),
+    supabase.from('interesting_facts').select('*').eq('piece_id', id).is('deleted_at', null).order('created_at', { ascending: false }),
     supabase.from('categories').select('*').or(`user_id.eq.${decodedEmail},user_id.is.null`).order('sort_order'),
-    supabase.from('piece_goals').select('*').eq('piece_id', id).order('sort_order'),
+    supabase.from('piece_goals').select('*').eq('piece_id', id).is('deleted_at', null).order('sort_order'),
     supabase.from('tempo_log').select('*').eq('piece_id', id).order('created_at', { ascending: false }),
   ])
 
@@ -89,11 +89,12 @@ export async function POST(request, { params }) {
   }
 
   if (action === 'delete') {
-    await supabase.from('piece_notes').delete().eq('piece_id', id)
-    await supabase.from('piece_images').delete().eq('piece_id', id)
-    await supabase.from('interesting_facts').delete().eq('piece_id', id)
+    const now = new Date().toISOString()
+    await supabase.from('piece_notes').update({ deleted_at: now }).eq('piece_id', id)
+    await supabase.from('interesting_facts').update({ deleted_at: now }).eq('piece_id', id)
+    await supabase.from('piece_goals').update({ deleted_at: now }).eq('piece_id', id)
     await supabase.from('practice_grid').delete().eq('piece_id', id)
-    await supabase.from('pieces').delete().eq('id', id)
+    await supabase.from('pieces').update({ deleted_at: now }).eq('id', id)
     return Response.json({ success: true })
   }
 
@@ -112,7 +113,7 @@ export async function POST(request, { params }) {
   }
 
   if (action === 'delete_note') {
-    await supabase.from('piece_notes').delete().eq('id', body.noteId)
+    await supabase.from('piece_notes').update({ deleted_at: new Date().toISOString() }).eq('id', body.noteId)
     return Response.json({ success: true })
   }
 
@@ -130,7 +131,7 @@ export async function POST(request, { params }) {
   }
 
   if (action === 'delete_goal') {
-    await supabase.from('piece_goals').delete().eq('id', body.goalId)
+    await supabase.from('piece_goals').update({ deleted_at: new Date().toISOString() }).eq('id', body.goalId)
     return Response.json({ success: true })
   }
 
@@ -139,6 +140,11 @@ export async function POST(request, { params }) {
     update[body.field] = body.value
     const { error } = await supabase.from('pieces').update(update).eq('id', id)
     if (error) return Response.json({ error: error.message }, { status: 500 })
+    return Response.json({ success: true })
+  }
+
+  if (action === 'delete_fact') {
+    await supabase.from('interesting_facts').update({ deleted_at: new Date().toISOString() }).eq('id', body.factId)
     return Response.json({ success: true })
   }
 

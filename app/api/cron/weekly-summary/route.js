@@ -15,16 +15,24 @@ export async function GET(request) {
   const supabase = adminSupabase()
   const resend = new Resend(process.env.RESEND_API_KEY)
 
-  // Get all users who have the weekly email enabled
-  const { data: users } = await supabase.from('user_profiles').select('email, weekly_email_enabled')
+  // Get all users who have the weekly email enabled with a day preference
+  const { data: users } = await supabase.from('user_profiles').select('email, weekly_email_enabled, weekly_email_day')
   if (!users?.length) return Response.json({ message: 'No users' })
 
+  // Current day of week in CT (0=Monday, 6=Sunday)
   const now = new Date()
+  const ctOffset = -5 // Central Time (approximate — doesn't account for DST perfectly)
+  const ctNow = new Date(now.getTime() + ctOffset * 60 * 60 * 1000)
+  const todayDayOfWeek = (ctNow.getUTCDay() + 6) % 7 // Convert Sun=0 to Mon=0
+
   const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000)
 
+  let sentCount = 0
   for (const user of users) {
-    // Skip users who opted out
-    if (user.weekly_email_enabled === false) continue
+    // Skip users who opted out or whose day doesn't match today
+    if (!user.weekly_email_enabled) continue
+    if (user.weekly_email_day === null || user.weekly_email_day === undefined) continue
+    if (user.weekly_email_day !== todayDayOfWeek) continue
     try {
       // Get practice grid data for this week
       const weekAgoStr = `${weekAgo.getFullYear()}-${String(weekAgo.getMonth() + 1).padStart(2, '0')}-${String(weekAgo.getDate()).padStart(2, '0')}`
@@ -108,10 +116,11 @@ export async function GET(request) {
           })
         }
       }
+      sentCount++
     } catch (err) {
       console.error(`Failed to send summary to ${user.email}:`, err)
     }
   }
 
-  return Response.json({ message: `Sent summaries to ${users.length} users` })
+  return Response.json({ message: `Sent summaries to ${sentCount} users (day ${todayDayOfWeek})` })
 }

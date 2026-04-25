@@ -30,7 +30,7 @@ export async function GET(request) {
   }
 
   const { data, error } = await supabase.from('experience_log')
-    .select('*').eq('user_email', profileEmail).order('date', { ascending: false })
+    .select('*').eq('user_email', profileEmail).is('deleted_at', null).order('date', { ascending: false })
 
   if (error) return Response.json({ error: error.message }, { status: 500 })
   return Response.json({ experiences: data || [] })
@@ -68,7 +68,7 @@ export async function POST(request) {
   }
 
   if (action === 'delete') {
-    await supabase.from('experience_log').delete().eq('id', body.id).eq('user_email', targetEmail)
+    await supabase.from('experience_log').update({ deleted_at: new Date().toISOString() }).eq('id', body.id).eq('user_email', targetEmail)
     return Response.json({ success: true })
   }
 

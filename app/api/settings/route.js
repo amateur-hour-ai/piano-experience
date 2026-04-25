@@ -21,16 +21,19 @@ export async function GET() {
 
   const supabase = adminSupabase()
   const { data } = await supabase.from('user_profiles').select('weekly_email_enabled').eq('email', email).limit(1)
-  return Response.json({ settings: data?.[0] || { weekly_email_enabled: true } })
+  return Response.json({ settings: data?.[0] || { weekly_email_enabled: false, weekly_email_day: null } })
 }
 
 export async function POST(request) {
   const email = await getAuthEmail()
   if (!email) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { weekly_email_enabled } = await request.json()
+  const { weekly_email_enabled, weekly_email_day } = await request.json()
   const supabase = adminSupabase()
-  const { error } = await supabase.from('user_profiles').update({ weekly_email_enabled }).eq('email', email)
+  const update = {}
+  if (weekly_email_enabled !== undefined) update.weekly_email_enabled = weekly_email_enabled
+  if (weekly_email_day !== undefined) update.weekly_email_day = weekly_email_day
+  const { error } = await supabase.from('user_profiles').update(update).eq('email', email)
   if (error) return Response.json({ error: error.message }, { status: 500 })
   return Response.json({ success: true })
 }

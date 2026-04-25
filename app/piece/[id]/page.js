@@ -43,6 +43,7 @@ export default function PieceDetail() {
   const [deletingNoteId, setDeletingNoteId] = useState(null)
   const [editingFocusOnDetail, setEditingFocusOnDetail] = useState(false)
   const [focusDetailDraft, setFocusDetailDraft] = useState('')
+  const [deletingFactId, setDeletingFactId] = useState(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   const supabase = createBrowserClient(
@@ -88,10 +89,10 @@ export default function PieceDetail() {
         const dataPromise = Promise.all([
           supabase.from('pieces').select('*, categories(name)').eq('id', id).single(),
           supabase.from('piece_images').select('*').eq('piece_id', id).order('created_at'),
-          supabase.from('piece_notes').select('*').eq('piece_id', id).order('created_at', { ascending: false }),
-          supabase.from('interesting_facts').select('*').eq('piece_id', id).order('created_at', { ascending: false }),
+          supabase.from('piece_notes').select('*').eq('piece_id', id).is('deleted_at', null).order('created_at', { ascending: false }),
+          supabase.from('interesting_facts').select('*').eq('piece_id', id).is('deleted_at', null).order('created_at', { ascending: false }),
           supabase.from('categories').select('*').or(`user_id.eq.${user.email},user_id.is.null`).order('sort_order'),
-          supabase.from('piece_goals').select('*').eq('piece_id', id).order('sort_order'),
+          supabase.from('piece_goals').select('*').eq('piece_id', id).is('deleted_at', null).order('sort_order'),
           supabase.from('tempo_log').select('*').eq('piece_id', id).order('created_at', { ascending: false }),
         ])
         const [pieceRes, imagesRes, notesRes, factsRes, catsRes, goalsRes, tempoRes] = await Promise.race([dataPromise, timeoutPromise])
@@ -191,11 +192,12 @@ export default function PieceDetail() {
 
   async function handleDelete() {
     if (isOwnProfile) {
-      await supabase.from('piece_notes').delete().eq('piece_id', id)
-      await supabase.from('piece_images').delete().eq('piece_id', id)
-      await supabase.from('interesting_facts').delete().eq('piece_id', id)
+      const now = new Date().toISOString()
+      await supabase.from('piece_notes').update({ deleted_at: now }).eq('piece_id', id)
+      await supabase.from('interesting_facts').update({ deleted_at: now }).eq('piece_id', id)
+      await supabase.from('piece_goals').update({ deleted_at: now }).eq('piece_id', id)
       await supabase.from('practice_grid').delete().eq('piece_id', id)
-      await supabase.from('pieces').delete().eq('id', id)
+      await supabase.from('pieces').update({ deleted_at: now }).eq('id', id)
     } else {
       await fetch(`/api/profile/${encodeURIComponent(activeProfile)}/piece/${id}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -282,7 +284,7 @@ export default function PieceDetail() {
 
   async function deleteNote(noteId) {
     if (isOwnProfile) {
-      await supabase.from('piece_notes').delete().eq('id', noteId)
+      await supabase.from('piece_notes').update({ deleted_at: new Date().toISOString() }).eq('id', noteId)
     } else {
       await fetch(pieceApiBase, { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'delete_note', noteId }) })
@@ -363,7 +365,7 @@ export default function PieceDetail() {
 
     try {
       if (isOwnProfile) {
-        await supabase.from('piece_goals').delete().eq('id', goalId)
+        await supabase.from('piece_goals').update({ deleted_at: new Date().toISOString() }).eq('id', goalId)
       } else {
         await fetch(pieceApiBase, { method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'delete_goal', goalId }) })
@@ -555,8 +557,8 @@ export default function PieceDetail() {
         </div>
       )}
 
-      {/* About the Composer */}
-      {piece.composer && (
+      {/* About the Composer — hide in edit mode since it's editable in the form */}
+      {piece.composer && !editing && (
         <div style={{ background: '#fff', borderRadius: '12px', padding: '24px', border: '1px solid #e5e7eb', marginBottom: '24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <h2 style={{ fontSize: '18px', color: '#2563eb' }}>About {piece.composer}</h2>
@@ -608,7 +610,29 @@ export default function PieceDetail() {
             {facts.map(f => (
               <div key={f.id} style={{ padding: '12px', background: '#eff6ff', borderRadius: '8px', fontSize: '14px', lineHeight: '1.5' }}>
                 {f.fact}
-                <div style={{ fontSize: '11px', color: '#999', marginTop: '6px' }}>{new Date(f.created_at).toLocaleDateString()}</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
+                  <span style={{ fontSize: '11px', color: '#999' }}>{new Date(f.created_at).toLocaleDateString()}</span>
+                  {canEdit && deletingFactId !== f.id && (
+                    <button onClick={() => setDeletingFactId(f.id)} style={{ fontSize: '11px', color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer' }}>Delete</button>
+                  )}
+                </div>
+                {deletingFactId === f.id && (
+                  <div style={{ background: '#fef2f2', borderRadius: '6px', padding: '8px 12px', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
+                    <span style={{ color: '#991b1b' }}>Delete this fact?</span>
+                    <button onClick={async () => {
+                      if (isOwnProfile) {
+                        await supabase.from('interesting_facts').update({ deleted_at: new Date().toISOString() }).eq('id', f.id)
+                      } else {
+                        await fetch(pieceApiBase, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ action: 'delete_fact', factId: f.id }) })
+                      }
+                      setFacts(prev => prev.filter(ff => ff.id !== f.id))
+                      setDeletingFactId(null)
+                      addToast('Fact deleted', 'info')
+                    }} style={{ padding: '4px 10px', background: '#dc2626', color: '#fff', border: 'none', borderRadius: '4px', fontSize: '12px', cursor: 'pointer' }}>Yes</button>
+                    <button onClick={() => setDeletingFactId(null)} style={{ padding: '4px 10px', background: '#fff', color: '#666', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '12px', cursor: 'pointer' }}>No</button>
+                  </div>
+                )}
               </div>
             ))}
           </div>

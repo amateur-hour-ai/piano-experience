@@ -41,6 +41,7 @@ export async function GET(request, { params }) {
     .from('pieces')
     .select('*, categories(name)')
     .eq('user_id', decodedEmail)
+    .is('deleted_at', null)
     .order('updated_at', { ascending: false })
 
   if (error) return Response.json({ error: error.message }, { status: 500 })

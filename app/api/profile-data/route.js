@@ -30,7 +30,7 @@ export async function GET(request) {
   const supabase = adminSupabase()
 
   if (type === 'pieces') {
-    const { data } = await supabase.from('pieces').select('*, categories(name)').eq('user_id', email).order('updated_at', { ascending: false })
+    const { data } = await supabase.from('pieces').select('*, categories(name)').eq('user_id', email).is('deleted_at', null).order('updated_at', { ascending: false })
     const { data: schedule } = await supabase.from('practice_grid').select('*').eq('user_email', email)
     return Response.json({ pieces: data || [], schedule: schedule || [] })
   }
@@ -45,9 +45,9 @@ export async function GET(request) {
     const [pieceRes, imagesRes, notesRes, factsRes, goalsRes, tempoRes] = await Promise.all([
       supabase.from('pieces').select('*, categories(name)').eq('id', pieceId).single(),
       supabase.from('piece_images').select('*').eq('piece_id', pieceId).order('created_at'),
-      supabase.from('piece_notes').select('*').eq('piece_id', pieceId).order('created_at', { ascending: false }),
-      supabase.from('interesting_facts').select('*').eq('piece_id', pieceId).order('created_at', { ascending: false }),
-      supabase.from('piece_goals').select('*').eq('piece_id', pieceId).order('sort_order'),
+      supabase.from('piece_notes').select('*').eq('piece_id', pieceId).is('deleted_at', null).order('created_at', { ascending: false }),
+      supabase.from('interesting_facts').select('*').eq('piece_id', pieceId).is('deleted_at', null).order('created_at', { ascending: false }),
+      supabase.from('piece_goals').select('*').eq('piece_id', pieceId).is('deleted_at', null).order('sort_order'),
       supabase.from('tempo_log').select('*').eq('piece_id', pieceId).order('created_at', { ascending: false }),
     ])
     return Response.json({

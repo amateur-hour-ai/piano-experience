@@ -208,6 +208,12 @@ function UserGuide() {
           Sign up with your email and password. Your account is automatically approved — no waiting required. To sign out, tap the menu in the top right and select <strong>Sign Out</strong>.
         </p>
       </Section>
+
+      <Section title="Copyright Notice">
+        <p style={{ fontSize: '14px', lineHeight: '1.7', color: '#666' }}>
+          Sheet music images uploaded to Piano Experience are for personal practice reference only. Users are responsible for ensuring they have the right to photograph and store their music. Images are accessible only to the account owner and anyone they have explicitly shared their profile with. Piano Experience does not distribute, republish, or make uploaded images publicly available.
+        </p>
+      </Section>
     </div>
   )
 }
@@ -221,6 +227,12 @@ function ReleaseNotes() {
         'Practice schedule — 4 status modes: 🎵 plan to play → 🎶 plan to practice → 💗 played → 💕 practiced',
         'Experimentation row on practice schedule — track free play and improvisation',
         'Feedback system — submit bug reports, suggestions, or questions from the menu',
+        'Soft deletes — deleted items are preserved in the database for recovery',
+        'Data export — download all your data (or a shared profile\'s data) as a printable document',
+        'Weekly email day picker — choose which day to receive your practice summary (default: off)',
+        'Delete interesting facts with confirmation',
+        'Fixed duplicate composer bio in edit mode',
+        'Copyright disclaimer for uploaded sheet music images',
         'Pieces list defaults to category sort order and has expanded view toggle (rating, metronome, focus)',
         'Dashboard today\'s practice sorted by user\'s category order',
         'Delete experience now asks for confirmation',
