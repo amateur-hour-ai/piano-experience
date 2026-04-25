@@ -64,25 +64,24 @@ export async function POST(request) {
     if (perm?.access_level !== 'edit') return Response.json({ error: 'Edit access required' }, { status: 403 })
   }
 
-  // Toggle: cycle empty → planned → completed → empty
+  // Toggle: cycle through statuses. Client sends the NEW status it wants.
   if (action === 'toggle') {
     const { piece_id, date, currentStatus } = body
 
-    if (!currentStatus) {
-      // Empty → planned
+    // Determine next status in cycle: null → plan_play → plan_practice → played → practiced → null
+    const cycle = [null, 'plan_play', 'plan_practice', 'played', 'practiced']
+    const currentIdx = cycle.indexOf(currentStatus)
+    const newStatus = cycle[(currentIdx + 1) % cycle.length]
+
+    if (newStatus) {
+      // Upsert the new status
       const { error } = await supabase.from('practice_grid').upsert({
-        user_email: profileEmail, piece_id, date, status: 'planned'
+        user_email: profileEmail, piece_id, date, status: newStatus
       }, { onConflict: 'user_email,piece_id,date' })
       if (error) return Response.json({ error: error.message }, { status: 500 })
-      return Response.json({ status: 'planned' })
-    } else if (currentStatus === 'planned') {
-      // Planned → completed
-      const { error } = await supabase.from('practice_grid').update({ status: 'completed' })
-        .eq('user_email', profileEmail).eq('piece_id', piece_id).eq('date', date)
-      if (error) return Response.json({ error: error.message }, { status: 500 })
-      return Response.json({ status: 'completed' })
+      return Response.json({ status: newStatus })
     } else {
-      // Completed → empty (delete row)
+      // Clear (delete row)
       await supabase.from('practice_grid').delete()
         .eq('user_email', profileEmail).eq('piece_id', piece_id).eq('date', date)
       return Response.json({ status: null })

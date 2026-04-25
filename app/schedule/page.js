@@ -43,7 +43,8 @@ export default function PracticeSchedule() {
   }
   const todayStr = toLocalDateString(today)
   const EXPERIMENTATION_ID = '00000000-0000-0000-0000-experimentation'
-  const experimentationPiece = { id: EXPERIMENTATION_ID, title: 'Experimentation', composer: null, current_focus: '', is_priority: false, category_id: null, categories: null, isExperimentation: true }
+  const expFocus = typeof window !== 'undefined' ? (localStorage.getItem('exp_focus_' + activeProfile) || '') : ''
+  const experimentationPiece = { id: EXPERIMENTATION_ID, title: 'Experimentation', composer: null, current_focus: expFocus, is_priority: false, category_id: null, categories: null, isExperimentation: true }
 
   useEffect(() => {
     if (userLoading || !user || !activeProfile) return
@@ -159,6 +160,14 @@ export default function PracticeSchedule() {
   }
 
   async function saveFocus(pieceId) {
+    // Experimentation row — save focus locally only (no DB piece)
+    if (pieceId === EXPERIMENTATION_ID) {
+      experimentationPiece.current_focus = focusDraft
+      try { localStorage.setItem('exp_focus_' + activeProfile, focusDraft) } catch {}
+      setEditingFocus(null)
+      return
+    }
+
     const body = { action: 'update_focus', piece_id: pieceId, current_focus: focusDraft, profileEmail: isOwnProfile ? undefined : activeProfile }
     setPieces(prev => prev.map(p => p.id === pieceId ? { ...p, current_focus: focusDraft } : p))
     setEditingFocus(null)
@@ -312,8 +321,9 @@ export default function PracticeSchedule() {
             </thead>
             <tbody>
               {[...pieces, experimentationPiece].map((p, idx) => {
-                const cat = p.categories?.name || 'Uncategorized'
-                const prevCat = idx > 0 ? (pieces[idx - 1].categories?.name || 'Uncategorized') : null
+                const allItems = [...pieces, experimentationPiece]
+                const cat = p.isExperimentation ? 'Free Play' : (p.categories?.name || 'Uncategorized')
+                const prevCat = idx > 0 ? (allItems[idx - 1].isExperimentation ? 'Free Play' : (allItems[idx - 1].categories?.name || 'Uncategorized')) : null
                 const isFirstInCategory = cat !== prevCat
                 return (
                   <tr key={p.id} style={{ background: p.is_priority ? '#fdf2f8' : undefined }}>
