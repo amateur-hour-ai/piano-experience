@@ -194,7 +194,7 @@ export default function PieceDetail() {
       await supabase.from('piece_notes').delete().eq('piece_id', id)
       await supabase.from('piece_images').delete().eq('piece_id', id)
       await supabase.from('interesting_facts').delete().eq('piece_id', id)
-      await supabase.from('practice_schedule').delete().eq('piece_id', id)
+      await supabase.from('practice_grid').delete().eq('piece_id', id)
       await supabase.from('pieces').delete().eq('id', id)
     } else {
       await fetch(`/api/profile/${encodeURIComponent(activeProfile)}/piece/${id}`, {

@@ -26,11 +26,17 @@ export async function GET(request) {
     // Skip users who opted out
     if (user.weekly_email_enabled === false) continue
     try {
-      // Get completed schedule items this week
-      const { data: completed } = await supabase.from('practice_schedule')
-        .select('*, pieces(title)')
-        .eq('user_id', user.email)
-        .gte('completed_at', weekAgo.toISOString())
+      // Get practice grid data for this week
+      const weekAgoStr = `${weekAgo.getFullYear()}-${String(weekAgo.getMonth() + 1).padStart(2, '0')}-${String(weekAgo.getDate()).padStart(2, '0')}`
+      const nowStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+
+      const { data: gridItems } = await supabase.from('practice_grid')
+        .select('*, pieces:piece_id(title)')
+        .eq('user_email', user.email)
+        .gte('date', weekAgoStr)
+        .lte('date', nowStr)
+
+      const completedItems = (gridItems || []).filter(g => g.status === 'played' || g.status === 'practiced' || g.status === 'completed')
 
       // Get new pieces added this week
       const { data: newPieces } = await supabase.from('pieces')
@@ -47,13 +53,12 @@ export async function GET(request) {
 
       // Calculate practice days this week
       const practiceDays = new Set()
-      completed?.forEach(c => {
-        if (c.completed_at) practiceDays.add(new Date(c.completed_at).toLocaleDateString())
-      })
+      completedItems.forEach(g => practiceDays.add(g.date))
 
       // Build email
-      const completedList = completed?.length
-        ? completed.map(c => `<li>${c.pieces?.title || 'Unknown piece'}</li>`).join('')
+      const uniquePieces = [...new Set(completedItems.map(c => c.pieces?.title || 'Unknown piece'))]
+      const completedList = uniquePieces.length
+        ? uniquePieces.map(t => `<li>${t}</li>`).join('')
         : '<li>No practice items completed</li>'
 
       const newPiecesList = newPieces?.length

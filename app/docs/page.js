@@ -130,7 +130,7 @@ function UserGuide() {
           The practice schedule is a grid showing all your active pieces across 14 days (7 past + today + 6 future). Scroll left to see past days or right for upcoming days.
         </p>
         <Step n="1">Pieces are organized by category. Tap the ★ star next to a piece to mark it as priority (highlighted in pink). Tap the ★ star above a day to mark it as a planned practice day (highlighted in purple).</Step>
-        <Step n="2">Tap any cell to plan: empty → 🎵 (planned) → 💗 (completed) → empty again.</Step>
+        <Step n="2">Tap any cell to cycle through: empty → 🎵 (plan to play) → 🎶 (plan to practice) → 💗 (played) → 💕 (practiced) → empty.</Step>
         <Step n="3">Set a focus area for each piece by tapping the focus text next to the piece name.</Step>
         <Step n="4">Use the <strong>Export</strong> button to print your schedule.</Step>
         <Note>You can also edit focus areas from the piece detail page. The dashboard shows today's planned pieces and your practice streak.</Note>
@@ -214,6 +214,21 @@ function UserGuide() {
 
 function ReleaseNotes() {
   const releases = [
+    {
+      version: '6.0',
+      date: '2026-04-25',
+      changes: [
+        'Practice schedule — 4 status modes: 🎵 plan to play → 🎶 plan to practice → 💗 played → 💕 practiced',
+        'Experimentation row on practice schedule — track free play and improvisation',
+        'Feedback system — submit bug reports, suggestions, or questions from the menu',
+        'Pieces list defaults to category sort order and has expanded view toggle (rating, metronome, focus)',
+        'Dashboard today\'s practice sorted by user\'s category order',
+        'Delete experience now asks for confirmation',
+        'Weekly email fixed — reads from practice grid (was using old data source)',
+        'Experience log piece selector fixed for editing existing entries',
+        'All legacy practice_schedule references removed from codebase',
+      ]
+    },
     {
       version: '5.4',
       date: '2026-04-22',

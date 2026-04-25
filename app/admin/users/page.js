@@ -10,6 +10,7 @@ export default function AdminUsers() {
   const { addToast } = useToast()
   const [users, setUsers] = useState([])
   const [activities, setActivities] = useState([])
+  const [feedbackItems, setFeedbackItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState('users')
   const [themeUploading, setThemeUploading] = useState(false)
@@ -22,13 +23,24 @@ export default function AdminUsers() {
   }, [userLoading, isAdmin])
 
   async function loadData() {
-    const [usersRes, actRes] = await Promise.all([
+    const [usersRes, actRes, fbRes] = await Promise.all([
       fetch('/api/users').then(r => r.json()),
       fetch('/api/activity?limit=100').then(r => r.json()),
+      fetch('/api/feedback').then(r => r.json()),
     ])
     setUsers(usersRes.users || [])
     setActivities(actRes.activities || [])
+    setFeedbackItems(fbRes.feedback || [])
     setLoading(false)
+  }
+
+  async function resolveFeedback(id, status) {
+    await fetch('/api/feedback', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'resolve', id, status })
+    })
+    setFeedbackItems(prev => prev.map(f => f.id === id ? { ...f, status } : f))
+    addToast('Feedback updated', 'success')
   }
 
   if (userLoading) return null
@@ -55,7 +67,7 @@ export default function AdminUsers() {
       <h1 style={{ margin: '16px 0 24px' }}>Admin Panel</h1>
 
       <div style={{ display: 'flex', gap: '0', borderBottom: '2px solid #e5e7eb', marginBottom: '24px' }}>
-        {['users', 'activity', 'theme'].map(t => (
+        {['users', 'activity', 'feedback', 'theme'].map(t => (
           <button key={t} onClick={() => setTab(t)} style={{
             padding: '10px 24px', border: 'none', background: 'none', cursor: 'pointer',
             fontSize: '15px', fontWeight: tab === t ? '600' : '400',
@@ -118,6 +130,40 @@ export default function AdminUsers() {
             </div>
           ))}
           {activities.length === 0 && <p style={{ color: '#666' }}>No activity yet.</p>}
+        </div>
+      )}
+
+      {tab === 'feedback' && (
+        <div>
+          <h2 style={{ fontSize: '18px', color: '#2563eb', marginBottom: '16px' }}>Feedback ({feedbackItems.filter(f => f.status === 'new').length} new)</h2>
+          {feedbackItems.length === 0 ? (
+            <p style={{ color: '#666' }}>No feedback yet.</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {feedbackItems.map(f => (
+                <div key={f.id} style={{
+                  background: f.status === 'new' ? '#eff6ff' : '#f9fafb', borderRadius: '10px',
+                  padding: '14px 18px', border: `1px solid ${f.status === 'new' ? '#93c5fd' : '#e5e7eb'}`
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <div>
+                      <span style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>{f.user_email}</span>
+                      <span style={{ fontSize: '12px', color: '#999', marginLeft: '8px' }}>
+                        {f.type} — {new Date(f.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      {f.status === 'new' && (
+                        <button onClick={() => resolveFeedback(f.id, 'resolved')} style={{ fontSize: '12px', color: '#059669', background: 'none', border: 'none', cursor: 'pointer' }}>Resolve</button>
+                      )}
+                      {f.status === 'resolved' && <span style={{ fontSize: '11px', color: '#059669' }}>✓ Resolved</span>}
+                    </div>
+                  </div>
+                  <p style={{ fontSize: '14px', lineHeight: '1.5', color: '#374151' }}>{f.message}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

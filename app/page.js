@@ -113,8 +113,19 @@ export default function Dashboard() {
 
   const todayStr = toLocalDateString()
   const todayGrid = practiceGrid.filter(g => g.date === todayStr)
-  const todayPlanned = todayGrid.filter(g => g.status === 'planned' || g.status === 'completed')
-  const todayCompleted = todayGrid.filter(g => g.status === 'completed')
+  const todayPlanned = todayGrid.filter(g => g.status === 'planned' || g.status === 'completed' || g.status === 'plan_play' || g.status === 'plan_practice' || g.status === 'played' || g.status === 'practiced')
+  const todayCompleted = todayGrid.filter(g => g.status === 'completed' || g.status === 'played' || g.status === 'practiced')
+
+  // Sort today's practice by user's category order
+  const todayCatOrder = {}
+  sortedCategories.forEach((c, i) => { todayCatOrder[c.id] = c.effective_sort !== undefined ? c.effective_sort : i })
+  const sortedTodayPlanned = [...todayPlanned].sort((a, b) => {
+    const pieceA = pieces.find(p => p.id === a.piece_id)
+    const pieceB = pieces.find(p => p.id === b.piece_id)
+    const orderA = todayCatOrder[pieceA?.category_id] !== undefined ? todayCatOrder[pieceA?.category_id] : 999
+    const orderB = todayCatOrder[pieceB?.category_id] !== undefined ? todayCatOrder[pieceB?.category_id] : 999
+    return orderA - orderB
+  })
 
   return (
     <main style={{ padding: '24px', maxWidth: '900px', margin: '0 auto' }}>
@@ -144,7 +155,7 @@ export default function Dashboard() {
               const dateStr = d.toLocaleDateString()
               const dayIdx = (d.getDay() + 6) % 7
               const isoDateStr = toLocalDateString(d)
-              const practiced = practiceGrid.some(g => g.date === isoDateStr && g.status === 'completed')
+              const practiced = practiceGrid.some(g => g.date === isoDateStr && (g.status === 'completed' || g.status === 'played' || g.status === 'practiced'))
               const isToday = i === 0
               result.push(
                 <div key={i} style={{ textAlign: 'center', flex: 1 }}>
@@ -172,8 +183,8 @@ export default function Dashboard() {
         <StatCard label="Total Pieces" value={pieces.filter(p => !p.archived).length} color="#2563eb" href="/pieces" />
         <StatCard
           label="Today's Practice"
-          value={todayPlanned.length > 0 ? `${todayCompleted.length}/${todayPlanned.length}` : 'None planned'}
-          color={todayPlanned.length > 0 && todayCompleted.length === todayPlanned.length ? '#059669' : '#2563eb'}
+          value={sortedTodayPlanned.length > 0 ? `${todayCompleted.length}/${sortedTodayPlanned.length}` : 'None planned'}
+          color={sortedTodayPlanned.length > 0 && todayCompleted.length === sortedTodayPlanned.length ? '#059669' : '#2563eb'}
           href="/schedule"
         />
       </div>
@@ -184,15 +195,15 @@ export default function Dashboard() {
           <h2 style={{ fontSize: '20px' }}>Today's Practice ({new Date().toLocaleDateString('en-US', { weekday: 'long' })})</h2>
           <Link href="/schedule" style={{ fontSize: '14px' }}>View full schedule →</Link>
         </div>
-        {todayPlanned.length === 0 ? (
+        {sortedTodayPlanned.length === 0 ? (
           <div style={{ background: '#fff', borderRadius: '12px', padding: '24px', textAlign: 'center', color: '#666', border: '1px solid #e5e7eb' }}>
             No pieces scheduled for today. {canEdit && <Link href="/schedule">Set up your practice schedule</Link>}
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {todayPlanned.map(g => {
+            {sortedTodayPlanned.map(g => {
               const p = pieces.find(pp => pp.id === g.piece_id)
-              const done = g.status === 'completed'
+              const done = g.status === 'completed' || g.status === 'played' || g.status === 'practiced'
               return (
               <div key={g.id} style={{
                 background: done ? '#f0fdf4' : '#fff',

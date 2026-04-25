@@ -31,12 +31,12 @@ export async function GET(request) {
 
   if (type === 'pieces') {
     const { data } = await supabase.from('pieces').select('*, categories(name)').eq('user_id', email).order('updated_at', { ascending: false })
-    const { data: schedule } = await supabase.from('practice_schedule').select('*, pieces(title, composer)').eq('user_id', email).order('day_of_week').order('sort_order')
+    const { data: schedule } = await supabase.from('practice_grid').select('*').eq('user_email', email)
     return Response.json({ pieces: data || [], schedule: schedule || [] })
   }
 
   if (type === 'schedule') {
-    const { data } = await supabase.from('practice_schedule').select('*, pieces(title, composer)').eq('user_id', email).order('day_of_week').order('sort_order')
+    const { data } = await supabase.from('practice_grid').select('*').eq('user_email', email)
     return Response.json({ schedule: data || [] })
   }
 

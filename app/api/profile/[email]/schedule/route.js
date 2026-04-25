@@ -37,14 +37,12 @@ export async function GET(request, { params }) {
   if (!access) return Response.json({ error: 'No access to this profile' }, { status: 403 })
 
   const { data, error } = await supabase
-    .from('practice_schedule')
-    .select('*, pieces(title, composer)')
-    .eq('user_id', decodedEmail)
-    .order('day_of_week')
-    .order('sort_order')
+    .from('practice_grid')
+    .select('*')
+    .eq('user_email', decodedEmail)
 
   if (error) return Response.json({ error: error.message }, { status: 500 })
-  return Response.json({ schedule: data, accessLevel: access })
+  return Response.json({ schedule: data || [], accessLevel: access })
 }
 
 export async function POST(request, { params }) {
@@ -60,43 +58,6 @@ export async function POST(request, { params }) {
 
   const { action, ...body } = await request.json()
 
-  if (action === 'add') {
-    const { data, error } = await supabase
-      .from('practice_schedule')
-      .insert([{ ...body, user_id: decodedEmail }])
-      .select('*, pieces(title, composer)')
-      .single()
-    if (error) return Response.json({ error: error.message }, { status: 500 })
-    return Response.json({ item: data })
-  }
-
-  if (action === 'toggle') {
-    const { id, completed, completed_at } = body
-    const { error } = await supabase
-      .from('practice_schedule')
-      .update({ completed, completed_at })
-      .eq('id', id)
-    if (error) return Response.json({ error: error.message }, { status: 500 })
-    return Response.json({ success: true })
-  }
-
-  if (action === 'remove') {
-    const { error } = await supabase
-      .from('practice_schedule')
-      .delete()
-      .eq('id', body.id)
-    if (error) return Response.json({ error: error.message }, { status: 500 })
-    return Response.json({ success: true })
-  }
-
-  if (action === 'update_focus') {
-    const { error } = await supabase
-      .from('practice_schedule')
-      .update({ focus_notes: body.focus_notes || null })
-      .eq('id', body.id)
-    if (error) return Response.json({ error: error.message }, { status: 500 })
-    return Response.json({ success: true })
-  }
-
-  return Response.json({ error: 'Unknown action' }, { status: 400 })
+  // Legacy actions no longer used — schedule UI uses /api/practice-grid
+  return Response.json({ error: 'Use /api/practice-grid for schedule actions' }, { status: 400 })
 }

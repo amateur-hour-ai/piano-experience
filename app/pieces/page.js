@@ -18,8 +18,9 @@ export default function Pieces() {
   const [categories, setCategories] = useState([])
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
-  const [sortBy, setSortBy] = useState('date')
+  const [sortBy, setSortBy] = useState('category')
   const [showArchived, setShowArchived] = useState(false)
+  const [expandedView, setExpandedView] = useState(false)
   const [loading, setLoading] = useState(true)
 
   const supabase = createBrowserClient(
@@ -76,8 +77,15 @@ export default function Pieces() {
   }).sort((a, b) => {
     if (sortBy === 'title') return (a.title || '').localeCompare(b.title || '')
     if (sortBy === 'composer') return (a.composer || '').localeCompare(b.composer || '')
-    if (sortBy === 'category') return (a.categories?.name || '').localeCompare(b.categories?.name || '')
-    return new Date(b.updated_at) - new Date(a.updated_at) // date (default)
+    if (sortBy === 'category') {
+      const catOrderMap = {}
+      sortedCats.forEach((c, i) => { catOrderMap[c.id] = c.effective_sort !== undefined ? c.effective_sort : i })
+      const orderA = catOrderMap[a.category_id] !== undefined ? catOrderMap[a.category_id] : 999
+      const orderB = catOrderMap[b.category_id] !== undefined ? catOrderMap[b.category_id] : 999
+      if (orderA !== orderB) return orderA - orderB
+      return (a.title || '').localeCompare(b.title || '')
+    }
+    return new Date(b.updated_at) - new Date(a.updated_at)
   })
 
   if (userLoading || loading) return <Skeleton rows={5} height={60} />
@@ -141,6 +149,14 @@ export default function Pieces() {
         }}>
           {showArchived ? 'Showing Archived' : 'Show Archived'}
         </button>
+        <button onClick={() => setExpandedView(!expandedView)} style={{
+          padding: '10px 14px', border: `1px solid ${expandedView ? '#2563eb' : '#d1d5db'}`,
+          borderRadius: '8px', fontSize: '14px', cursor: 'pointer',
+          background: expandedView ? '#dbeafe' : '#fff',
+          color: expandedView ? '#2563eb' : '#666',
+        }}>
+          {expandedView ? 'Simple View' : 'Expanded View'}
+        </button>
       </div>
 
       {filtered.length === 0 ? (
@@ -158,13 +174,35 @@ export default function Pieces() {
                 background: '#fff', borderRadius: '10px', padding: '16px 20px', border: '1px solid #e5e7eb',
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'box-shadow 0.15s'
               }}>
-                <div>
+                <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: '600', fontSize: '16px' }}>{p.title || 'Untitled'}</div>
                   <div style={{ fontSize: '14px', color: '#666', marginTop: '2px' }}>
                     {[p.composer, p.book_title].filter(Boolean).join(' — ')}
                   </div>
+                  {expandedView && (
+                    <div style={{ display: 'flex', gap: '16px', marginTop: '8px', flexWrap: 'wrap' }}>
+                      {p.personal_rating && (
+                        <div style={{ fontSize: '12px' }}>
+                          <span style={{ color: '#999' }}>Rating: </span>
+                          <span style={{ fontWeight: '600', color: '#2563eb' }}>{p.personal_rating}/10</span>
+                        </div>
+                      )}
+                      {p.metronome_marking && (
+                        <div style={{ fontSize: '12px' }}>
+                          <span style={{ color: '#999' }}>Metronome: </span>
+                          <span style={{ fontWeight: '600' }}>{p.metronome_marking}</span>
+                        </div>
+                      )}
+                      {p.current_focus && (
+                        <div style={{ fontSize: '12px' }}>
+                          <span style={{ color: '#999' }}>Focus: </span>
+                          <span style={{ color: '#2563eb' }}>{p.current_focus}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
                   {p.categories?.name && (
                     <span style={{ fontSize: '12px', padding: '4px 10px', background: '#dbeafe', color: '#2563eb', borderRadius: '12px', fontWeight: '500' }}>
                       {p.categories.name}

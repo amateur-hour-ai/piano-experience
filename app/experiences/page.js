@@ -19,6 +19,7 @@ export default function ExperienceLog() {
   const [pieces, setPieces] = useState([])
   const [loading, setLoading] = useState(true)
   const [adding, setAdding] = useState(false)
+  const [deletingId, setDeletingId] = useState(null)
   const [editingId, setEditingId] = useState(null)
   const [form, setForm] = useState({ date: '', summary: '', feedback: '', assignments: '', piece_ids: [] })
 
@@ -124,7 +125,14 @@ export default function ExperienceLog() {
   }
 
   function startEdit(exp) {
-    setForm({ date: exp.date, summary: exp.summary || '', feedback: exp.feedback || '', assignments: exp.assignments || '', piece_ids: exp.piece_ids || [] })
+    // Ensure piece_ids is always a proper JS array (Postgres may return different formats)
+    let pieceIds = exp.piece_ids
+    if (!pieceIds) pieceIds = []
+    else if (typeof pieceIds === 'string') {
+      try { pieceIds = JSON.parse(pieceIds) } catch { pieceIds = [] }
+    }
+    else if (!Array.isArray(pieceIds)) pieceIds = []
+    setForm({ date: exp.date, summary: exp.summary || '', feedback: exp.feedback || '', assignments: exp.assignments || '', piece_ids: pieceIds })
     setEditingId(exp.id)
     setAdding(true)
   }
@@ -244,7 +252,16 @@ export default function ExperienceLog() {
                 {canEdit && (
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button onClick={() => startEdit(exp)} style={{ fontSize: '12px', color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Edit</button>
-                    <button onClick={() => deleteExperience(exp.id)} style={{ fontSize: '12px', color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Delete</button>
+                    <button onClick={() => setDeletingId(exp.id)} style={{ fontSize: '12px', color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Delete</button>
+                  </div>
+                )}
+                {deletingId === exp.id && (
+                  <div style={{ background: '#fef2f2', borderRadius: '6px', padding: '8px 12px', marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
+                    <span style={{ color: '#991b1b' }}>Delete this experience?</span>
+                    <button onClick={() => { deleteExperience(exp.id); setDeletingId(null) }}
+                      style={{ padding: '4px 10px', background: '#dc2626', color: '#fff', border: 'none', borderRadius: '4px', fontSize: '12px', cursor: 'pointer' }}>Yes</button>
+                    <button onClick={() => setDeletingId(null)}
+                      style={{ padding: '4px 10px', background: '#fff', color: '#666', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '12px', cursor: 'pointer' }}>No</button>
                   </div>
                 )}
               </div>

@@ -49,6 +49,7 @@ export default function NavBar() {
         ...(hasMultipleProfiles ? [{ href: '/dashboard/teacher', label: 'Parent/Teacher View' }] : []),
         { href: '/permissions', label: 'Sharing' },
         { href: '/settings', label: 'Settings' },
+        { href: '/feedback', label: 'Feedback' },
         ...(isAdmin ? [{ href: '/admin/users', label: 'Manage Users' }] : []),
         { href: '/docs', label: 'Documentation' },
       ]
