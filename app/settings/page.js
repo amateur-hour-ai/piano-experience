@@ -63,15 +63,22 @@ export default function Settings() {
 
   async function exportData(profileEmail) {
     setExporting(true)
+    const isSelf = profileEmail === user.email
     try {
-      const res = await fetch(`/api/profile-data?type=pieces&email=${encodeURIComponent(profileEmail)}`, { signal: AbortSignal.timeout(15000) })
+      const piecesUrl = isSelf
+        ? `/api/profile-data?type=pieces&email=${encodeURIComponent(profileEmail)}`
+        : `/api/profile/${encodeURIComponent(profileEmail)}/pieces`
+      const res = await fetch(piecesUrl, { signal: AbortSignal.timeout(15000) })
       const piecesData = await res.json()
-      const pieces = piecesData.pieces || []
+      const pieces = isSelf ? (piecesData.pieces || []) : (piecesData.pieces || [])
 
       // Load details for each piece
       for (const piece of pieces) {
         try {
-          const detailRes = await fetch(`/api/profile-data?type=piece-detail&id=${piece.id}`, { signal: AbortSignal.timeout(10000) })
+          const detailUrl = isSelf
+            ? `/api/profile-data?type=piece-detail&id=${piece.id}`
+            : `/api/profile/${encodeURIComponent(profileEmail)}/piece/${piece.id}`
+          const detailRes = await fetch(detailUrl, { signal: AbortSignal.timeout(10000) })
           const detail = await detailRes.json()
           piece._notes = detail.notes || []
           piece._goals = detail.goals || []
