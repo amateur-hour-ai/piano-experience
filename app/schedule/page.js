@@ -238,7 +238,7 @@ export default function PracticeSchedule() {
         const key = `${p.id}_${toLocalDateString(d)}`
         const status = grid[key]
         const isToday = toLocalDateString(d) === todayStr
-        const icon = status === 'plan_play' ? '🎵' : status === 'plan_practice' ? '🎶' : status === 'played' || status === 'completed' ? '💗' : status === 'practiced' ? '💕' : status === 'planned' ? '🎵' : ''
+        const icon = status === 'plan_play' ? '♪' : status === 'plan_practice' ? '🎶' : status === 'played' || status === 'completed' ? '💗' : status === 'practiced' ? '💕' : status === 'planned' ? '♪' : ''
         return `<td style="text-align:center;padding:6px;${isToday ? 'background:#eff6ff' : ''}">${icon}</td>`
       }).join('')
       return `<tr style="${p.is_priority ? 'background:#fdf2f8' : ''}"><td style="padding:6px 8px;font-weight:500;font-size:13px;white-space:nowrap">${p.is_priority ? '★ ' : ''}${p.title}</td><td style="padding:6px 8px;font-size:12px;color:#666;max-width:150px">${p.current_focus || ''}</td>${cells}</tr>`
@@ -251,7 +251,7 @@ export default function PracticeSchedule() {
         <button onclick="window.close();if(!window.closed)history.back()" style="padding:10px 20px;background:#f9fafb;color:#666;border:1px solid #d1d5db;border-radius:8px;font-size:14px;cursor:pointer">← Back to App</button>
       </div>
       <h1>Practice Schedule — ${profileDisplayName(activeProfile)}</h1>
-      <p style="color:#666;font-size:13px">🎵 plan to play &nbsp; 🎶 plan to practice &nbsp; 💗 played &nbsp; 💕 practiced</p>
+      <p style="color:#666;font-size:13px">♪ plan to play &nbsp; 🎶 plan to practice &nbsp; 💗 played &nbsp; 💕 practiced</p>
       <table><thead><tr><th style="text-align:left;padding:6px">Piece</th><th style="text-align:left;padding:6px">Focus</th>${dayHeaders}</tr></thead><tbody>${rows}</tbody></table>
       <p style="margin-top:16px;font-size:11px;color:#999">Exported from Piano Experience — ${new Date().toLocaleDateString()}</p></body></html>`)
     w.document.close()
@@ -276,13 +276,13 @@ export default function PracticeSchedule() {
           </button>
         </div>
         <p style={{ color: '#666', fontSize: '14px', marginBottom: '16px' }}>
-          Tap a cell: empty → 🎵 plan to play → 🎶 plan to practice → 💗 played → 💕 practiced → empty
+          Tap a cell: empty → ♪ plan to play → 🎶 plan to practice → 💗 played → 💕 practiced → empty
         </p>
       </div>
 
       {pieces.length === 0 ? (
         <div style={{ maxWidth: '900px', margin: '0 auto', background: '#fff', borderRadius: '12px', padding: '40px', textAlign: 'center', color: '#666', border: '1px solid #e5e7eb' }}>
-          <div style={{ fontSize: '48px', marginBottom: '12px', opacity: 0.5 }}>🎵</div>
+          <div style={{ fontSize: '48px', marginBottom: '12px', opacity: 0.5 }}>♪</div>
           <p>No active pieces. <Link href="/add" style={{ color: '#2563eb' }}>Add a piece</Link> to start scheduling.</p>
         </div>
       ) : (
@@ -376,11 +376,11 @@ export default function PracticeSchedule() {
                         borderLeft: '1px solid #e5e7eb',
                         minWidth: '44px',
                       }}>
-                        {status === 'plan_play' && <span style={{ fontSize: '14px' }}>🎵</span>}
+                        {status === 'plan_play' && <span style={{ fontSize: '14px' }}>♪</span>}
                         {status === 'plan_practice' && <span style={{ fontSize: '14px' }}>🎶</span>}
                         {status === 'played' && <span style={{ fontSize: '14px' }}>💗</span>}
                         {status === 'practiced' && <span style={{ fontSize: '14px' }}>💕</span>}
-                        {status === 'planned' && <span style={{ fontSize: '14px' }}>🎵</span>}
+                        {status === 'planned' && <span style={{ fontSize: '14px' }}>♪</span>}
                         {status === 'completed' && <span style={{ fontSize: '14px' }}>💗</span>}
                       </td>
                     )
