@@ -72,7 +72,8 @@ When one hook depends on another's data (e.g., sorting pieces by category order)
 3. Update docs (release notes + user guide) with EVERY deploy — never wait to be asked. This includes bug fixes, not just features.
 4. Update memory and CLAUDE.md proactively after significant changes — don't wait to be asked
 5. Test your work — walk through every user path before asking user to test
-6. Run the cross-profile checklist for every new feature
-7. Run the offline checklist for every new feature
-8. When fixing a bug: search for the same class of bug elsewhere
-9. Never ask the user to do something you can do yourself
+6. Before deploying, ask yourself: "Am I confident this works with zero bugs?" If the answer is no, find and fix the issues BEFORE deploying. Do not ship code you're not confident in and then fix it after the user finds problems.
+7. Run the cross-profile checklist for every new feature
+8. Run the offline checklist for every new feature
+9. When fixing a bug: search for the same class of bug elsewhere
+10. Never ask the user to do something you can do yourself
