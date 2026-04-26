@@ -236,6 +236,7 @@ export default function Dashboard() {
                   <button onClick={() => toggleTodayStatus(g)} style={{
                     fontSize: '22px', flexShrink: 0, background: 'none', border: 'none',
                     cursor: 'pointer', padding: '4px 8px', borderRadius: '8px', lineHeight: 1,
+                    color: '#1a1a1a',
                   }}>
                     {g.status === 'plan_play' && <span>♪</span>}
                     {g.status === 'plan_practice' && <span>🎶</span>}
