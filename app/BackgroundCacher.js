@@ -8,7 +8,7 @@ import { preloadProfileData, preloadTheme } from '@/lib/dataCacher'
 
 export default function BackgroundCacher() {
   const { user, loading: userLoading } = useCurrentUser()
-  const { availableProfiles, loading: profilesLoading } = useActiveProfile()
+  const { availableProfiles, loading: profilesLoading, profileDisplayName } = useActiveProfile()
   const { isOnline } = useOffline()
   const hasCached = useRef(false)
   const [cacheStatus, setCacheStatus] = useState(null)
@@ -33,7 +33,7 @@ export default function BackgroundCacher() {
       // Cache shared profiles
       const profiles = availableProfiles || []
       for (let i = 0; i < profiles.length; i++) {
-        const name = profiles[i].email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+        const name = profileDisplayName(profiles[i].email)
         setCacheProgress(`Caching ${name}'s data... (${i + 1}/${profiles.length})`)
         await preloadProfileData(profiles[i].email, false)
       }

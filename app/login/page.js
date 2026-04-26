@@ -5,6 +5,7 @@ import { createBrowserClient } from '@supabase/ssr'
 
 export default function Login() {
   const [mode, setMode] = useState('login')
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -15,6 +16,18 @@ export default function Login() {
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   )
+
+  async function handleForgotPassword() {
+    if (!email) { setError('Please enter your email address.'); return }
+    setLoading(true)
+    setError('')
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/callback`,
+    })
+    if (error) { setError(error.message); setLoading(false); return }
+    setMessage('Check your email for a password reset link.')
+    setLoading(false)
+  }
 
   async function handleLogin() {
     setLoading(true)
@@ -32,6 +45,7 @@ export default function Login() {
   }
 
   async function handleSignup() {
+    if (!name.trim()) { setError('Please enter your name.'); return }
     setLoading(true)
     setError('')
 
@@ -39,7 +53,7 @@ export default function Login() {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: redirectUrl }
+      options: { emailRedirectTo: redirectUrl, data: { name: name.trim() } }
     })
 
     if (error) {
@@ -48,11 +62,11 @@ export default function Login() {
       return
     }
 
-    // Notify admin of new signup
+    // Notify admin of new signup (includes name for profile creation)
     await fetch('/api/notify-signup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, userId: data.user.id })
+      body: JSON.stringify({ email, userId: data.user.id, name: name.trim() })
     })
 
     setMessage('Account created! Please check your email and click the confirmation link to complete signup.')
@@ -110,6 +124,20 @@ export default function Login() {
           </div>
         )}
 
+        {mode === 'signup' && (
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>Name</label>
+            <input
+              type="text"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder="Your name"
+              autoFocus
+              style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }}
+            />
+          </div>
+        )}
+
         <div style={{ marginBottom: '16px' }}>
           <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>Email</label>
           <input
@@ -121,25 +149,42 @@ export default function Login() {
           />
         </div>
 
-        <div style={{ marginBottom: '24px' }}>
-          <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>Password</label>
-          <input
-            type="password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            placeholder="••••••••"
-            style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }}
-            onKeyDown={e => e.key === 'Enter' && (mode === 'login' ? handleLogin() : handleSignup())}
-          />
-        </div>
+        {mode !== 'forgot' && (
+          <div style={{ marginBottom: '24px' }}>
+            <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="••••••••"
+              style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }}
+              onKeyDown={e => e.key === 'Enter' && (mode === 'login' ? handleLogin() : handleSignup())}
+            />
+          </div>
+        )}
 
         <button
-          onClick={mode === 'login' ? handleLogin : handleSignup}
+          onClick={mode === 'login' ? handleLogin : mode === 'signup' ? handleSignup : handleForgotPassword}
           disabled={loading}
           style={{ width: '100%', padding: '12px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '16px', fontWeight: '500', cursor: 'pointer' }}
         >
-          {loading ? 'Please wait...' : mode === 'login' ? 'Sign In' : 'Sign Up'}
+          {loading ? 'Please wait...' : mode === 'login' ? 'Sign In' : mode === 'signup' ? 'Sign Up' : 'Send Reset Link'}
         </button>
+
+        {mode === 'login' && (
+          <div style={{ textAlign: 'center', marginTop: '12px' }}>
+            <button onClick={() => { setMode('forgot'); setError(''); setMessage('') }} style={{
+              background: 'none', border: 'none', color: '#2563eb', fontSize: '13px', cursor: 'pointer', textDecoration: 'underline'
+            }}>Forgot password?</button>
+          </div>
+        )}
+        {mode === 'forgot' && (
+          <div style={{ textAlign: 'center', marginTop: '12px' }}>
+            <button onClick={() => { setMode('login'); setError(''); setMessage('') }} style={{
+              background: 'none', border: 'none', color: '#666', fontSize: '13px', cursor: 'pointer', textDecoration: 'underline'
+            }}>Back to sign in</button>
+          </div>
+        )}
       </div>
     </div>
   )

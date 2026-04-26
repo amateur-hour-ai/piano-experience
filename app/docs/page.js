@@ -226,7 +226,7 @@ function UserGuide() {
 
       <Section title="Account">
         <p style={{ fontSize: '15px', lineHeight: '1.7', color: '#333' }}>
-          Sign up with your email and password. Your account is automatically approved — no waiting required. To sign out, tap the menu in the top right and select <strong>Sign Out</strong>.
+          Sign up with your name, email, and password. Your account is automatically approved — no waiting required. Your name is displayed throughout the app and can be changed in <strong>Settings</strong>. If you forget your password, tap <strong>Forgot password?</strong> on the sign-in page to receive a reset link by email. To sign out, tap the menu in the top right and select <strong>Sign Out</strong>.
         </p>
       </Section>
 
@@ -264,6 +264,9 @@ function ReleaseNotes() {
         'Activities — track non-piece tasks (listening assignments, written reflections) on the practice schedule page with completion status and reflections',
         'Parent/Teacher Dashboard redesign — 7/14-day toggle, per-piece breakdown showing days practiced vs played with focus areas, experimentation tracking, and activity reflections',
         'Experimentation focus area now saved to database (works cross-profile instead of local-only)',
+        'User names — name field at signup (required), editable in Settings, displayed throughout the app instead of email addresses',
+        'Forgot password — tap "Forgot password?" on the sign-in page to receive a reset link by email',
+        'Practice grid icons — ♪ (plan to play) and 💕 (practiced) icons enlarged for better visibility',
       ]
     },
     {

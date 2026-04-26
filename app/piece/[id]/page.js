@@ -14,7 +14,7 @@ import db from '@/lib/offlineStore'
 
 export default function PieceDetail() {
   const { id } = useParams()
-  const { activeProfile, isOwnProfile, canEdit } = useActiveProfile()
+  const { activeProfile, isOwnProfile, canEdit, profileDisplayName } = useActiveProfile()
   const { isOnline, getCachedPieceDetail } = useOfflineData()
   const router = useRouter()
   const { user, loading: userLoading } = useCurrentUser()
@@ -685,7 +685,7 @@ export default function PieceDetail() {
                     <span style={{ fontSize: '12px', fontWeight: '600', color: noteTypeColors[n.note_type] || '#666', textTransform: 'capitalize' }}>{n.note_type}</span>
                     {!isOwnProfile && n.user_id && (
                       <span style={{ fontSize: '11px', color: '#999', background: '#f3f4f6', padding: '1px 6px', borderRadius: '4px' }}>
-                        {n.user_id === user?.email ? 'You' : n.user_id.split('@')[0]}
+                        {n.user_id === user?.email ? 'You' : profileDisplayName(n.user_id)}
                       </span>
                     )}
                   </div>

@@ -10,6 +10,10 @@ export default function Settings() {
   const { user, loading: userLoading } = useCurrentUser()
   const { activeProfile, isOwnProfile, availableProfiles, profileDisplayName } = useActiveProfile()
   const { addToast } = useToast()
+  const [userName, setUserName] = useState('')
+  const [editingName, setEditingName] = useState(false)
+  const [nameDraft, setNameDraft] = useState('')
+  const [savingName, setSavingName] = useState(false)
   const [weeklyEmail, setWeeklyEmail] = useState(false)
   const [emailDay, setEmailDay] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -24,12 +28,32 @@ export default function Settings() {
         if (data.settings) {
           setWeeklyEmail(data.settings.weekly_email_enabled === true)
           setEmailDay(data.settings.weekly_email_day)
+          setUserName(data.settings.name || '')
         }
       } catch {}
       setLoading(false)
     }
     load()
   }, [userLoading, user])
+
+  async function saveName() {
+    if (!nameDraft.trim()) return
+    setSavingName(true)
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: nameDraft.trim() })
+      })
+      if (res.ok) {
+        setUserName(nameDraft.trim())
+        setEditingName(false)
+        addToast('Name updated', 'success')
+      }
+    } catch {
+      addToast('Failed to update name', 'error')
+    }
+    setSavingName(false)
+  }
 
   async function toggleWeeklyEmail() {
     const newVal = !weeklyEmail
@@ -195,6 +219,41 @@ export default function Settings() {
     <main style={{ padding: '24px', maxWidth: '600px', margin: '0 auto' }}>
       <Link href="/" style={{ textDecoration: 'none', color: '#666', fontSize: '14px' }}>← Dashboard</Link>
       <h1 style={{ margin: '16px 0 24px', fontSize: '24px' }}>Settings</h1>
+
+      {/* Profile */}
+      <div style={{ background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e5e7eb', marginBottom: '24px' }}>
+        <h2 style={{ fontSize: '18px', color: '#2563eb', marginBottom: '16px' }}>Profile</h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <div style={{ fontSize: '13px', color: '#666', marginBottom: '2px' }}>Name</div>
+            {editingName ? (
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <input type="text" value={nameDraft} onChange={e => setNameDraft(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') setEditingName(false) }}
+                  autoFocus
+                  style={{ padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', width: '200px' }} />
+                <button onClick={saveName} disabled={savingName || !nameDraft.trim()} style={{
+                  padding: '6px 12px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '13px', cursor: 'pointer'
+                }}>{savingName ? '...' : 'Save'}</button>
+                <button onClick={() => setEditingName(false)} style={{
+                  padding: '6px 12px', background: '#f9fafb', color: '#666', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', cursor: 'pointer'
+                }}>Cancel</button>
+              </div>
+            ) : (
+              <div style={{ fontSize: '15px', fontWeight: '500' }}>
+                {userName || <span style={{ color: '#999', fontStyle: 'italic' }}>Not set</span>}
+                <button onClick={() => { setNameDraft(userName); setEditingName(true) }} style={{
+                  background: 'none', border: 'none', color: '#2563eb', fontSize: '13px', cursor: 'pointer', marginLeft: '8px', textDecoration: 'underline'
+                }}>Edit</button>
+              </div>
+            )}
+          </div>
+        </div>
+        <div style={{ marginTop: '12px' }}>
+          <div style={{ fontSize: '13px', color: '#666', marginBottom: '2px' }}>Email</div>
+          <div style={{ fontSize: '15px', fontWeight: '500' }}>{user?.email}</div>
+        </div>
+      </div>
 
       {/* Email Preferences */}
       <div style={{ background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e5e7eb', marginBottom: '24px' }}>

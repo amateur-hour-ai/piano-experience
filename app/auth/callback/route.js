@@ -33,10 +33,13 @@ export async function GET(request) {
     }
   }
 
-  // Handle token hash verification (email confirmation links)
+  // Handle token hash verification (email confirmation links, password reset)
   if (token_hash && type) {
     const { error } = await supabase.auth.verifyOtp({ token_hash, type })
     if (!error) {
+      if (type === 'recovery') {
+        return NextResponse.redirect(new URL('/auth/reset-password', request.url))
+      }
       return NextResponse.redirect(new URL('/auth/confirmed', request.url))
     }
   }

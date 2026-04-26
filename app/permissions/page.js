@@ -12,6 +12,7 @@ export default function Permissions() {
   const { addToast } = useToast()
   const [granted, setGranted] = useState([])
   const [received, setReceived] = useState([])
+  const [nameMap, setNameMap] = useState({})
   const [loading, setLoading] = useState(true)
   const [newEmail, setNewEmail] = useState('')
   const [newLevel, setNewLevel] = useState('view')
@@ -28,6 +29,7 @@ export default function Permissions() {
     const data = await res.json()
     setGranted(data.granted || [])
     setReceived(data.received || [])
+    setNameMap(data.nameMap || {})
     setLoading(false)
   }
 
@@ -129,9 +131,9 @@ export default function Permissions() {
                 padding: '12px 16px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb'
               }}>
                 <div>
-                  <div style={{ fontWeight: '500', fontSize: '14px' }}>{p.grantee_email}</div>
+                  <div style={{ fontWeight: '500', fontSize: '14px' }}>{nameMap[p.grantee_email] || p.grantee_email}</div>
                   <div style={{ fontSize: '12px', color: '#666', marginTop: '2px' }}>
-                    Shared {new Date(p.created_at).toLocaleDateString()}
+                    {nameMap[p.grantee_email] ? `${p.grantee_email} — ` : ''}Shared {new Date(p.created_at).toLocaleDateString()}
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -169,9 +171,9 @@ export default function Permissions() {
                 padding: '12px 16px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb'
               }}>
                 <div>
-                  <div style={{ fontWeight: '500', fontSize: '14px' }}>{p.owner_email}</div>
+                  <div style={{ fontWeight: '500', fontSize: '14px' }}>{nameMap[p.owner_email] || p.owner_email}</div>
                   <div style={{ fontSize: '12px', color: '#666', marginTop: '2px' }}>
-                    {p.access_level === 'edit' ? 'Full access' : 'View only'}
+                    {nameMap[p.owner_email] ? `${p.owner_email} — ` : ''}{p.access_level === 'edit' ? 'Full access' : 'View only'}
                   </div>
                 </div>
                 <span style={{

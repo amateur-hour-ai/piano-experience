@@ -16,7 +16,7 @@ export async function GET(request) {
   const resend = new Resend(process.env.RESEND_API_KEY)
 
   // Get all users who have the weekly email enabled with a day preference
-  const { data: users } = await supabase.from('user_profiles').select('email, weekly_email_enabled, weekly_email_day')
+  const { data: users } = await supabase.from('user_profiles').select('email, name, weekly_email_enabled, weekly_email_day')
   if (!users?.length) return Response.json({ message: 'No users' })
 
   // Current day of week in CT — DST-safe using toLocaleDateString
@@ -111,7 +111,7 @@ export async function GET(request) {
           await resend.emails.send({
             from: 'Piano Experience <hello@pianoexperience.app>',
             to: viewer.grantee_email,
-            subject: `${user.email.split('@')[0]}'s Weekly Practice Summary`,
+            subject: `${user.name || user.email.split('@')[0]}'s Weekly Practice Summary`,
             html
           })
         }

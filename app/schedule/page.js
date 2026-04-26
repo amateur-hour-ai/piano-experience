@@ -510,10 +510,10 @@ export default function PracticeSchedule() {
                         borderLeft: '1px solid #e5e7eb',
                         minWidth: '44px',
                       }}>
-                        {status === 'plan_play' && <span style={{ fontSize: '14px' }}>♪</span>}
+                        {status === 'plan_play' && <span style={{ fontSize: '18px' }}>♪</span>}
                         {status === 'plan_practice' && <span style={{ fontSize: '14px' }}>🎶</span>}
                         {status === 'played' && <span style={{ fontSize: '14px' }}>💗</span>}
-                        {status === 'practiced' && <span style={{ fontSize: '14px' }}>💕</span>}
+                        {status === 'practiced' && <span style={{ fontSize: '18px' }}>💕</span>}
                       </td>
                     )
                   })}

@@ -45,7 +45,17 @@ export async function GET() {
     .eq('grantee_email', email)
     .order('created_at')
 
-  return Response.json({ granted: granted || [], received: received || [] })
+  // Fetch names for all referenced emails
+  const allEmails = new Set()
+  allEmails.add(email)
+  ;(granted || []).forEach(g => allEmails.add(g.grantee_email))
+  ;(received || []).forEach(r => allEmails.add(r.owner_email))
+  const { data: profiles } = await supabase.from('user_profiles')
+    .select('email, name').in('email', [...allEmails])
+  const nameMap = {}
+  ;(profiles || []).forEach(p => { nameMap[p.email] = p.name })
+
+  return Response.json({ granted: granted || [], received: received || [], nameMap })
 }
 
 export async function POST(request) {
