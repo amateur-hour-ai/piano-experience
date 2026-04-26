@@ -113,8 +113,8 @@ export default function Dashboard() {
 
   const todayStr = toLocalDateString()
   const todayGrid = practiceGrid.filter(g => g.date === todayStr)
-  const todayPlanned = todayGrid.filter(g => g.status === 'planned' || g.status === 'completed' || g.status === 'plan_play' || g.status === 'plan_practice' || g.status === 'played' || g.status === 'practiced')
-  const todayCompleted = todayGrid.filter(g => g.status === 'completed' || g.status === 'played' || g.status === 'practiced')
+  const todayPlanned = todayGrid.filter(g => g.status === 'plan_play' || g.status === 'plan_practice' || g.status === 'played' || g.status === 'practiced')
+  const todayCompleted = todayGrid.filter(g => g.status === 'played' || g.status === 'practiced')
 
   // Sort today's practice by user's category order
   const todayCatOrder = {}
@@ -155,7 +155,7 @@ export default function Dashboard() {
               const dateStr = d.toLocaleDateString()
               const dayIdx = (d.getDay() + 6) % 7
               const isoDateStr = toLocalDateString(d)
-              const practiced = practiceGrid.some(g => g.date === isoDateStr && (g.status === 'completed' || g.status === 'played' || g.status === 'practiced'))
+              const practiced = practiceGrid.some(g => g.date === isoDateStr && (g.status === 'played' || g.status === 'practiced'))
               const isToday = i === 0
               result.push(
                 <div key={i} style={{ textAlign: 'center', flex: 1 }}>
@@ -203,7 +203,7 @@ export default function Dashboard() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {sortedTodayPlanned.map(g => {
               const p = pieces.find(pp => pp.id === g.piece_id)
-              const done = g.status === 'completed' || g.status === 'played' || g.status === 'practiced'
+              const done = g.status === 'played' || g.status === 'practiced'
               return (
               <div key={g.id} style={{
                 background: done ? '#f0fdf4' : '#fff',

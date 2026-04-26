@@ -372,7 +372,7 @@ export default function PracticeSchedule() {
         const key = `${p.id}_${toLocalDateString(d)}`
         const status = grid[key]
         const isToday = toLocalDateString(d) === todayStr
-        const icon = status === 'plan_play' ? '♪' : status === 'plan_practice' ? '🎶' : status === 'played' || status === 'completed' ? '💗' : status === 'practiced' ? '💕' : status === 'planned' ? '♪' : ''
+        const icon = status === 'plan_play' ? '♪' : status === 'plan_practice' ? '🎶' : status === 'played' ? '💗' : status === 'practiced' ? '💕' : ''
         return `<td style="text-align:center;padding:6px;${isToday ? 'background:#eff6ff' : ''}">${icon}</td>`
       }).join('')
       return `<tr style="${p.is_priority ? 'background:#fdf2f8' : ''}"><td style="padding:6px 8px;font-weight:500;font-size:13px;white-space:nowrap">${p.is_priority ? '★ ' : ''}${p.title}</td><td style="padding:6px 8px;font-size:12px;color:#666;max-width:150px">${p.current_focus || ''}</td>${cells}</tr>`
@@ -514,8 +514,6 @@ export default function PracticeSchedule() {
                         {status === 'plan_practice' && <span style={{ fontSize: '14px' }}>🎶</span>}
                         {status === 'played' && <span style={{ fontSize: '14px' }}>💗</span>}
                         {status === 'practiced' && <span style={{ fontSize: '14px' }}>💕</span>}
-                        {status === 'planned' && <span style={{ fontSize: '14px' }}>♪</span>}
-                        {status === 'completed' && <span style={{ fontSize: '14px' }}>💗</span>}
                       </td>
                     )
                   })}

@@ -44,7 +44,7 @@ export async function GET(request) {
         .gte('date', weekAgoStr)
         .lte('date', nowStr)
 
-      const completedItems = (gridItems || []).filter(g => g.status === 'played' || g.status === 'practiced' || g.status === 'completed')
+      const completedItems = (gridItems || []).filter(g => g.status === 'played' || g.status === 'practiced')
 
       // Get new pieces added this week
       const { data: newPieces } = await supabase.from('pieces')
