@@ -66,7 +66,7 @@ export default function NavBar() {
 
         {/* Profile Switcher — centered in middle column */}
         {user && (
-          <div style={{ display: 'flex', justifyContent: 'center', minWidth: 0 }}>
+          <div style={{ display: 'flex', justifyContent: 'center', minWidth: 0, position: 'relative' }}>
             <button
               onClick={() => hasMultipleProfiles && setProfileOpen(!profileOpen)}
               style={{
@@ -75,7 +75,7 @@ export default function NavBar() {
                 borderRadius: '20px', padding: '6px 14px', cursor: hasMultipleProfiles ? 'pointer' : 'default',
                 color: '#fff', fontSize: '13px', fontWeight: '500',
                 display: 'flex', alignItems: 'center', gap: '6px',
-                maxWidth: '100%', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis'
+                overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis'
               }}
             >
               {profileDisplayName(activeProfile)}
@@ -86,8 +86,8 @@ export default function NavBar() {
               <>
                 <div onClick={() => setProfileOpen(false)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 99 }} />
                 <div style={{
-                  position: 'fixed', top: '60px', right: '8px', left: '8px',
-                  maxWidth: '300px', marginLeft: 'auto',
+                  position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)',
+                  marginTop: '8px', width: '280px',
                   background: '#fff', borderRadius: '10px', boxShadow: '0 8px 30px rgba(0,0,0,0.15)',
                   zIndex: 100, overflow: 'hidden'
                 }}>
