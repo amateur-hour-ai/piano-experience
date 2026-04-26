@@ -70,14 +70,22 @@ function UserGuide() {
         <p style={{ fontSize: '15px', lineHeight: '1.7', color: '#333' }}>
           Piano Experience is your personal practice companion. Track the pieces you're working on, organize your practice schedule, capture photos of sheet music, and discover interesting facts about your repertoire with AI.
         </p>
-        <p style={{ fontSize: '15px', lineHeight: '1.7', color: '#333', marginTop: '12px' }}>
-          The dashboard shows your stats at a glance — tap any stat card to navigate to the relevant page (pieces, schedule, etc.).
+      </Section>
+
+      <Section title="Home">
+        <p style={{ fontSize: '15px', lineHeight: '1.7', color: '#333', marginBottom: '16px' }}>
+          The Home page is your daily practice view — see what's on today's schedule, your practice streak, and stats at a glance.
         </p>
+        <Step n="1">The <strong>Practice Streak</strong> shows which of the last 7 days you played or practiced.</Step>
+        <Step n="2"><strong>Stat cards</strong> show your total pieces and today's practice progress — tap either to navigate to pieces or schedule.</Step>
+        <Step n="3">Under <strong>Today's Practice</strong>, each piece shows its status icon: ♪ (plan to play), 🎶 (plan to practice), <span style={{ color: '#ec4899' }}>♥</span> (played), or 💕 (practiced).</Step>
+        <Step n="4">Tap the icon on any piece to mark it complete — ♪ becomes <span style={{ color: '#ec4899' }}>♥</span> (played), 🎶 becomes 💕 (practiced). Tap again to undo.</Step>
+        <Note>This makes it easy to check off pieces during a practice session without navigating to the full schedule grid.</Note>
       </Section>
 
       <Section title="Adding a Piece">
         <p style={{ fontSize: '15px', lineHeight: '1.7', color: '#333', marginBottom: '16px' }}>
-          Tap <strong>Add New Piece</strong> from the dashboard or menu. Choose one of two methods:
+          Tap <strong>Add Piece</strong> from the menu. Choose one of two methods:
         </p>
         <p style={{ fontSize: '15px', fontWeight: '600', color: '#333', marginBottom: '8px' }}>Take a Photo</p>
         <Step n="1">Take or upload a photo of the first page of sheet music.</Step>
@@ -133,7 +141,7 @@ function UserGuide() {
         <Step n="2">Tap any cell to cycle through: empty → ♪ (plan to play) → 🎶 (plan to practice) → <span style={{ color: '#ec4899' }}>♥</span> (played) → 💕 (practiced) → empty.</Step>
         <Step n="3">Set a focus area for each piece by tapping the focus text next to the piece name.</Step>
         <Step n="4">Use the <strong>Export</strong> button to print your schedule.</Step>
-        <Note>You can also edit focus areas from the piece detail page. The dashboard shows today's planned pieces and your practice streak.</Note>
+        <Note>You can also edit focus areas from the piece detail page. The Home page shows today's planned pieces and your practice streak.</Note>
       </Section>
 
       <Section title="Activities">
@@ -268,7 +276,9 @@ function ReleaseNotes() {
         'Forgot password — tap "Forgot password?" on the sign-in page to receive a reset link by email',
         'Practice grid icons — ♪ (plan to play) and 💕 (practiced) icons enlarged for better visibility',
         'Practice Summary — renamed from Parent/Teacher Dashboard, now shows your own practice data first with shared profiles below. Available to all users from the menu.',
-        'Dashboard trimmed — removed pieces list, recent activity, and quick actions. Keeps theme, streak, stats, and today\'s practice.',
+        'Home page (renamed from Dashboard) — trimmed to theme, streak, stats, and today\'s practice',
+        'Tap to complete on Home — tap the status icon on any piece during practice to mark it played or practiced. Tap again to undo.',
+        'Played icon — replaced growing heart emoji with a clean pink ♥ for universal device support',
       ]
     },
     {
