@@ -93,6 +93,22 @@ export async function POST(request) {
     }
   }
 
+  // Set a specific status (used by home page toggle)
+  if (action === 'toggle_to') {
+    const { piece_id, date, newStatus } = body
+    if (newStatus) {
+      const { error } = await supabase.from('practice_grid').upsert({
+        user_email: profileEmail, piece_id, date, status: newStatus
+      }, { onConflict: 'user_email,piece_id,date' })
+      if (error) return Response.json({ error: error.message }, { status: 500 })
+      return Response.json({ status: newStatus })
+    } else {
+      await supabase.from('practice_grid').delete()
+        .eq('user_email', profileEmail).eq('piece_id', piece_id).eq('date', date)
+      return Response.json({ status: null })
+    }
+  }
+
   // Update focus area on a piece
   if (action === 'update_focus') {
     const { piece_id, current_focus } = body

@@ -7,12 +7,16 @@ import { useCurrentUser } from '@/lib/useCurrentUser'
 import { useActiveProfile } from '@/lib/useActiveProfile'
 import { useOfflineData } from '@/lib/useOfflineData'
 import { useSortedCategories } from '@/lib/useSortedCategories'
+import { useToast } from '@/app/ToastProvider'
+import { logActivity } from '@/lib/logActivity'
+import { queueMutation } from '@/lib/syncManager'
 import { toLocalDateString } from '@/lib/dateUtils'
 
 export default function Dashboard() {
   const { user, loading: userLoading } = useCurrentUser()
   const { activeProfile, isOwnProfile, canEdit, profileDisplayName } = useActiveProfile()
   const { isOnline, fetchOrCache, getCachedProfileData, getCachedTheme } = useOfflineData()
+  const { addToast } = useToast()
   const { categories: sortedCategories } = useSortedCategories()
   const [pieces, setPieces] = useState([])
   const [schedule, setSchedule] = useState([])
@@ -107,6 +111,39 @@ export default function Dashboard() {
     return orderA - orderB
   })
 
+  async function toggleTodayStatus(gridItem) {
+    if (!canEdit) return
+    // Toggle between planned and completed versions of the same intent
+    const toggleMap = { plan_play: 'played', played: 'plan_play', plan_practice: 'practiced', practiced: 'plan_practice' }
+    const newStatus = toggleMap[gridItem.status] || gridItem.status
+
+    // Update local state
+    setPracticeGrid(prev => prev.map(g =>
+      g.piece_id === gridItem.piece_id && g.date === gridItem.date ? { ...g, status: newStatus } : g
+    ))
+
+    // Log completion
+    if (newStatus === 'played' || newStatus === 'practiced') {
+      const p = pieces.find(pp => pp.id === gridItem.piece_id)
+      logActivity({ action: 'practice_completed', piece_id: gridItem.piece_id, piece_title: p?.title, details: newStatus === 'practiced' ? 'Practiced (focused work)' : 'Played', profile_email: activeProfile, performed_by: user.email })
+    }
+
+    // Sync to server
+    const body = { action: 'toggle_to', piece_id: gridItem.piece_id, date: gridItem.date, newStatus, profileEmail: isOwnProfile ? undefined : activeProfile }
+    if (!isOnline) {
+      await queueMutation({ url: '/api/practice-grid', method: 'POST', body, description: 'Update practice status' })
+      return
+    }
+    try {
+      await fetch('/api/practice-grid', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      })
+    } catch {
+      await queueMutation({ url: '/api/practice-grid', method: 'POST', body, description: 'Update practice status' })
+    }
+  }
+
   return (
     <main style={{ padding: '24px', maxWidth: '900px', margin: '0 auto' }}>
       <h1 style={{ fontSize: '28px', marginBottom: '24px' }}>
@@ -195,12 +232,24 @@ export default function Dashboard() {
                   {p?.composer && <span style={{ color: '#666', marginLeft: '8px' }}>— {p.composer}</span>}
                   {p?.current_focus && <p style={{ fontSize: '13px', color: '#2563eb', marginTop: '4px' }}>{p.current_focus}</p>}
                 </div>
-                <span style={{ fontSize: '18px', flexShrink: 0 }}>
-                  {g.status === 'plan_play' && <span>♪</span>}
-                  {g.status === 'plan_practice' && <span>🎶</span>}
-                  {g.status === 'played' && <span style={{ color: '#ec4899' }}>♥</span>}
-                  {g.status === 'practiced' && <span>💕</span>}
-                </span>
+                {canEdit ? (
+                  <button onClick={() => toggleTodayStatus(g)} style={{
+                    fontSize: '22px', flexShrink: 0, background: 'none', border: 'none',
+                    cursor: 'pointer', padding: '4px 8px', borderRadius: '8px', lineHeight: 1,
+                  }}>
+                    {g.status === 'plan_play' && <span>♪</span>}
+                    {g.status === 'plan_practice' && <span>🎶</span>}
+                    {g.status === 'played' && <span style={{ color: '#ec4899' }}>♥</span>}
+                    {g.status === 'practiced' && <span>💕</span>}
+                  </button>
+                ) : (
+                  <span style={{ fontSize: '18px', flexShrink: 0 }}>
+                    {g.status === 'plan_play' && <span>♪</span>}
+                    {g.status === 'plan_practice' && <span>🎶</span>}
+                    {g.status === 'played' && <span style={{ color: '#ec4899' }}>♥</span>}
+                    {g.status === 'practiced' && <span>💕</span>}
+                  </span>
+                )}
               </div>
             )})}
           </div>
