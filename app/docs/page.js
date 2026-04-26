@@ -239,6 +239,7 @@ function ReleaseNotes() {
         'Weekly email fixed — reads from practice grid (was using old data source)',
         'Experience log piece selector fixed for editing existing entries',
         'All legacy practice_schedule references removed from codebase',
+        'Experience log now preserves line breaks between paragraphs in view mode',
       ]
     },
     {

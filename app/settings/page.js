@@ -142,9 +142,9 @@ export default function Settings() {
         html += `<h2>Experience Log (${experiences.length})</h2>`
         experiences.forEach(e => {
           html += `<div class="section"><h3>${new Date(e.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</h3>`
-          if (e.summary) html += `<div class="field"><span class="label">Covered:</span> ${e.summary}</div>`
-          if (e.feedback) html += `<div class="field"><span class="label">Feedback:</span> ${e.feedback}</div>`
-          if (e.assignments) html += `<div class="field"><span class="label">Assignments:</span> ${e.assignments}</div>`
+          if (e.summary) html += `<div class="field" style="white-space:pre-wrap"><span class="label">Covered:</span> ${e.summary}</div>`
+          if (e.feedback) html += `<div class="field" style="white-space:pre-wrap"><span class="label">Feedback:</span> ${e.feedback}</div>`
+          if (e.assignments) html += `<div class="field" style="white-space:pre-wrap"><span class="label">Assignments:</span> ${e.assignments}</div>`
           html += `</div>`
         })
       }

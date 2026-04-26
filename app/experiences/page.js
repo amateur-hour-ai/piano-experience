@@ -268,19 +268,19 @@ export default function ExperienceLog() {
               {exp.summary && (
                 <div style={{ marginBottom: '10px' }}>
                   <div style={{ fontSize: '12px', color: '#999', marginBottom: '4px' }}>What was covered</div>
-                  <p style={{ fontSize: '14px', lineHeight: '1.6' }}>{exp.summary}</p>
+                  <p style={{ fontSize: '14px', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>{exp.summary}</p>
                 </div>
               )}
               {exp.feedback && (
                 <div style={{ marginBottom: '10px' }}>
                   <div style={{ fontSize: '12px', color: '#999', marginBottom: '4px' }}>Teacher Feedback</div>
-                  <p style={{ fontSize: '14px', lineHeight: '1.6' }}>{exp.feedback}</p>
+                  <p style={{ fontSize: '14px', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>{exp.feedback}</p>
                 </div>
               )}
               {exp.assignments && (
                 <div style={{ marginBottom: '10px' }}>
                   <div style={{ fontSize: '12px', color: '#999', marginBottom: '4px' }}>Assignments</div>
-                  <p style={{ fontSize: '14px', lineHeight: '1.6' }}>{exp.assignments}</p>
+                  <p style={{ fontSize: '14px', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>{exp.assignments}</p>
                 </div>
               )}
               {exp.piece_ids?.length > 0 && (
