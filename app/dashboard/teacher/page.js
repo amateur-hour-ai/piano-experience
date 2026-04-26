@@ -4,51 +4,86 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useCurrentUser } from '@/lib/useCurrentUser'
 import { useActiveProfile } from '@/lib/useActiveProfile'
+import { toLocalDateString } from '@/lib/dateUtils'
 
 export default function TeacherDashboard() {
   const { user, loading: userLoading } = useCurrentUser()
   const { availableProfiles, switchProfile, profileDisplayName } = useActiveProfile()
   const [students, setStudents] = useState([])
   const [loading, setLoading] = useState(true)
+  const [dayRange, setDayRange] = useState(7)
 
   useEffect(() => {
     if (userLoading || !user) return
     if (availableProfiles.length === 0) { setLoading(false); return }
     loadStudents()
-  }, [userLoading, user, availableProfiles])
+  }, [userLoading, user, availableProfiles, dayRange])
 
   async function loadStudents() {
+    setLoading(true)
     const results = []
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const startDay = new Date(today)
+    startDay.setDate(startDay.getDate() - dayRange + 1)
+    const startDate = toLocalDateString(startDay)
+    const endDate = toLocalDateString(today)
+
     for (const profile of availableProfiles) {
       try {
-        const weekAgo = new Date()
-        weekAgo.setDate(weekAgo.getDate() - 7)
-        const startDate = `${weekAgo.getFullYear()}-${String(weekAgo.getMonth() + 1).padStart(2, '0')}-${String(weekAgo.getDate()).padStart(2, '0')}`
-        const today = new Date()
-        const endDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
-
-        const [piecesRes, gridRes, actRes] = await Promise.all([
-          fetch(`/api/profile/${encodeURIComponent(profile.email)}/pieces`).then(r => r.json()),
-          fetch(`/api/practice-grid?profile=${encodeURIComponent(profile.email)}&start=${startDate}&end=${endDate}`).then(r => r.json()),
-          fetch(`/api/activity?user_email=${encodeURIComponent(profile.email)}&limit=5`).then(r => r.json()),
+        const enc = encodeURIComponent(profile.email)
+        const [piecesRes, gridRes, activitiesRes] = await Promise.all([
+          fetch(`/api/profile/${enc}/pieces`).then(r => r.json()),
+          fetch(`/api/practice-grid?profile=${enc}&start=${startDate}&end=${endDate}`).then(r => r.json()),
+          fetch(`/api/profile/${enc}/activities`).then(r => r.json()),
         ])
 
-        // Calculate practice days in last 7 days from practice_grid
-        const practiceDays = new Set()
-        gridRes.grid?.forEach(g => {
-          if (g.status === 'completed') practiceDays.add(g.date)
+        const activePieces = (piecesRes.pieces || []).filter(p => !p.archived)
+
+        // Build per-piece stats from grid data
+        const pieceStats = {}
+        const expStats = { played: 0, practiced: 0 }
+        const daysWithActivity = new Set()
+
+        for (const g of (gridRes.grid || [])) {
+          if (g.status === 'played' || g.status === 'practiced') {
+            daysWithActivity.add(g.date)
+          }
+
+          if (g.piece_id === '00000000-0000-0000-0000-experimentation') {
+            if (g.status === 'played') expStats.played++
+            else if (g.status === 'practiced') expStats.practiced++
+            continue
+          }
+
+          if (!pieceStats[g.piece_id]) pieceStats[g.piece_id] = { played: 0, practiced: 0 }
+          if (g.status === 'played') pieceStats[g.piece_id].played++
+          else if (g.status === 'practiced') pieceStats[g.piece_id].practiced++
+        }
+
+        // Sort pieces: most activity first, practiced weighted higher for ties
+        const sortedPieces = activePieces.sort((a, b) => {
+          const aStats = pieceStats[a.id] || { played: 0, practiced: 0 }
+          const bStats = pieceStats[b.id] || { played: 0, practiced: 0 }
+          const aTotal = aStats.played + aStats.practiced
+          const bTotal = bStats.played + bStats.practiced
+          if (bTotal !== aTotal) return bTotal - aTotal
+          return bStats.practiced - aStats.practiced
         })
 
         results.push({
           email: profile.email,
           accessLevel: profile.accessLevel,
-          piecesCount: piecesRes.pieces?.filter(p => !p.archived)?.length || 0,
-          practiceStreak: practiceDays.size,
-          lastActivity: actRes.activities?.[0] || null,
-          recentActivities: actRes.activities || [],
+          piecesCount: activePieces.length,
+          daysActive: daysWithActivity.size,
+          pieces: sortedPieces,
+          pieceStats,
+          expStats,
+          experimentationFocus: gridRes.experimentationFocus || '',
+          activities: (activitiesRes.activities || []),
         })
       } catch {
-        results.push({ email: profile.email, accessLevel: profile.accessLevel, piecesCount: 0, practiceStreak: 0, lastActivity: null, recentActivities: [] })
+        results.push({ email: profile.email, accessLevel: profile.accessLevel, piecesCount: 0, daysActive: 0, pieces: [], pieceStats: {}, expStats: { played: 0, practiced: 0 }, experimentationFocus: '', activities: [] })
       }
     }
     setStudents(results)
@@ -63,7 +98,6 @@ export default function TeacherDashboard() {
         <Link href="/" style={{ textDecoration: 'none', color: '#666', fontSize: '14px' }}>← Dashboard</Link>
         <h1 style={{ margin: '16px 0 24px' }}>Parent/Teacher Dashboard</h1>
         <div style={{ background: '#fff', borderRadius: '12px', padding: '40px', textAlign: 'center', color: '#666', border: '1px solid #e5e7eb' }}>
-          <div style={{ fontSize: '48px', marginBottom: '12px', opacity: 0.5 }}>👨‍👩‍👧‍👦</div>
           <p>No students have shared their profiles with you yet.</p>
           <p style={{ fontSize: '14px', marginTop: '8px' }}>Ask your students to go to <strong>Sharing</strong> and grant you access.</p>
         </div>
@@ -74,12 +108,27 @@ export default function TeacherDashboard() {
   return (
     <main style={{ padding: '24px', maxWidth: '900px', margin: '0 auto' }}>
       <Link href="/" style={{ textDecoration: 'none', color: '#666', fontSize: '14px' }}>← Dashboard</Link>
-      <h1 style={{ margin: '16px 0 8px' }}>Parent/Teacher Dashboard</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '16px 0 8px' }}>
+        <h1 style={{ margin: 0 }}>Parent/Teacher Dashboard</h1>
+        <div style={{ display: 'flex', background: '#f3f4f6', borderRadius: '8px', overflow: 'hidden' }}>
+          <button onClick={() => setDayRange(7)} style={{
+            padding: '6px 14px', fontSize: '13px', fontWeight: '500', cursor: 'pointer', border: 'none',
+            background: dayRange === 7 ? '#2563eb' : 'transparent',
+            color: dayRange === 7 ? '#fff' : '#666',
+          }}>7 days</button>
+          <button onClick={() => setDayRange(14)} style={{
+            padding: '6px 14px', fontSize: '13px', fontWeight: '500', cursor: 'pointer', border: 'none',
+            background: dayRange === 14 ? '#2563eb' : 'transparent',
+            color: dayRange === 14 ? '#fff' : '#666',
+          }}>14 days</button>
+        </div>
+      </div>
       <p style={{ color: '#666', fontSize: '14px', marginBottom: '24px' }}>{students.length} student{students.length !== 1 ? 's' : ''}</p>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
         {students.map(s => (
           <div key={s.email} style={{ background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e5e7eb' }}>
+            {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
               <div>
                 <h2 style={{ fontSize: '18px', margin: 0 }}>{profileDisplayName(s.email)}</h2>
@@ -94,32 +143,116 @@ export default function TeacherDashboard() {
             </div>
 
             {/* Stats row */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: '12px', marginBottom: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
               <div style={{ background: '#eff6ff', borderRadius: '8px', padding: '12px', textAlign: 'center' }}>
                 <div style={{ fontSize: '24px', fontWeight: '700', color: '#2563eb' }}>{s.piecesCount}</div>
                 <div style={{ fontSize: '12px', color: '#666' }}>Active Pieces</div>
               </div>
               <div style={{ background: '#f0fdf4', borderRadius: '8px', padding: '12px', textAlign: 'center' }}>
-                <div style={{ fontSize: '24px', fontWeight: '700', color: '#059669' }}>{s.practiceStreak}/7</div>
-                <div style={{ fontSize: '12px', color: '#666' }}>Days This Week</div>
-              </div>
-              <div style={{ background: '#f9fafb', borderRadius: '8px', padding: '12px', textAlign: 'center' }}>
-                <div style={{ fontSize: '12px', color: '#666', marginBottom: '2px' }}>Last Active</div>
-                <div style={{ fontSize: '14px', fontWeight: '500' }}>
-                  {s.lastActivity ? new Date(s.lastActivity.created_at).toLocaleDateString() : 'Never'}
-                </div>
+                <div style={{ fontSize: '24px', fontWeight: '700', color: '#059669' }}>{s.daysActive}/{dayRange}</div>
+                <div style={{ fontSize: '12px', color: '#666' }}>Days Active (last {dayRange})</div>
               </div>
             </div>
 
-            {/* Recent activity */}
-            {s.recentActivities.length > 0 && (
+            {/* Per-piece cards */}
+            {s.pieces.length > 0 && (
+              <div style={{ marginBottom: s.activities.length > 0 || (s.expStats.played + s.expStats.practiced > 0) ? '16px' : 0 }}>
+                <div style={{ fontSize: '13px', color: '#999', marginBottom: '8px', fontWeight: '600' }}>Pieces</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {s.pieces.map(p => {
+                    const stats = s.pieceStats[p.id] || { played: 0, practiced: 0 }
+                    return (
+                      <div key={p.id} style={{
+                        background: '#f9fafb', borderRadius: '8px', padding: '10px 14px',
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        border: p.is_priority ? '1px solid #fce7f3' : '1px solid #f3f4f6',
+                        backgroundColor: p.is_priority ? '#fdf2f8' : '#f9fafb',
+                      }}>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ fontSize: '14px', fontWeight: '500', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {p.is_priority && <span style={{ color: '#ec4899', marginRight: '4px' }}>★</span>}
+                            {p.title}
+                          </div>
+                          {p.current_focus && (
+                            <div style={{ fontSize: '12px', color: '#2563eb', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {p.current_focus}
+                            </div>
+                          )}
+                        </div>
+                        <div style={{ display: 'flex', gap: '12px', flexShrink: 0, marginLeft: '12px' }}>
+                          <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: '16px', fontWeight: '600', color: stats.practiced > 0 ? '#059669' : '#ccc' }}>{stats.practiced}</div>
+                            <div style={{ fontSize: '10px', color: '#999' }}>💕</div>
+                          </div>
+                          <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: '16px', fontWeight: '600', color: stats.played > 0 ? '#2563eb' : '#ccc' }}>{stats.played}</div>
+                            <div style={{ fontSize: '10px', color: '#999' }}>💗</div>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Experimentation card */}
+            {(s.expStats.played + s.expStats.practiced > 0 || s.experimentationFocus) && (
+              <div style={{ marginBottom: s.activities.length > 0 ? '16px' : 0 }}>
+                <div style={{ fontSize: '13px', color: '#999', marginBottom: '8px', fontWeight: '600' }}>Experimentation</div>
+                <div style={{ background: '#f9fafb', borderRadius: '8px', padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #f3f4f6' }}>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontSize: '14px', fontWeight: '500' }}>Free Play / Experimentation</div>
+                    {s.experimentationFocus && (
+                      <div style={{ fontSize: '12px', color: '#2563eb', marginTop: '2px' }}>{s.experimentationFocus}</div>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: '12px', flexShrink: 0, marginLeft: '12px' }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: '16px', fontWeight: '600', color: s.expStats.practiced > 0 ? '#059669' : '#ccc' }}>{s.expStats.practiced}</div>
+                      <div style={{ fontSize: '10px', color: '#999' }}>💕</div>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: '16px', fontWeight: '600', color: s.expStats.played > 0 ? '#2563eb' : '#ccc' }}>{s.expStats.played}</div>
+                      <div style={{ fontSize: '10px', color: '#999' }}>💗</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Activities */}
+            {s.activities.length > 0 && (
               <div>
-                <div style={{ fontSize: '13px', color: '#999', marginBottom: '6px' }}>Recent Activity</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  {s.recentActivities.slice(0, 3).map(a => (
-                    <div key={a.id} style={{ fontSize: '13px', color: '#666', display: 'flex', justifyContent: 'space-between' }}>
-                      <span>{a.action.replace('_', ' ')}{a.piece_title ? ` — ${a.piece_title}` : ''}</span>
-                      <span style={{ color: '#999', whiteSpace: 'nowrap', marginLeft: '8px' }}>{new Date(a.created_at).toLocaleDateString()}</span>
+                <div style={{ fontSize: '13px', color: '#999', marginBottom: '8px', fontWeight: '600' }}>Activities</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {s.activities.map(a => (
+                    <div key={a.id} style={{
+                      background: '#f9fafb', borderRadius: '8px', padding: '10px 14px',
+                      border: '1px solid #f3f4f6', opacity: a.completed_date ? 0.8 : 1,
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ color: a.completed_date ? '#059669' : '#d1d5db', fontSize: '14px' }}>
+                          {a.completed_date ? '✓' : '○'}
+                        </span>
+                        <span style={{
+                          fontSize: '14px', fontWeight: '500',
+                          textDecoration: a.completed_date ? 'line-through' : 'none',
+                          color: a.completed_date ? '#999' : '#1a1a1a',
+                        }}>
+                          {a.description}
+                        </span>
+                        {a.completed_date && (
+                          <span style={{ fontSize: '11px', color: '#999', marginLeft: 'auto', flexShrink: 0 }}>
+                            {new Date(a.completed_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          </span>
+                        )}
+                      </div>
+                      {a.reflection && (
+                        <div style={{ fontSize: '13px', color: '#666', marginTop: '6px', marginLeft: '22px', whiteSpace: 'pre-wrap', lineHeight: '1.5' }}>
+                          {a.reflection}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

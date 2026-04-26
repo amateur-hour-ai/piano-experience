@@ -46,7 +46,12 @@ export async function GET(request) {
   if (endDate) daysQuery = daysQuery.lte('date', endDate)
   const { data: practiceDays } = await daysQuery
 
-  return Response.json({ grid: data || [], practiceDays: (practiceDays || []).map(d => d.date) })
+  // Also fetch experimentation focus from user_profiles
+  const { data: profileData } = await supabase.from('user_profiles')
+    .select('experimentation_focus').eq('email', profileEmail).limit(1)
+  const experimentationFocus = profileData?.[0]?.experimentation_focus || ''
+
+  return Response.json({ grid: data || [], practiceDays: (practiceDays || []).map(d => d.date), experimentationFocus })
 }
 
 export async function POST(request) {
@@ -99,6 +104,13 @@ export async function POST(request) {
   if (action === 'toggle_priority') {
     const { piece_id, is_priority } = body
     const { error } = await supabase.from('pieces').update({ is_priority }).eq('id', piece_id)
+    if (error) return Response.json({ error: error.message }, { status: 500 })
+    return Response.json({ success: true })
+  }
+
+  if (action === 'update_experimentation_focus') {
+    const { experimentation_focus } = body
+    const { error } = await supabase.from('user_profiles').update({ experimentation_focus }).eq('email', profileEmail)
     if (error) return Response.json({ error: error.message }, { status: 500 })
     return Response.json({ success: true })
   }

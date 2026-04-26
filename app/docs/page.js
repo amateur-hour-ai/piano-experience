@@ -188,6 +188,16 @@ function UserGuide() {
         <Note>You can change the access level or revoke access at any time from the Sharing page. The profile switcher in the nav bar shows all profiles you have access to — tap to switch between them.</Note>
       </Section>
 
+      <Section title="Parent/Teacher Dashboard">
+        <p style={{ fontSize: '15px', lineHeight: '1.7', color: '#333', marginBottom: '16px' }}>
+          If students have shared their profiles with you, go to <strong>Parent/Teacher Dashboard</strong> from the menu to see an overview of all your students at a glance.
+        </p>
+        <Step n="1">Use the <strong>7 days / 14 days</strong> toggle at the top to choose the time window.</Step>
+        <Step n="2">For each student you'll see their active piece count and how many days they were active in the period.</Step>
+        <Step n="3">Below that, each piece shows how many days it was practiced (💕) and played (💗), plus the current focus area. Pieces are sorted by most activity.</Step>
+        <Note>You'll also see experimentation activity and any assigned activities with their reflections. Tap "View Profile" to switch to a student's full profile.</Note>
+      </Section>
+
       <Section title="Offline Mode">
         <p style={{ fontSize: '15px', lineHeight: '1.7', color: '#333', marginBottom: '16px' }}>
           Piano Experience works offline! Your data is cached on your device so you can view and edit during piano lessons without internet.
@@ -252,6 +262,8 @@ function ReleaseNotes() {
         'All legacy practice_schedule references removed from codebase',
         'Experience log now preserves line breaks between paragraphs in view mode',
         'Activities — track non-piece tasks (listening assignments, written reflections) on the practice schedule page with completion status and reflections',
+        'Parent/Teacher Dashboard redesign — 7/14-day toggle, per-piece breakdown showing days practiced vs played with focus areas, experimentation tracking, and activity reflections',
+        'Experimentation focus area now saved to database (works cross-profile instead of local-only)',
       ]
     },
     {

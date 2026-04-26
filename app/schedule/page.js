@@ -52,7 +52,7 @@ export default function PracticeSchedule() {
   }
   const todayStr = toLocalDateString(today)
   const EXPERIMENTATION_ID = '00000000-0000-0000-0000-experimentation'
-  const expFocus = typeof window !== 'undefined' ? (localStorage.getItem('exp_focus_' + activeProfile) || '') : ''
+  const [expFocus, setExpFocus] = useState('')
   const experimentationPiece = { id: EXPERIMENTATION_ID, title: 'Experimentation', composer: null, current_focus: expFocus, is_priority: false, category_id: null, categories: null, isExperimentation: true }
 
   useEffect(() => {
@@ -92,6 +92,11 @@ export default function PracticeSchedule() {
     if (cached?.userActivities?.length) {
       setActivities(cached.userActivities)
     }
+    // Load experimentation focus from localStorage cache
+    try {
+      const cachedExpFocus = localStorage.getItem('exp_focus_' + activeProfile)
+      if (cachedExpFocus) setExpFocus(cachedExpFocus)
+    } catch {}
 
     if (isOnline) {
       try {
@@ -126,6 +131,10 @@ export default function PracticeSchedule() {
         }
         setGrid(gridMap)
         setPracticeDays(new Set(gridRes.practiceDays || []))
+        if (gridRes.experimentationFocus !== undefined) {
+          setExpFocus(gridRes.experimentationFocus || '')
+          try { localStorage.setItem('exp_focus_' + activeProfile, gridRes.experimentationFocus || '') } catch {}
+        }
 
         // Load activities
         const activitiesUrl = isOwnProfile
@@ -179,11 +188,23 @@ export default function PracticeSchedule() {
   }
 
   async function saveFocus(pieceId) {
-    // Experimentation row — save focus locally only (no DB piece)
+    // Experimentation row — save to DB + localStorage cache
     if (pieceId === EXPERIMENTATION_ID) {
-      experimentationPiece.current_focus = focusDraft
+      setExpFocus(focusDraft)
       try { localStorage.setItem('exp_focus_' + activeProfile, focusDraft) } catch {}
       setEditingFocus(null)
+
+      const body = { action: 'update_experimentation_focus', experimentation_focus: focusDraft, profileEmail: isOwnProfile ? undefined : activeProfile }
+      if (!isOnline) {
+        await queueMutation({ url: '/api/practice-grid', method: 'POST', body, description: 'Update experimentation focus' })
+        addToast('Focus saved offline', 'info')
+        return
+      }
+      try {
+        await fetch('/api/practice-grid', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      } catch {
+        await queueMutation({ url: '/api/practice-grid', method: 'POST', body, description: 'Update experimentation focus' })
+      }
       return
     }
 
