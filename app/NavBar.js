@@ -32,6 +32,7 @@ export default function NavBar() {
         { href: '/', label: 'Dashboard' },
         { href: '/pieces', label: isOwnProfile ? 'My Pieces' : 'Pieces' },
         { href: '/schedule', label: 'Practice Schedule' },
+        { href: '/dashboard/teacher', label: 'Practice Summary' },
       ]
     },
     {
@@ -46,7 +47,6 @@ export default function NavBar() {
       label: 'Account',
       items: [
         { href: '/categories', label: 'Manage Categories' },
-        { href: '/dashboard/teacher', label: 'Practice Summary' },
         { href: '/permissions', label: 'Sharing' },
         { href: '/settings', label: 'Settings' },
         { href: '/feedback', label: 'Feedback' },
