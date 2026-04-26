@@ -64,9 +64,9 @@ export default function NavBar() {
           <span style={{ color: '#fff', fontSize: '18px', fontWeight: '600', display: 'none' }} className="desktop-table">Piano Experience</span>
         </Link>
 
-        {/* Profile Switcher */}
+        {/* Profile Switcher — absolutely centered */}
         {user && (
-          <div style={{ position: 'relative' }}>
+          <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
             <button
               onClick={() => hasMultipleProfiles && setProfileOpen(!profileOpen)}
               style={{
@@ -75,7 +75,7 @@ export default function NavBar() {
                 borderRadius: '20px', padding: '6px 14px', cursor: hasMultipleProfiles ? 'pointer' : 'default',
                 color: '#fff', fontSize: '13px', fontWeight: '500',
                 display: 'flex', alignItems: 'center', gap: '6px',
-                maxWidth: '160px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis'
+                maxWidth: '200px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis'
               }}
             >
               {profileDisplayName(activeProfile)}
