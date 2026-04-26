@@ -58,15 +58,15 @@ export default function NavBar() {
 
   return (
     <>
-      <nav style={{ background: '#2563eb', padding: '12px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative' }}>
+      <nav style={{ background: '#2563eb', padding: '12px 24px', display: 'grid', gridTemplateColumns: 'auto 1fr auto', alignItems: 'center', gap: '12px' }}>
         <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}>
           <img src="/logo.png" alt="Piano Experience" style={{ height: '40px', borderRadius: '6px' }} />
           <span style={{ color: '#fff', fontSize: '18px', fontWeight: '600', display: 'none' }} className="desktop-table">Piano Experience</span>
         </Link>
 
-        {/* Profile Switcher — absolutely centered */}
+        {/* Profile Switcher — centered in middle column */}
         {user && (
-          <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', minWidth: 0 }}>
             <button
               onClick={() => hasMultipleProfiles && setProfileOpen(!profileOpen)}
               style={{
@@ -75,7 +75,7 @@ export default function NavBar() {
                 borderRadius: '20px', padding: '6px 14px', cursor: hasMultipleProfiles ? 'pointer' : 'default',
                 color: '#fff', fontSize: '13px', fontWeight: '500',
                 display: 'flex', alignItems: 'center', gap: '6px',
-                maxWidth: '200px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis'
+                maxWidth: '100%', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis'
               }}
             >
               {profileDisplayName(activeProfile)}
@@ -123,6 +123,7 @@ export default function NavBar() {
             )}
           </div>
         )}
+        {!user && <div />}
 
         <button
           onClick={() => setMenuOpen(!menuOpen)}
