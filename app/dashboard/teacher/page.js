@@ -164,7 +164,7 @@ export default function TeacherDashboard() {
                     return (
                       <div key={p.id} style={{
                         background: '#f9fafb', borderRadius: '8px', padding: '10px 14px',
-                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
                         border: p.is_priority ? '1px solid #fce7f3' : '1px solid #f3f4f6',
                         backgroundColor: p.is_priority ? '#fdf2f8' : '#f9fafb',
                       }}>
@@ -174,7 +174,7 @@ export default function TeacherDashboard() {
                             {p.title}
                           </div>
                           {p.current_focus && (
-                            <div style={{ fontSize: '12px', color: '#2563eb', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <div style={{ fontSize: '12px', color: '#2563eb', marginTop: '2px', lineHeight: '1.4', wordBreak: 'break-word' }}>
                               {p.current_focus}
                             </div>
                           )}
