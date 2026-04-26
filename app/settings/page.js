@@ -88,6 +88,16 @@ export default function Settings() {
   async function exportData(profileEmail) {
     setExporting(true)
     const isSelf = profileEmail === user.email
+
+    // Open window immediately (before any async work) to avoid popup blocker on iOS
+    const w = window.open('', '_blank')
+    if (!w) {
+      addToast('Popup blocked — please allow popups for this site', 'error')
+      setExporting(false)
+      return
+    }
+    w.document.write('<!DOCTYPE html><html><head><title>Exporting...</title></head><body style="font-family:-apple-system,sans-serif;padding:40px;text-align:center;color:#666"><p>Loading data...</p></body></html>')
+
     try {
       const piecesUrl = isSelf
         ? `/api/profile-data?type=pieces&email=${encodeURIComponent(profileEmail)}`
@@ -126,8 +136,7 @@ export default function Settings() {
       const actRes = await fetch(actUrl, { signal: AbortSignal.timeout(10000) })
       const actData = await actRes.json()
 
-      // Build PDF
-      const w = window.open('', '_blank')
+      // Build export document in the already-opened window
       const name = profileEmail.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
       let html = `<!DOCTYPE html><html><head><title>${name} — Piano Experience Data Export</title>
         <style>body{font-family:-apple-system,sans-serif;padding:30px;max-width:800px;margin:0 auto;color:#1a1a1a;font-size:14px}
@@ -206,6 +215,7 @@ export default function Settings() {
       w.document.write(html)
       w.document.close()
     } catch {
+      if (w && !w.closed) w.close()
       addToast('Failed to export data', 'error')
     }
     setExporting(false)
