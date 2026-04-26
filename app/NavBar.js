@@ -99,7 +99,7 @@ export default function NavBar() {
                       fontSize: '14px', color: '#1a1a1a', borderBottom: '1px solid #f0f0f0'
                     }}
                   >
-                    <div style={{ fontWeight: '600' }}>My Profile</div>
+                    <div style={{ fontWeight: '600' }}>{profileDisplayName(user.email)} (My Profile)</div>
                     <div style={{ fontSize: '12px', color: '#666' }}>{user.email}</div>
                   </button>
                   {availableProfiles.map(p => (
