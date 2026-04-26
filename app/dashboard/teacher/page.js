@@ -195,7 +195,7 @@ export default function TeacherDashboard() {
                           </div>
                           <div style={{ textAlign: 'center' }}>
                             <div style={{ fontSize: '16px', fontWeight: '600', color: stats.played > 0 ? '#2563eb' : '#ccc' }}>{stats.played}</div>
-                            <div style={{ fontSize: '10px', color: '#999' }}>💗</div>
+                            <div style={{ fontSize: '13px', color: '#ec4899' }}>♥</div>
                           </div>
                         </div>
                       </div>
@@ -223,7 +223,7 @@ export default function TeacherDashboard() {
                     </div>
                     <div style={{ textAlign: 'center' }}>
                       <div style={{ fontSize: '16px', fontWeight: '600', color: s.expStats.played > 0 ? '#2563eb' : '#ccc' }}>{s.expStats.played}</div>
-                      <div style={{ fontSize: '10px', color: '#999' }}>💗</div>
+                      <div style={{ fontSize: '13px', color: '#ec4899' }}>♥</div>
                     </div>
                   </div>
                 </div>
