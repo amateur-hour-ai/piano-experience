@@ -29,7 +29,7 @@ export default function NavBar() {
     {
       label: 'Practice',
       items: [
-        { href: '/', label: 'Dashboard' },
+        { href: '/', label: 'Home' },
         { href: '/pieces', label: isOwnProfile ? 'My Pieces' : 'Pieces' },
         { href: '/schedule', label: 'Practice Schedule' },
         { href: '/dashboard/teacher', label: 'Practice Summary' },

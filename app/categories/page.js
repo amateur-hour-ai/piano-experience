@@ -108,7 +108,7 @@ export default function ManageCategories() {
 
   return (
     <main style={{ padding: '24px', maxWidth: '600px', margin: '0 auto' }}>
-      <Link href="/" style={{ textDecoration: 'none', color: '#666', fontSize: '14px' }}>← Dashboard</Link>
+      <Link href="/" style={{ textDecoration: 'none', color: '#666', fontSize: '14px' }}>← Home</Link>
       <h1 style={{ margin: '16px 0 8px', fontSize: '24px' }}>
         {isOwnProfile ? 'Manage Categories' : `${profileDisplayName(activeProfile)}'s Categories`}
       </h1>

@@ -32,7 +32,7 @@ export default function Confirmed() {
             width: '100%', padding: '12px', background: '#2563eb', color: '#fff',
             border: 'none', borderRadius: '8px', fontSize: '16px', fontWeight: '500', cursor: 'pointer'
           }}>
-            Go to Dashboard
+            Go to Home
           </button>
         </Link>
       </div>

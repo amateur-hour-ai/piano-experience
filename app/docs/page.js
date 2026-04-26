@@ -10,7 +10,7 @@ export default function Docs() {
 
   return (
     <main style={{ padding: '24px', maxWidth: '760px', margin: '0 auto' }}>
-      <Link href="/" style={{ textDecoration: 'none', color: '#666', fontSize: '14px' }}>← Dashboard</Link>
+      <Link href="/" style={{ textDecoration: 'none', color: '#666', fontSize: '14px' }}>← Home</Link>
       <h1 style={{ margin: '16px 0 24px' }}>Documentation</h1>
 
       <div style={{ display: 'flex', gap: '0', borderBottom: '2px solid #e5e7eb', marginBottom: '32px' }}>

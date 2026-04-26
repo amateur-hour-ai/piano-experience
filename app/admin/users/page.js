@@ -47,7 +47,7 @@ export default function AdminUsers() {
   if (!isAdmin) return (
     <main style={{ padding: '24px', textAlign: 'center' }}>
       <p style={{ color: '#dc2626' }}>Access denied. Admin only.</p>
-      <Link href="/">← Back to Dashboard</Link>
+      <Link href="/">← Back to Home</Link>
     </main>
   )
 
@@ -63,7 +63,7 @@ export default function AdminUsers() {
 
   return (
     <main style={{ padding: '24px', maxWidth: '900px', margin: '0 auto' }}>
-      <Link href="/" style={{ textDecoration: 'none', color: '#666', fontSize: '14px' }}>← Dashboard</Link>
+      <Link href="/" style={{ textDecoration: 'none', color: '#666', fontSize: '14px' }}>← Home</Link>
       <h1 style={{ margin: '16px 0 24px' }}>Admin Panel</h1>
 
       <div style={{ display: 'flex', gap: '0', borderBottom: '2px solid #e5e7eb', marginBottom: '24px' }}>

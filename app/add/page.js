@@ -316,13 +316,13 @@ export default function AddPiece() {
   if (!canEdit) return (
     <main style={{ padding: '24px', maxWidth: '700px', margin: '0 auto', textAlign: 'center' }}>
       <p style={{ color: '#666', marginTop: '40px' }}>You don't have edit access to this profile.</p>
-      <Link href="/" style={{ color: '#2563eb' }}>← Back to Dashboard</Link>
+      <Link href="/" style={{ color: '#2563eb' }}>← Back to Home</Link>
     </main>
   )
 
   return (
     <main style={{ padding: '24px', maxWidth: '700px', margin: '0 auto', paddingBottom: mode ? '100px' : '24px' }}>
-      <Link href="/" style={{ textDecoration: 'none', color: '#666', fontSize: '14px' }}>← Dashboard</Link>
+      <Link href="/" style={{ textDecoration: 'none', color: '#666', fontSize: '14px' }}>← Home</Link>
       <h1 style={{ margin: '16px 0 24px' }}>Add New Piece</h1>
 
       {!mode && (

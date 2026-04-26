@@ -35,7 +35,7 @@ export default function Feedback() {
 
   return (
     <main style={{ padding: '24px', maxWidth: '600px', margin: '0 auto', paddingBottom: '100px' }}>
-      <Link href="/" style={{ textDecoration: 'none', color: '#666', fontSize: '14px' }}>← Dashboard</Link>
+      <Link href="/" style={{ textDecoration: 'none', color: '#666', fontSize: '14px' }}>← Home</Link>
       <h1 style={{ margin: '16px 0 8px', fontSize: '24px' }}>Feedback</h1>
       <p style={{ color: '#666', fontSize: '14px', marginBottom: '24px' }}>Let us know about issues, suggestions, or questions.</p>
 

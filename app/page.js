@@ -110,7 +110,7 @@ export default function Dashboard() {
   return (
     <main style={{ padding: '24px', maxWidth: '900px', margin: '0 auto' }}>
       <h1 style={{ fontSize: '28px', marginBottom: '24px' }}>
-        {isOwnProfile ? 'Welcome back!' : `${profileDisplayName(activeProfile)}'s Dashboard`}
+        {isOwnProfile ? 'Welcome back!' : `${profileDisplayName(activeProfile)}'s Home`}
       </h1>
 
       {/* Theme of the Week */}

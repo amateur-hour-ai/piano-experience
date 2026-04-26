@@ -53,7 +53,7 @@ export default function ResetPassword() {
             <button onClick={() => { window.location.href = '/' }} style={{
               width: '100%', padding: '12px', background: '#2563eb', color: '#fff', border: 'none',
               borderRadius: '8px', fontSize: '16px', fontWeight: '500', cursor: 'pointer'
-            }}>Go to Dashboard</button>
+            }}>Go to Home</button>
           </div>
         ) : (
           <>

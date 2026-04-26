@@ -45,7 +45,7 @@ export default function Error({ error, reset }) {
             padding: '10px 20px', background: '#f9fafb', color: '#666', border: '1px solid #d1d5db',
             borderRadius: '8px', fontSize: '14px', cursor: 'pointer'
           }}>
-            Go to Dashboard
+            Go to Home
           </button>
         </Link>
       </div>

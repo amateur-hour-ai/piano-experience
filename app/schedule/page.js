@@ -397,7 +397,7 @@ export default function PracticeSchedule() {
   return (
     <main style={{ padding: '24px', maxWidth: '100%', margin: '0 auto' }}>
       <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-        <Link href="/" style={{ textDecoration: 'none', color: '#666', fontSize: '14px' }}>← Dashboard</Link>
+        <Link href="/" style={{ textDecoration: 'none', color: '#666', fontSize: '14px' }}>← Home</Link>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '16px 0 8px' }}>
           <h1 style={{ fontSize: '24px' }}>
             {isOwnProfile ? 'Practice Schedule' : `${profileDisplayName(activeProfile)}'s Schedule`}
