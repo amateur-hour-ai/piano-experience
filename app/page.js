@@ -195,7 +195,12 @@ export default function Dashboard() {
                   {p?.composer && <span style={{ color: '#666', marginLeft: '8px' }}>— {p.composer}</span>}
                   {p?.current_focus && <p style={{ fontSize: '13px', color: '#2563eb', marginTop: '4px' }}>{p.current_focus}</p>}
                 </div>
-                {done && <span style={{ color: '#059669', fontWeight: '600' }}>✓</span>}
+                <span style={{ fontSize: '18px', flexShrink: 0 }}>
+                  {g.status === 'plan_play' && <span>♪</span>}
+                  {g.status === 'plan_practice' && <span>🎶</span>}
+                  {g.status === 'played' && <span style={{ color: '#ec4899' }}>♥</span>}
+                  {g.status === 'practiced' && <span>💕</span>}
+                </span>
               </div>
             )})}
           </div>
