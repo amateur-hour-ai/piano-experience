@@ -58,7 +58,7 @@ export default function NavBar() {
 
   return (
     <>
-      <nav style={{ background: '#2563eb', padding: '12px 24px', display: 'grid', gridTemplateColumns: 'auto 1fr auto', alignItems: 'center', gap: '12px' }}>
+      <nav style={{ background: '#2563eb', padding: '12px 24px', display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: '12px' }}>
         <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}>
           <img src="/logo.png" alt="Piano Experience" style={{ height: '40px', borderRadius: '6px' }} />
           <span style={{ color: '#fff', fontSize: '18px', fontWeight: '600', display: 'none' }} className="desktop-table">Piano Experience</span>
@@ -127,7 +127,7 @@ export default function NavBar() {
 
         <button
           onClick={() => setMenuOpen(!menuOpen)}
-          style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '8px', padding: '8px 12px', cursor: 'pointer', color: '#fff', fontSize: '20px' }}
+          style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '8px', padding: '8px 12px', cursor: 'pointer', color: '#fff', fontSize: '20px', justifySelf: 'end' }}
         >
           ☰
         </button>
