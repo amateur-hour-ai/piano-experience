@@ -136,6 +136,17 @@ function UserGuide() {
         <Note>You can also edit focus areas from the piece detail page. The dashboard shows today's planned pieces and your practice streak.</Note>
       </Section>
 
+      <Section title="Activities">
+        <p style={{ fontSize: '15px', lineHeight: '1.7', color: '#333', marginBottom: '16px' }}>
+          Below the practice grid on the Schedule page, you'll find an <strong>Activities</strong> section for tracking non-piece tasks — like listening assignments, written reflections, or anything your teacher assigns (or you come up with on your own).
+        </p>
+        <Step n="1">Tap <strong>+ Add Activity</strong> to create a new task (e.g., "Listen to Gershwin").</Step>
+        <Step n="2">Tap the checkbox to mark it complete when done.</Step>
+        <Step n="3">Tap the activity text to expand it and write a short reflection about what you did or learned.</Step>
+        <Step n="4">Tap the <strong>x</strong> to remove an activity when you no longer need it.</Step>
+        <Note>Completed activities stay visible (with a strikethrough) until you remove them. Activities are included in your data export.</Note>
+      </Section>
+
       <Section title="Piano Experience Log">
         <p style={{ fontSize: '15px', lineHeight: '1.7', color: '#333', marginBottom: '16px' }}>
           Go to <strong>Experience Log</strong> from the menu to record each piano experience (lesson). Log the date, what was covered, teacher feedback, and assignments for next time.
@@ -240,6 +251,7 @@ function ReleaseNotes() {
         'Experience log piece selector fixed for editing existing entries',
         'All legacy practice_schedule references removed from codebase',
         'Experience log now preserves line breaks between paragraphs in view mode',
+        'Activities — track non-piece tasks (listening assignments, written reflections) on the practice schedule page with completion status and reflections',
       ]
     },
     {

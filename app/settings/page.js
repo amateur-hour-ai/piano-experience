@@ -95,6 +95,13 @@ export default function Settings() {
       const strRes = await fetch(`/api/strategies?profile=${encodeURIComponent(profileEmail)}`, { signal: AbortSignal.timeout(10000) })
       const strData = await strRes.json()
 
+      // Load user activities
+      const actUrl = isSelf
+        ? `/api/user-activities?profile=${encodeURIComponent(profileEmail)}`
+        : `/api/profile/${encodeURIComponent(profileEmail)}/activities`
+      const actRes = await fetch(actUrl, { signal: AbortSignal.timeout(10000) })
+      const actData = await actRes.json()
+
       // Build PDF
       const w = window.open('', '_blank')
       const name = profileEmail.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
@@ -155,6 +162,19 @@ export default function Settings() {
         html += `<h2>Practice Strategies</h2>`
         strategies.forEach(s => {
           html += `<h3>${s.heading}</h3><ul>${(s.bullets || []).map(b => `<li>${b}</li>`).join('')}</ul>`
+        })
+      }
+
+      // Activities
+      const userActivities = actData.activities || []
+      if (userActivities.length) {
+        html += `<h2>Activities (${userActivities.length})</h2>`
+        userActivities.forEach(a => {
+          html += `<div class="section"><div class="field"><strong>${a.completed_date ? '✓' : '☐'}</strong> ${a.description}`
+          if (a.completed_date) html += ` <span style="color:#999;font-size:12px">(completed ${new Date(a.completed_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})</span>`
+          html += `</div>`
+          if (a.reflection) html += `<div class="field" style="white-space:pre-wrap;margin-left:20px;color:#666"><span class="label">Reflection:</span> ${a.reflection}</div>`
+          html += `</div>`
         })
       }
 

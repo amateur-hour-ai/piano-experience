@@ -26,6 +26,15 @@ export default function PracticeSchedule() {
   const [editingFocus, setEditingFocus] = useState(null) // piece id being edited
   const [focusDraft, setFocusDraft] = useState('')
   const scrollRef = useRef(null)
+  // Activities state
+  const [activities, setActivities] = useState([])
+  const [addingActivity, setAddingActivity] = useState(false)
+  const [newActivityText, setNewActivityText] = useState('')
+  const [savingActivity, setSavingActivity] = useState(false)
+  const [expandedActivityId, setExpandedActivityId] = useState(null)
+  const [reflectionDraft, setReflectionDraft] = useState('')
+  const [savingReflection, setSavingReflection] = useState(false)
+  const [deletingActivityId, setDeletingActivityId] = useState(null)
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -80,6 +89,9 @@ export default function PracticeSchedule() {
       setPieces(sortPiecesByCategory(activePieces))
       setLoading(false)
     }
+    if (cached?.userActivities?.length) {
+      setActivities(cached.userActivities)
+    }
 
     if (isOnline) {
       try {
@@ -114,6 +126,13 @@ export default function PracticeSchedule() {
         }
         setGrid(gridMap)
         setPracticeDays(new Set(gridRes.practiceDays || []))
+
+        // Load activities
+        const activitiesUrl = isOwnProfile
+          ? `/api/user-activities?profile=${encodeURIComponent(activeProfile)}`
+          : `/api/profile/${encodeURIComponent(activeProfile)}/activities`
+        const actRes = await fetch(activitiesUrl, { signal: AbortSignal.timeout(5000) }).then(r => r.json())
+        setActivities(actRes.activities || [])
       } catch {}
     }
     setLoading(false)
@@ -227,6 +246,100 @@ export default function PracticeSchedule() {
       })
     } catch {
       await queueMutation({ url: '/api/practice-grid', method: 'POST', body, description: 'Toggle priority' })
+    }
+  }
+
+  async function addActivity() {
+    if (!newActivityText.trim()) return
+    setSavingActivity(true)
+    const body = { action: 'create', description: newActivityText.trim(), profileEmail: isOwnProfile ? undefined : activeProfile }
+    try {
+      if (!isOnline) {
+        await queueMutation({ url: '/api/user-activities', method: 'POST', body, description: 'Add activity' })
+        // Optimistic local add
+        setActivities(prev => [{ id: `temp-${Date.now()}`, description: newActivityText.trim(), completed_date: null, reflection: null, created_at: new Date().toISOString() }, ...prev])
+        addToast('Activity saved offline', 'info')
+      } else {
+        const res = await fetch('/api/user-activities', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+        const data = await res.json()
+        if (data.activity) {
+          setActivities(prev => [data.activity, ...prev])
+          addToast('Activity added', 'success')
+        }
+      }
+    } catch {
+      await queueMutation({ url: '/api/user-activities', method: 'POST', body, description: 'Add activity' })
+      setActivities(prev => [{ id: `temp-${Date.now()}`, description: newActivityText.trim(), completed_date: null, reflection: null, created_at: new Date().toISOString() }, ...prev])
+      addToast('Activity saved offline', 'info')
+    }
+    setNewActivityText('')
+    setAddingActivity(false)
+    setSavingActivity(false)
+  }
+
+  async function toggleActivityComplete(activity) {
+    if (!canEdit) return
+    const wasComplete = !!activity.completed_date
+    const newDate = wasComplete ? null : todayStr
+
+    // Update local state immediately
+    setActivities(prev => prev.map(a => a.id === activity.id ? { ...a, completed_date: newDate } : a))
+
+    const body = {
+      action: wasComplete ? 'uncomplete' : 'complete',
+      id: activity.id,
+      completed_date: newDate,
+      profileEmail: isOwnProfile ? undefined : activeProfile
+    }
+    if (!isOnline) {
+      await queueMutation({ url: '/api/user-activities', method: 'POST', body, description: wasComplete ? 'Uncomplete activity' : 'Complete activity' })
+      return
+    }
+    try {
+      const res = await fetch('/api/user-activities', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      if (!res.ok) {
+        setActivities(prev => prev.map(a => a.id === activity.id ? { ...a, completed_date: activity.completed_date } : a))
+        addToast('Failed to update activity', 'error')
+      }
+    } catch {
+      await queueMutation({ url: '/api/user-activities', method: 'POST', body, description: wasComplete ? 'Uncomplete activity' : 'Complete activity' })
+    }
+  }
+
+  async function saveReflection(activityId) {
+    setSavingReflection(true)
+    const body = { action: 'reflect', id: activityId, reflection: reflectionDraft, profileEmail: isOwnProfile ? undefined : activeProfile }
+
+    setActivities(prev => prev.map(a => a.id === activityId ? { ...a, reflection: reflectionDraft } : a))
+
+    if (!isOnline) {
+      await queueMutation({ url: '/api/user-activities', method: 'POST', body, description: 'Save reflection' })
+      addToast('Reflection saved offline', 'info')
+    } else {
+      try {
+        const res = await fetch('/api/user-activities', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+        if (res.ok) addToast('Reflection saved', 'success')
+      } catch {
+        await queueMutation({ url: '/api/user-activities', method: 'POST', body, description: 'Save reflection' })
+        addToast('Reflection saved offline', 'info')
+      }
+    }
+    setSavingReflection(false)
+  }
+
+  async function deleteActivity(activityId) {
+    setActivities(prev => prev.filter(a => a.id !== activityId))
+    setDeletingActivityId(null)
+
+    const body = { action: 'delete', id: activityId, profileEmail: isOwnProfile ? undefined : activeProfile }
+    if (!isOnline) {
+      await queueMutation({ url: '/api/user-activities', method: 'POST', body, description: 'Remove activity' })
+      return
+    }
+    try {
+      await fetch('/api/user-activities', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    } catch {
+      await queueMutation({ url: '/api/user-activities', method: 'POST', body, description: 'Remove activity' })
     }
   }
 
@@ -392,6 +505,151 @@ export default function PracticeSchedule() {
           </table>
         </div>
       )}
+
+      {/* Activities Section */}
+      <div style={{ maxWidth: '900px', margin: '24px auto 0' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+          <h2 style={{ fontSize: '18px', margin: 0 }}>Activities</h2>
+          {canEdit && !addingActivity && (
+            <button onClick={() => setAddingActivity(true)} style={{
+              padding: '6px 14px', background: '#2563eb', color: '#fff', border: 'none',
+              borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontWeight: '500'
+            }}>+ Add Activity</button>
+          )}
+        </div>
+
+        {activities.length === 0 && !addingActivity && (
+          <div style={{ background: '#fff', borderRadius: '12px', padding: '24px', textAlign: 'center', color: '#999', border: '1px solid #e5e7eb', fontSize: '14px' }}>
+            No activities yet.{canEdit ? ' Add one to track assignments or practice tasks.' : ''}
+          </div>
+        )}
+
+        {activities.map(activity => {
+          const isComplete = !!activity.completed_date
+          const isExpanded = expandedActivityId === activity.id
+          return (
+            <div key={activity.id} style={{
+              background: '#fff', borderRadius: '12px', padding: '16px', marginBottom: '8px',
+              border: '1px solid #e5e7eb', opacity: isComplete ? 0.7 : 1,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                {canEdit && (
+                  <button onClick={() => toggleActivityComplete(activity)} style={{
+                    background: 'none', border: `2px solid ${isComplete ? '#059669' : '#d1d5db'}`,
+                    borderRadius: '4px', width: '20px', height: '20px', cursor: 'pointer', padding: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '1px',
+                    backgroundColor: isComplete ? '#059669' : 'transparent',
+                  }}>
+                    {isComplete && <span style={{ color: '#fff', fontSize: '12px', lineHeight: 1 }}>✓</span>}
+                  </button>
+                )}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div
+                    onClick={() => {
+                      if (isExpanded) { setExpandedActivityId(null) }
+                      else { setExpandedActivityId(activity.id); setReflectionDraft(activity.reflection || '') }
+                    }}
+                    style={{
+                      fontSize: '14px', fontWeight: '500', cursor: 'pointer',
+                      textDecoration: isComplete ? 'line-through' : 'none',
+                      color: isComplete ? '#999' : '#1a1a1a',
+                    }}>
+                    {activity.description}
+                  </div>
+                  {isComplete && activity.completed_date && (
+                    <div style={{ fontSize: '11px', color: '#999', marginTop: '2px' }}>
+                      Completed {new Date(activity.completed_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </div>
+                  )}
+                  {activity.reflection && !isExpanded && (
+                    <div style={{ fontSize: '12px', color: '#666', marginTop: '4px', whiteSpace: 'pre-wrap', lineHeight: '1.5' }}>
+                      {activity.reflection.length > 100 ? activity.reflection.slice(0, 100) + '...' : activity.reflection}
+                    </div>
+                  )}
+                  {isExpanded && (
+                    <div style={{ marginTop: '8px' }}>
+                      {canEdit ? (
+                        <>
+                          <textarea
+                            value={reflectionDraft}
+                            onChange={e => setReflectionDraft(e.target.value)}
+                            placeholder="Write a short reflection..."
+                            rows={3}
+                            style={{
+                              width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: '8px',
+                              fontSize: '13px', resize: 'vertical', boxSizing: 'border-box', lineHeight: '1.5',
+                            }}
+                          />
+                          <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
+                            <button onClick={() => saveReflection(activity.id)} disabled={savingReflection} style={{
+                              padding: '4px 12px', background: '#2563eb', color: '#fff', border: 'none',
+                              borderRadius: '6px', fontSize: '12px', cursor: 'pointer',
+                            }}>{savingReflection ? 'Saving...' : 'Save'}</button>
+                            <button onClick={() => setExpandedActivityId(null)} style={{
+                              padding: '4px 12px', background: '#f9fafb', color: '#666', border: '1px solid #d1d5db',
+                              borderRadius: '6px', fontSize: '12px', cursor: 'pointer',
+                            }}>Cancel</button>
+                          </div>
+                        </>
+                      ) : (
+                        activity.reflection && (
+                          <div style={{ fontSize: '13px', color: '#666', whiteSpace: 'pre-wrap', lineHeight: '1.5' }}>
+                            {activity.reflection}
+                          </div>
+                        )
+                      )}
+                    </div>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
+                  {canEdit && deletingActivityId !== activity.id && (
+                    <button onClick={() => setDeletingActivityId(activity.id)} style={{
+                      background: 'none', border: 'none', cursor: 'pointer', padding: '2px', fontSize: '16px', color: '#ccc',
+                    }}>✕</button>
+                  )}
+                </div>
+              </div>
+              {deletingActivityId === activity.id && (
+                <div style={{ background: '#fef2f2', borderRadius: '6px', padding: '8px 12px', marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
+                  <span style={{ color: '#991b1b' }}>Remove this activity?</span>
+                  <button onClick={() => deleteActivity(activity.id)}
+                    style={{ padding: '4px 10px', background: '#dc2626', color: '#fff', border: 'none', borderRadius: '4px', fontSize: '12px', cursor: 'pointer' }}>Yes</button>
+                  <button onClick={() => setDeletingActivityId(null)}
+                    style={{ padding: '4px 10px', background: '#fff', color: '#666', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '12px', cursor: 'pointer' }}>No</button>
+                </div>
+              )}
+            </div>
+          )
+        })}
+
+        {addingActivity && (
+          <div style={{ background: '#fff', borderRadius: '12px', padding: '16px', border: '1px solid #e5e7eb', marginBottom: '8px' }}>
+            <input
+              type="text"
+              value={newActivityText}
+              onChange={e => setNewActivityText(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && newActivityText.trim()) addActivity(); if (e.key === 'Escape') { setAddingActivity(false); setNewActivityText('') } }}
+              placeholder="e.g., Listen to Gershwin, Write about duet experience..."
+              autoFocus
+              style={{
+                width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px',
+                fontSize: '14px', boxSizing: 'border-box',
+              }}
+            />
+            <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+              <button onClick={addActivity} disabled={savingActivity || !newActivityText.trim()} style={{
+                padding: '8px 16px', background: '#2563eb', color: '#fff', border: 'none',
+                borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontWeight: '500',
+                opacity: savingActivity || !newActivityText.trim() ? 0.5 : 1,
+              }}>{savingActivity ? 'Saving...' : 'Add'}</button>
+              <button onClick={() => { setAddingActivity(false); setNewActivityText('') }} style={{
+                padding: '8px 16px', background: '#f9fafb', color: '#666', border: '1px solid #d1d5db',
+                borderRadius: '8px', fontSize: '13px', cursor: 'pointer',
+              }}>Cancel</button>
+            </div>
+          </div>
+        )}
+      </div>
     </main>
   )
 }
