@@ -108,9 +108,9 @@ export default function TeacherDashboard() {
   return (
     <main style={{ padding: '24px', maxWidth: '900px', margin: '0 auto' }}>
       <Link href="/" style={{ textDecoration: 'none', color: '#666', fontSize: '14px' }}>← Dashboard</Link>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '16px 0 8px' }}>
-        <h1 style={{ margin: 0 }}>Parent/Teacher Dashboard</h1>
-        <div style={{ display: 'flex', background: '#f3f4f6', borderRadius: '8px', overflow: 'hidden' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '16px 0 8px', gap: '12px' }}>
+        <h1 style={{ margin: 0, fontSize: '22px', minWidth: 0 }}>Parent/Teacher Dashboard</h1>
+        <div style={{ display: 'flex', background: '#f3f4f6', borderRadius: '8px', overflow: 'hidden', flexShrink: 0 }}>
           <button onClick={() => setDayRange(7)} style={{
             padding: '6px 14px', fontSize: '13px', fontWeight: '500', cursor: 'pointer', border: 'none',
             background: dayRange === 7 ? '#2563eb' : 'transparent',
