@@ -130,7 +130,7 @@ function UserGuide() {
           The practice schedule is a grid showing all your active pieces across 14 days (7 past + today + 6 future). Scroll left to see past days or right for upcoming days.
         </p>
         <Step n="1">Pieces are organized by category. Tap the ★ star next to a piece to mark it as priority (highlighted in pink). Tap the ★ star above a day to mark it as a planned practice day (highlighted in purple).</Step>
-        <Step n="2">Tap any cell to cycle through: empty → ♪ (plan to play) → 🎶 (plan to practice) → ♥ (played) → 💕 (practiced) → empty.</Step>
+        <Step n="2">Tap any cell to cycle through: empty → ♪ (plan to play) → 🎶 (plan to practice) → <span style={{ color: '#ec4899' }}>♥</span> (played) → 💕 (practiced) → empty.</Step>
         <Step n="3">Set a focus area for each piece by tapping the focus text next to the piece name.</Step>
         <Step n="4">Use the <strong>Export</strong> button to print your schedule.</Step>
         <Note>You can also edit focus areas from the piece detail page. The dashboard shows today's planned pieces and your practice streak.</Note>
@@ -194,7 +194,7 @@ function UserGuide() {
         </p>
         <Step n="1">Use the <strong>7 days / 14 days</strong> toggle at the top to choose the time window.</Step>
         <Step n="2">Your own practice summary shows first, with active piece count and days active.</Step>
-        <Step n="3">Each piece shows how many days it was practiced (💕) and played (♥), plus the current focus area. Pieces are sorted by most activity.</Step>
+        <Step n="3">Each piece shows how many days it was practiced (💕) and played (<span style={{ color: '#ec4899' }}>♥</span>), plus the current focus area. Pieces are sorted by most activity.</Step>
         <Note>You'll also see experimentation activity and any assigned activities with their reflections. Shared profiles appear below yours with a "View Profile" button to switch.</Note>
       </Section>
 
@@ -245,7 +245,7 @@ function ReleaseNotes() {
       version: '6.0',
       date: '2026-04-25',
       changes: [
-        'Practice schedule — 4 status modes: ♪ plan to play → 🎶 plan to practice → ♥ played → 💕 practiced',
+        'Practice schedule — 4 status modes: ♪ plan to play → 🎶 plan to practice → pink ♥ played → 💕 practiced',
         'Experimentation row on practice schedule — track free play and improvisation',
         'Feedback system — submit bug reports, suggestions, or questions from the menu',
         'Soft deletes — deleted items are preserved in the database for recovery',
@@ -308,7 +308,7 @@ function ReleaseNotes() {
       changes: [
         'Practice schedule pieces grouped by category with section headers',
         'Priority pieces highlighted in pink with pink ★ stars',
-        'Fun emoji icons — ♪ for planned, ♥ for completed',
+        'Fun emoji icons — ♪ for planned, pink ♥ for completed',
         'Export pages now have Print and Back buttons for PWA standalone mode',
         'Current Focus Area moved below Notes on piece detail page with editable styling',
       ]
@@ -318,7 +318,7 @@ function ReleaseNotes() {
       date: '2026-04-18',
       changes: [
         'Redesigned Practice Schedule as a perpetual grid — all pieces × 14 days (7 past + today + 6 future)',
-        'Tap cells to cycle: empty → ♪ planned → ♥ completed → empty',
+        'Tap cells to cycle: empty → ♪ planned → pink ♥ completed → empty',
         'Focus areas editable inline on the grid and on each piece detail page',
         'Horizontally scrollable grid with today highlighted and centered',
         'Export schedule as printable PDF',
