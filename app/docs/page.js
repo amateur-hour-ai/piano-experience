@@ -188,14 +188,14 @@ function UserGuide() {
         <Note>You can change the access level or revoke access at any time from the Sharing page. The profile switcher in the nav bar shows all profiles you have access to — tap to switch between them.</Note>
       </Section>
 
-      <Section title="Parent/Teacher Dashboard">
+      <Section title="Practice Summary">
         <p style={{ fontSize: '15px', lineHeight: '1.7', color: '#333', marginBottom: '16px' }}>
-          If students have shared their profiles with you, go to <strong>Parent/Teacher Dashboard</strong> from the menu to see an overview of all your students at a glance.
+          Go to <strong>Practice Summary</strong> from the menu to see a weekly overview of your practice — and anyone who has shared their profile with you.
         </p>
         <Step n="1">Use the <strong>7 days / 14 days</strong> toggle at the top to choose the time window.</Step>
-        <Step n="2">For each student you'll see their active piece count and how many days they were active in the period.</Step>
-        <Step n="3">Below that, each piece shows how many days it was practiced (💕) and played (💗), plus the current focus area. Pieces are sorted by most activity.</Step>
-        <Note>You'll also see experimentation activity and any assigned activities with their reflections. Tap "View Profile" to switch to a student's full profile.</Note>
+        <Step n="2">Your own practice summary shows first, with active piece count and days active.</Step>
+        <Step n="3">Each piece shows how many days it was practiced (💕) and played (💗), plus the current focus area. Pieces are sorted by most activity.</Step>
+        <Note>You'll also see experimentation activity and any assigned activities with their reflections. Shared profiles appear below yours with a "View Profile" button to switch.</Note>
       </Section>
 
       <Section title="Offline Mode">
@@ -267,6 +267,8 @@ function ReleaseNotes() {
         'User names — name field at signup (required), editable in Settings, displayed throughout the app instead of email addresses',
         'Forgot password — tap "Forgot password?" on the sign-in page to receive a reset link by email',
         'Practice grid icons — ♪ (plan to play) and 💕 (practiced) icons enlarged for better visibility',
+        'Practice Summary — renamed from Parent/Teacher Dashboard, now shows your own practice data first with shared profiles below. Available to all users from the menu.',
+        'Dashboard trimmed — removed pieces list, recent activity, and quick actions. Keeps theme, streak, stats, and today\'s practice.',
       ]
     },
     {

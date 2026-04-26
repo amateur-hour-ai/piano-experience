@@ -46,7 +46,7 @@ export default function NavBar() {
       label: 'Account',
       items: [
         { href: '/categories', label: 'Manage Categories' },
-        ...(hasMultipleProfiles ? [{ href: '/dashboard/teacher', label: 'Parent/Teacher View' }] : []),
+        { href: '/dashboard/teacher', label: 'Practice Summary' },
         { href: '/permissions', label: 'Sharing' },
         { href: '/settings', label: 'Settings' },
         { href: '/feedback', label: 'Feedback' },

@@ -17,7 +17,6 @@ export default function Dashboard() {
   const [pieces, setPieces] = useState([])
   const [schedule, setSchedule] = useState([])
   const [practiceGrid, setPracticeGrid] = useState([])
-  const [recentActivity, setRecentActivity] = useState([])
   const [theme, setTheme] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -66,22 +65,18 @@ export default function Dashboard() {
           if (isOwnProfile) {
             const dataPromise = Promise.all([
               supabase.from('pieces').select('*, categories(name)').eq('user_id', user.email).order('updated_at', { ascending: false }),
-              fetch(`/api/activity?limit=8&user_email=${encodeURIComponent(user.email)}`, { signal: AbortSignal.timeout(5000) }).then(r => r.json()),
               fetch(`/api/practice-grid?profile=${encodeURIComponent(user.email)}&start=${gridStartStr}&end=${gridEndStr}`, { signal: AbortSignal.timeout(5000) }).then(r => r.json()),
             ])
-            const [piecesRes, actRes, gridRes] = await Promise.race([dataPromise, timeoutPromise])
+            const [piecesRes, gridRes] = await Promise.race([dataPromise, timeoutPromise])
             setPieces(piecesRes.data || [])
-            setRecentActivity(actRes.activities || [])
             setPracticeGrid(gridRes.grid || [])
           } else {
             const dataPromise = Promise.all([
               fetch(`/api/profile/${encodeURIComponent(activeProfile)}/pieces`, { signal: AbortSignal.timeout(5000) }).then(r => r.json()),
-              fetch(`/api/activity?limit=8&user_email=${encodeURIComponent(activeProfile)}`, { signal: AbortSignal.timeout(5000) }).then(r => r.json()),
               fetch(`/api/practice-grid?profile=${encodeURIComponent(activeProfile)}&start=${gridStartStr}&end=${gridEndStr}`, { signal: AbortSignal.timeout(5000) }).then(r => r.json()),
             ])
-            const [piecesRes, actRes, gridRes] = await Promise.race([dataPromise, timeoutPromise])
+            const [piecesRes, gridRes] = await Promise.race([dataPromise, timeoutPromise])
             setPieces(piecesRes.pieces || [])
-            setRecentActivity(actRes.activities || [])
             setPracticeGrid(gridRes.grid || [])
           }
         } catch {
@@ -95,21 +90,6 @@ export default function Dashboard() {
   }, [userLoading, user, activeProfile])
 
   if (userLoading || loading) return <LoadingSkeleton />
-
-  // Group pieces by category in the user's preferred sort order
-  const byCategory = {}
-  const catOrder = {}
-  sortedCategories.forEach((c, i) => { catOrder[c.name] = c.effective_sort !== undefined ? c.effective_sort : i })
-  pieces.forEach(p => {
-    const cat = p.categories?.name || 'Uncategorized'
-    if (!byCategory[cat]) byCategory[cat] = []
-    byCategory[cat].push(p)
-  })
-  const sortedCategoryEntries = Object.entries(byCategory).sort((a, b) => {
-    const orderA = catOrder[a[0]] !== undefined ? catOrder[a[0]] : 999
-    const orderB = catOrder[b[0]] !== undefined ? catOrder[b[0]] : 999
-    return orderA - orderB
-  })
 
   const todayStr = toLocalDateString()
   const todayGrid = practiceGrid.filter(g => g.date === todayStr)
@@ -222,82 +202,8 @@ export default function Dashboard() {
         )}
       </section>
 
-      {/* Pieces by Category */}
-      <section style={{ marginBottom: '32px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <h2 style={{ fontSize: '20px' }}>{isOwnProfile ? 'My Pieces' : 'Pieces'}</h2>
-          <Link href="/pieces" style={{ fontSize: '14px' }}>View all →</Link>
-        </div>
-        {pieces.length === 0 ? (
-          <div style={{ background: '#fff', borderRadius: '12px', padding: '24px', textAlign: 'center', color: '#666', border: '1px solid #e5e7eb' }}>
-            No pieces yet. {canEdit && <Link href="/add">Add your first piece</Link>}
-          </div>
-        ) : (
-          sortedCategoryEntries.map(([cat, items]) => (
-            <div key={cat} style={{ marginBottom: '16px' }}>
-              <h3 style={{ fontSize: '15px', color: '#2563eb', marginBottom: '8px' }}>{cat} ({items.length})</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '10px' }}>
-                {items.slice(0, 4).map(p => (
-                  <Link key={p.id} href={`/piece/${p.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                    <div style={{ background: '#fff', borderRadius: '10px', padding: '14px', border: '1px solid #e5e7eb', transition: 'box-shadow 0.15s' }}>
-                      <div style={{ fontWeight: '600', fontSize: '15px' }}>{p.title || 'Untitled'}</div>
-                      {p.composer && <div style={{ fontSize: '13px', color: '#666', marginTop: '2px' }}>{p.composer}</div>}
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          ))
-        )}
-      </section>
-
-      {/* Recent Activity */}
-      {recentActivity.length > 0 && (
-        <section style={{ marginBottom: '32px' }}>
-          <h2 style={{ fontSize: '20px', marginBottom: '16px' }}>Recent Activity</h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            {recentActivity.map(a => (
-              <div key={a.id} style={{ fontSize: '14px', padding: '10px 14px', background: '#fff', borderRadius: '8px', border: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span>
-                  <strong style={{ color: '#374151' }}>{a.action.replace('_', ' ')}</strong>
-                  {a.piece_title && <span style={{ color: '#666' }}> — {a.piece_title}</span>}
-                </span>
-                <span style={{ fontSize: '12px', color: '#999', whiteSpace: 'nowrap', marginLeft: '12px' }}>
-                  {new Date(a.created_at).toLocaleDateString()}
-                </span>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Quick Actions — only for own profile or edit access */}
-      {canEdit && (
-        <section>
-          <h2 style={{ fontSize: '20px', marginBottom: '16px' }}>Quick Actions</h2>
-          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-            <Link href="/add" style={{ textDecoration: 'none' }}>
-              <button style={{ padding: '12px 24px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: '500', cursor: 'pointer' }}>
-                + Add New Piece
-              </button>
-            </Link>
-            <Link href="/schedule" style={{ textDecoration: 'none' }}>
-              <button style={{ padding: '12px 24px', background: '#fff', color: '#2563eb', border: '1px solid #2563eb', borderRadius: '10px', fontSize: '15px', fontWeight: '500', cursor: 'pointer' }}>
-                Plan Practice Week
-              </button>
-            </Link>
-          </div>
-        </section>
-      )}
     </main>
   )
-}
-
-function isCompletedToday(item) {
-  if (!item.completed_at) return false
-  const completedDate = new Date(item.completed_at).toLocaleDateString()
-  const today = new Date().toLocaleDateString()
-  return completedDate === today
 }
 
 function StatCard({ label, value, color, href }) {

@@ -6,6 +6,47 @@ import { useCurrentUser } from '@/lib/useCurrentUser'
 import { useActiveProfile } from '@/lib/useActiveProfile'
 import { toLocalDateString } from '@/lib/dateUtils'
 
+function buildProfileData(email, accessLevel, activePieces, gridRes, activitiesRes) {
+  const pieceStats = {}
+  const expStats = { played: 0, practiced: 0 }
+  const daysWithActivity = new Set()
+
+  for (const g of (gridRes.grid || [])) {
+    if (g.status === 'played' || g.status === 'practiced') {
+      daysWithActivity.add(g.date)
+    }
+    if (g.piece_id === '00000000-0000-0000-0000-experimentation') {
+      if (g.status === 'played') expStats.played++
+      else if (g.status === 'practiced') expStats.practiced++
+      continue
+    }
+    if (!pieceStats[g.piece_id]) pieceStats[g.piece_id] = { played: 0, practiced: 0 }
+    if (g.status === 'played') pieceStats[g.piece_id].played++
+    else if (g.status === 'practiced') pieceStats[g.piece_id].practiced++
+  }
+
+  const sortedPieces = [...activePieces].sort((a, b) => {
+    const aStats = pieceStats[a.id] || { played: 0, practiced: 0 }
+    const bStats = pieceStats[b.id] || { played: 0, practiced: 0 }
+    const aTotal = aStats.played + aStats.practiced
+    const bTotal = bStats.played + bStats.practiced
+    if (bTotal !== aTotal) return bTotal - aTotal
+    return bStats.practiced - aStats.practiced
+  })
+
+  return {
+    email,
+    accessLevel,
+    piecesCount: activePieces.length,
+    daysActive: daysWithActivity.size,
+    pieces: sortedPieces,
+    pieceStats,
+    expStats,
+    experimentationFocus: gridRes.experimentationFocus || '',
+    activities: activitiesRes.activities || [],
+  }
+}
+
 export default function TeacherDashboard() {
   const { user, loading: userLoading } = useCurrentUser()
   const { availableProfiles, switchProfile, profileDisplayName } = useActiveProfile()
@@ -15,7 +56,6 @@ export default function TeacherDashboard() {
 
   useEffect(() => {
     if (userLoading || !user) return
-    if (availableProfiles.length === 0) { setLoading(false); return }
     loadStudents()
   }, [userLoading, user, availableProfiles, dayRange])
 
@@ -29,6 +69,21 @@ export default function TeacherDashboard() {
     const startDate = toLocalDateString(startDay)
     const endDate = toLocalDateString(today)
 
+    // Load own profile first
+    try {
+      const enc = encodeURIComponent(user.email)
+      const [piecesRes, gridRes, activitiesRes] = await Promise.all([
+        fetch(`/api/profile-data?type=pieces&email=${enc}`).then(r => r.json()),
+        fetch(`/api/practice-grid?profile=${enc}&start=${startDate}&end=${endDate}`).then(r => r.json()),
+        fetch(`/api/user-activities?profile=${enc}`).then(r => r.json()),
+      ])
+      const ownResult = buildProfileData(user.email, 'own', piecesRes.pieces || [], gridRes, activitiesRes)
+      results.push(ownResult)
+    } catch {
+      results.push({ email: user.email, accessLevel: 'own', piecesCount: 0, daysActive: 0, pieces: [], pieceStats: {}, expStats: { played: 0, practiced: 0 }, experimentationFocus: '', activities: [] })
+    }
+
+    // Load shared profiles
     for (const profile of availableProfiles) {
       try {
         const enc = encodeURIComponent(profile.email)
@@ -38,50 +93,8 @@ export default function TeacherDashboard() {
           fetch(`/api/profile/${enc}/activities`).then(r => r.json()),
         ])
 
-        const activePieces = (piecesRes.pieces || []).filter(p => !p.archived)
-
-        // Build per-piece stats from grid data
-        const pieceStats = {}
-        const expStats = { played: 0, practiced: 0 }
-        const daysWithActivity = new Set()
-
-        for (const g of (gridRes.grid || [])) {
-          if (g.status === 'played' || g.status === 'practiced') {
-            daysWithActivity.add(g.date)
-          }
-
-          if (g.piece_id === '00000000-0000-0000-0000-experimentation') {
-            if (g.status === 'played') expStats.played++
-            else if (g.status === 'practiced') expStats.practiced++
-            continue
-          }
-
-          if (!pieceStats[g.piece_id]) pieceStats[g.piece_id] = { played: 0, practiced: 0 }
-          if (g.status === 'played') pieceStats[g.piece_id].played++
-          else if (g.status === 'practiced') pieceStats[g.piece_id].practiced++
-        }
-
-        // Sort pieces: most activity first, practiced weighted higher for ties
-        const sortedPieces = activePieces.sort((a, b) => {
-          const aStats = pieceStats[a.id] || { played: 0, practiced: 0 }
-          const bStats = pieceStats[b.id] || { played: 0, practiced: 0 }
-          const aTotal = aStats.played + aStats.practiced
-          const bTotal = bStats.played + bStats.practiced
-          if (bTotal !== aTotal) return bTotal - aTotal
-          return bStats.practiced - aStats.practiced
-        })
-
-        results.push({
-          email: profile.email,
-          accessLevel: profile.accessLevel,
-          piecesCount: activePieces.length,
-          daysActive: daysWithActivity.size,
-          pieces: sortedPieces,
-          pieceStats,
-          expStats,
-          experimentationFocus: gridRes.experimentationFocus || '',
-          activities: (activitiesRes.activities || []),
-        })
+        const result = buildProfileData(profile.email, profile.accessLevel, (piecesRes.pieces || []).filter(p => !p.archived), gridRes, activitiesRes)
+        results.push(result)
       } catch {
         results.push({ email: profile.email, accessLevel: profile.accessLevel, piecesCount: 0, daysActive: 0, pieces: [], pieceStats: {}, expStats: { played: 0, practiced: 0 }, experimentationFocus: '', activities: [] })
       }
@@ -92,24 +105,11 @@ export default function TeacherDashboard() {
 
   if (userLoading || loading) return <div style={{ padding: '24px', textAlign: 'center', color: '#666' }}>Loading...</div>
 
-  if (availableProfiles.length === 0) {
-    return (
-      <main style={{ padding: '24px', maxWidth: '900px', margin: '0 auto' }}>
-        <Link href="/" style={{ textDecoration: 'none', color: '#666', fontSize: '14px' }}>← Dashboard</Link>
-        <h1 style={{ margin: '16px 0 24px' }}>Parent/Teacher Dashboard</h1>
-        <div style={{ background: '#fff', borderRadius: '12px', padding: '40px', textAlign: 'center', color: '#666', border: '1px solid #e5e7eb' }}>
-          <p>No students have shared their profiles with you yet.</p>
-          <p style={{ fontSize: '14px', marginTop: '8px' }}>Ask your students to go to <strong>Sharing</strong> and grant you access.</p>
-        </div>
-      </main>
-    )
-  }
-
   return (
     <main style={{ padding: '24px', maxWidth: '900px', margin: '0 auto' }}>
       <Link href="/" style={{ textDecoration: 'none', color: '#666', fontSize: '14px' }}>← Dashboard</Link>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '16px 0 8px', gap: '12px' }}>
-        <h1 style={{ margin: 0, fontSize: '22px', minWidth: 0 }}>Parent/Teacher Dashboard</h1>
+        <h1 style={{ margin: 0, fontSize: '22px', minWidth: 0 }}>Practice Summary</h1>
         <div style={{ display: 'flex', background: '#f3f4f6', borderRadius: '8px', overflow: 'hidden', flexShrink: 0 }}>
           <button onClick={() => setDayRange(7)} style={{
             padding: '6px 14px', fontSize: '13px', fontWeight: '500', cursor: 'pointer', border: 'none',
@@ -123,7 +123,11 @@ export default function TeacherDashboard() {
           }}>14 days</button>
         </div>
       </div>
-      <p style={{ color: '#666', fontSize: '14px', marginBottom: '24px' }}>{students.length} student{students.length !== 1 ? 's' : ''}</p>
+      <p style={{ color: '#666', fontSize: '14px', marginBottom: '24px' }}>
+        {availableProfiles.length > 0
+          ? `You + ${availableProfiles.length} shared profile${availableProfiles.length !== 1 ? 's' : ''}`
+          : 'Your practice summary'}
+      </p>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
         {students.map(s => (
@@ -131,15 +135,20 @@ export default function TeacherDashboard() {
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
               <div>
-                <h2 style={{ fontSize: '18px', margin: 0 }}>{profileDisplayName(s.email)}</h2>
+                <h2 style={{ fontSize: '18px', margin: 0 }}>
+                  {profileDisplayName(s.email)}
+                  {s.accessLevel === 'own' && <span style={{ fontSize: '13px', color: '#666', fontWeight: '400', marginLeft: '6px' }}>(You)</span>}
+                </h2>
                 <div style={{ fontSize: '13px', color: '#666', marginTop: '2px' }}>{s.email}</div>
               </div>
-              <button onClick={() => { switchProfile(s.email); window.location.href = '/' }} style={{
-                padding: '8px 16px', background: '#2563eb', color: '#fff', border: 'none',
-                borderRadius: '8px', fontSize: '13px', cursor: 'pointer'
-              }}>
-                View Profile
-              </button>
+              {s.accessLevel !== 'own' && (
+                <button onClick={() => { switchProfile(s.email); window.location.href = '/' }} style={{
+                  padding: '8px 16px', background: '#2563eb', color: '#fff', border: 'none',
+                  borderRadius: '8px', fontSize: '13px', cursor: 'pointer'
+                }}>
+                  View Profile
+                </button>
+              )}
             </div>
 
             {/* Stats row */}
