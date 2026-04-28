@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import Link from 'next/link'
 import { useCurrentUser, clearCachedUser } from '@/lib/useCurrentUser'
-import { useActiveProfile } from '@/lib/useActiveProfile'
+import { useActiveProfile, clearStoredProfile } from '@/lib/useActiveProfile'
 
 export default function NavBar() {
   const { user, isAdmin } = useCurrentUser()
@@ -19,6 +19,7 @@ export default function NavBar() {
 
   async function handleSignOut() {
     clearCachedUser()
+    clearStoredProfile()
     await supabase.auth.signOut()
     window.location.href = '/login'
   }
@@ -173,7 +174,7 @@ export default function NavBar() {
       </nav>
 
       {/* Banner when viewing another profile */}
-      {!isOwnProfile && activeProfile && (
+      {user && !isOwnProfile && activeProfile && (
         <div style={{
           background: '#dbeafe', padding: '8px 24px', fontSize: '13px', color: '#1e40af',
           display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', fontWeight: '500'
