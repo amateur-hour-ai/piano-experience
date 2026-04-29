@@ -103,6 +103,76 @@ export default function TeacherDashboard() {
     setLoading(false)
   }
 
+  function printSummary(s) {
+    const name = profileDisplayName(s.email)
+    const pieceRows = s.pieces.map(p => {
+      const stats = s.pieceStats[p.id] || { played: 0, practiced: 0 }
+      return `<tr style="${p.is_priority ? 'background:#fdf2f8' : ''}">
+        <td style="padding:6px 10px;font-size:13px">${p.is_priority ? '<span style="color:#ec4899">★</span> ' : ''}${p.title}</td>
+        <td style="padding:6px 10px;font-size:12px;color:#2563eb">${p.current_focus || ''}</td>
+        <td style="padding:6px 10px;text-align:center;font-weight:600;color:${stats.practiced > 0 ? '#059669' : '#ccc'}">${stats.practiced}</td>
+        <td style="padding:6px 10px;text-align:center;font-weight:600;color:${stats.played > 0 ? '#2563eb' : '#ccc'}">${stats.played}</td>
+      </tr>`
+    }).join('')
+
+    let expHtml = ''
+    if (s.expStats.played + s.expStats.practiced > 0 || s.experimentationFocus) {
+      expHtml = `<tr style="border-top:2px solid #e5e7eb">
+        <td style="padding:6px 10px;font-size:13px">Experimentation</td>
+        <td style="padding:6px 10px;font-size:12px;color:#2563eb">${s.experimentationFocus || ''}</td>
+        <td style="padding:6px 10px;text-align:center;font-weight:600;color:${s.expStats.practiced > 0 ? '#059669' : '#ccc'}">${s.expStats.practiced}</td>
+        <td style="padding:6px 10px;text-align:center;font-weight:600;color:${s.expStats.played > 0 ? '#2563eb' : '#ccc'}">${s.expStats.played}</td>
+      </tr>`
+    }
+
+    let activitiesHtml = ''
+    if (s.activities.length > 0) {
+      activitiesHtml = `<div style="margin-top:16px"><div style="font-size:12px;color:#999;font-weight:600;margin-bottom:6px">ACTIVITIES</div>`
+      s.activities.forEach(a => {
+        activitiesHtml += `<div style="font-size:13px;margin-bottom:4px">${a.completed_date ? '✓' : '○'} ${a.completed_date ? '<s style="color:#999">' : ''}${a.description}${a.completed_date ? '</s>' : ''}`
+        if (a.completed_date) activitiesHtml += ` <span style="color:#999;font-size:11px">(${new Date(a.completed_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})</span>`
+        activitiesHtml += `</div>`
+        if (a.reflection) activitiesHtml += `<div style="font-size:12px;color:#666;margin:2px 0 6px 18px;white-space:pre-wrap">${a.reflection}</div>`
+      })
+      activitiesHtml += `</div>`
+    }
+
+    const w = window.open('', '_blank')
+    if (!w) return
+    w.document.write(`<!DOCTYPE html><html><head><title>${name} — Practice Summary</title>
+      <style>
+        body{font-family:-apple-system,sans-serif;padding:24px;max-width:700px;margin:0 auto;color:#1a1a1a;font-size:14px}
+        h1{font-size:20px;color:#2563eb;margin:0 0 4px}
+        table{border-collapse:collapse;width:100%;margin-top:12px}
+        th{text-align:left;padding:6px 10px;font-size:11px;color:#999;border-bottom:2px solid #e5e7eb}
+        td{border-bottom:1px solid #f3f4f6}
+        .stats{display:flex;gap:16px;margin:12px 0}
+        .stat{background:#f9fafb;border-radius:8px;padding:10px 20px;text-align:center}
+        .stat-val{font-size:22px;font-weight:700}
+        .stat-label{font-size:11px;color:#666;margin-top:2px}
+        .no-print{} @media print{.no-print{display:none!important}}
+      </style></head><body>
+      <div class="no-print" style="margin-bottom:16px;display:flex;gap:12px">
+        <button onclick="window.print()" style="padding:10px 20px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer">Print</button>
+        <button onclick="window.close();if(!window.closed)history.back()" style="padding:10px 20px;background:#f9fafb;color:#666;border:1px solid #d1d5db;border-radius:8px;font-size:14px;cursor:pointer">← Back to App</button>
+      </div>
+      <h1>${name} — Practice Summary</h1>
+      <div style="font-size:13px;color:#666;margin-bottom:4px">${s.email}</div>
+      <div style="font-size:12px;color:#999">Last ${dayRange} days — ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</div>
+      <div class="stats">
+        <div class="stat"><div class="stat-val" style="color:#2563eb">${s.piecesCount}</div><div class="stat-label">Active Pieces</div></div>
+        <div class="stat"><div class="stat-val" style="color:#059669">${s.daysActive}/${dayRange}</div><div class="stat-label">Days Active</div></div>
+      </div>
+      ${s.pieces.length > 0 ? `<table>
+        <thead><tr><th>Piece</th><th>Focus</th><th style="text-align:center">💕</th><th style="text-align:center"><span style="color:#ec4899">♥</span></th></tr></thead>
+        <tbody>${pieceRows}${expHtml}</tbody>
+      </table>` : ''}
+      ${activitiesHtml}
+      <div style="margin-top:20px;font-size:11px;color:#999">Piano Experience — pianoexperience.app</div>
+    </body></html>`)
+    w.document.close()
+  }
+
   if (userLoading || loading) return <div style={{ padding: '24px', textAlign: 'center', color: '#666' }}>Loading...</div>
 
   return (
@@ -141,14 +211,22 @@ export default function TeacherDashboard() {
                 </h2>
                 <div style={{ fontSize: '13px', color: '#666', marginTop: '2px' }}>{s.email}</div>
               </div>
-              {s.accessLevel !== 'own' && (
-                <button onClick={() => { switchProfile(s.email); window.location.href = '/' }} style={{
-                  padding: '8px 16px', background: '#2563eb', color: '#fff', border: 'none',
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button onClick={() => printSummary(s)} style={{
+                  padding: '8px 16px', background: '#f9fafb', color: '#666', border: '1px solid #d1d5db',
                   borderRadius: '8px', fontSize: '13px', cursor: 'pointer'
                 }}>
-                  View Profile
+                  Print Summary
                 </button>
-              )}
+                {s.accessLevel !== 'own' && (
+                  <button onClick={() => { switchProfile(s.email); window.location.href = '/' }} style={{
+                    padding: '8px 16px', background: '#2563eb', color: '#fff', border: 'none',
+                    borderRadius: '8px', fontSize: '13px', cursor: 'pointer'
+                  }}>
+                    View Profile
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Stats row */}

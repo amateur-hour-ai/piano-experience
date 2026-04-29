@@ -203,6 +203,7 @@ function UserGuide() {
         <Step n="1">Use the <strong>7 days / 14 days</strong> toggle at the top to choose the time window.</Step>
         <Step n="2">Your own practice summary shows first, with active piece count and days active.</Step>
         <Step n="3">Each piece shows how many days it was practiced (💕) and played (<span style={{ color: '#ec4899' }}>♥</span>), plus the current focus area. Pieces are sorted by most activity.</Step>
+        <Step n="4">Tap <strong>Print Summary</strong> on any card to generate a one-page printable summary — great for bringing to lessons.</Step>
         <Note>You'll also see experimentation activity and any assigned activities with their reflections. Shared profiles appear below yours with a "View Profile" button to switch.</Note>
       </Section>
 
@@ -279,6 +280,7 @@ function ReleaseNotes() {
         'Home page (renamed from Dashboard) — trimmed to theme, streak, stats, and today\'s practice',
         'Tap to complete on Home — tap the status icon on any piece during practice to mark it played or practiced. Tap again to undo.',
         'Played icon — replaced growing heart emoji with a clean pink ♥ for universal device support',
+        'Print Summary — one-page printable practice summary for any profile, great for bringing to lessons',
       ]
     },
     {
