@@ -203,13 +203,15 @@ export default function TeacherDashboard() {
         {students.map(s => (
           <div key={s.email} style={{ background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e5e7eb' }}>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-              <div>
-                <h2 style={{ fontSize: '18px', margin: 0 }}>
-                  {profileDisplayName(s.email)}
-                  {s.accessLevel === 'own' && <span style={{ fontSize: '13px', color: '#666', fontWeight: '400', marginLeft: '6px' }}>(You)</span>}
-                </h2>
-                <div style={{ fontSize: '13px', color: '#666', marginTop: '2px' }}>{s.email}</div>
+            <div style={{ marginBottom: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                <div>
+                  <h2 style={{ fontSize: '18px', margin: 0 }}>
+                    {profileDisplayName(s.email)}
+                    {s.accessLevel === 'own' && <span style={{ fontSize: '13px', color: '#666', fontWeight: '400', marginLeft: '6px' }}>(You)</span>}
+                  </h2>
+                  <div style={{ fontSize: '13px', color: '#666', marginTop: '2px' }}>{s.email}</div>
+                </div>
               </div>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button onClick={() => printSummary(s)} style={{
