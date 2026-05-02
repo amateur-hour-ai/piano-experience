@@ -15,7 +15,7 @@ function buildProfileData(email, accessLevel, activePieces, gridRes, activitiesR
     if (g.status === 'played' || g.status === 'practiced') {
       daysWithActivity.add(g.date)
     }
-    if (g.piece_id === '00000000-0000-0000-0000-experimentation') {
+    if (g.piece_id === '00000000-0000-0000-0000-000000000001') {
       if (g.status === 'played') expStats.played++
       else if (g.status === 'practiced') expStats.practiced++
       continue

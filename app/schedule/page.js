@@ -51,7 +51,7 @@ export default function PracticeSchedule() {
     days.push(d)
   }
   const todayStr = toLocalDateString(today)
-  const EXPERIMENTATION_ID = '00000000-0000-0000-0000-experimentation'
+  const EXPERIMENTATION_ID = '00000000-0000-0000-0000-000000000001'
   const [expFocus, setExpFocus] = useState('')
   const experimentationPiece = { id: EXPERIMENTATION_ID, title: 'Experimentation', composer: null, current_focus: expFocus, is_priority: false, category_id: null, categories: null, isExperimentation: true }
 
