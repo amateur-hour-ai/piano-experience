@@ -294,6 +294,7 @@ export default function PracticeCoach() {
       || voices.find(v => v.lang.startsWith('en') && !v.name.includes('Google') && v.localService)
       || voices.find(v => v.lang.startsWith('en'))
     if (preferred) utterance.voice = preferred
+    console.log('TTS voice:', preferred?.name || 'default', '| Available:', voices.map(v => v.name).join(', '))
     window.speechSynthesis.speak(utterance)
   }
 
