@@ -20,7 +20,13 @@ export default function PracticeCoach() {
   const [loadingConversation, setLoadingConversation] = useState(true)
   const [appliedProposals, setAppliedProposals] = useState(new Set())
   const [applyingProposal, setApplyingProposal] = useState(false)
+  const [listening, setListening] = useState(false)
+  const [voiceMode, setVoiceMode] = useState(false)
   const messagesEndRef = useRef(null)
+  const recognitionRef = useRef(null)
+
+  // Check for speech recognition support
+  const hasSpeechRecognition = typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition)
 
   useEffect(() => {
     if (userLoading || !user || !activeProfile) return
@@ -44,8 +50,10 @@ export default function PracticeCoach() {
     setLoadingConversation(false)
   }
 
-  async function sendMessage(text) {
+  async function sendMessage(text, fromVoice = false) {
     if (!text?.trim() || sending) return
+    stopSpeaking()
+    if (!fromVoice) setVoiceMode(false)
 
     const userMsg = { role: 'user', content: text.trim(), timestamp: new Date().toISOString() }
     const updatedMessages = [...messages, userMsg]
@@ -77,6 +85,11 @@ export default function PracticeCoach() {
         setConversationId(data.conversationId)
       }
       setMessages(data.messages || updatedMessages)
+
+      // Auto-speak response if user used voice input
+      if (voiceMode && data.text) {
+        speakText(data.text)
+      }
     } catch {
       addToast('Failed to reach Practice Coach', 'error')
     }
@@ -200,6 +213,78 @@ export default function PracticeCoach() {
     setMessages([])
     setConversationId(null)
     setAppliedProposals(new Set())
+    stopSpeaking()
+  }
+
+  function startListening() {
+    if (!hasSpeechRecognition) return
+    stopSpeaking()
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+    const recognition = new SpeechRecognition()
+    recognition.continuous = false
+    recognition.interimResults = true
+    recognition.lang = 'en-US'
+
+    recognition.onresult = (event) => {
+      let transcript = ''
+      for (let i = 0; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript
+      }
+      setInput(transcript)
+    }
+
+    recognition.onend = () => {
+      setListening(false)
+    }
+
+    recognition.onerror = (event) => {
+      if (event.error !== 'no-speech' && event.error !== 'aborted') {
+        addToast('Voice input error: ' + event.error, 'error')
+      }
+      setListening(false)
+    }
+
+    recognitionRef.current = recognition
+    recognition.start()
+    setListening(true)
+    setVoiceMode(true)
+  }
+
+  function stopListening() {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop()
+      recognitionRef.current = null
+    }
+    setListening(false)
+  }
+
+  function toggleListening() {
+    if (listening) {
+      stopListening()
+    } else {
+      startListening()
+    }
+  }
+
+  function speakText(text) {
+    if (!text || typeof window === 'undefined' || !window.speechSynthesis) return
+    window.speechSynthesis.cancel()
+    const utterance = new SpeechSynthesisUtterance(text)
+    utterance.rate = 1.0
+    utterance.pitch = 1.0
+    // Try to find a good voice
+    const voices = window.speechSynthesis.getVoices()
+    const preferred = voices.find(v => v.name.includes('Samantha')) // iOS default
+      || voices.find(v => v.lang.startsWith('en') && v.name.includes('Female'))
+      || voices.find(v => v.lang.startsWith('en'))
+    if (preferred) utterance.voice = preferred
+    window.speechSynthesis.speak(utterance)
+  }
+
+  function stopSpeaking() {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.cancel()
+    }
   }
 
   if (userLoading || loadingConversation) return <div style={{ padding: '24px', textAlign: 'center', color: '#666' }}>Loading...</div>
@@ -258,6 +343,12 @@ export default function PracticeCoach() {
                 fontSize: '14px', lineHeight: '1.6', whiteSpace: 'pre-wrap',
               }}>
                 {msg.content}
+                {msg.role === 'assistant' && msg.content && (
+                  <button onClick={() => speakText(msg.content)} style={{
+                    background: 'none', border: 'none', cursor: 'pointer', padding: '2px 0 0 8px',
+                    fontSize: '14px', color: '#999', verticalAlign: 'middle',
+                  }}>🔊</button>
+                )}
               </div>
             </div>
 
@@ -291,21 +382,34 @@ export default function PracticeCoach() {
       }}>
       <div style={{ maxWidth: '700px', margin: '0 auto' }}>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
+          {hasSpeechRecognition && (
+            <button
+              onClick={toggleListening}
+              disabled={sending}
+              style={{
+                padding: '12px', background: listening ? '#dc2626' : '#f3f4f6', border: 'none',
+                borderRadius: '50%', fontSize: '18px', cursor: 'pointer', flexShrink: 0,
+                width: '48px', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'background 0.2s',
+              }}
+            >{listening ? '⏹' : '🎤'}</button>
+          )}
           <textarea
             value={input}
-            onChange={e => { setInput(e.target.value); e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px' }}
+            onChange={e => { setInput(e.target.value); setVoiceMode(false); e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px' }}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input) } }}
-            placeholder="Tell me about your practice goals..."
+            placeholder={listening ? 'Listening...' : 'Tell me about your practice goals...'}
             disabled={sending}
             rows={1}
             style={{
-              flex: 1, padding: '12px 16px', border: '1px solid #d1d5db', borderRadius: '20px',
+              flex: 1, padding: '12px 16px', border: `1px solid ${listening ? '#dc2626' : '#d1d5db'}`, borderRadius: '20px',
               fontSize: '14px', boxSizing: 'border-box', outline: 'none', resize: 'none',
               lineHeight: '1.4', maxHeight: '120px', overflow: 'auto',
+              transition: 'border-color 0.2s',
             }}
           />
           <button
-            onClick={() => sendMessage(input)}
+            onClick={() => sendMessage(input, voiceMode)}
             disabled={sending || !input.trim()}
             style={{
               padding: '12px 20px', background: '#2563eb', color: '#fff', border: 'none',

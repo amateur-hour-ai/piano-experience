@@ -160,7 +160,9 @@ function UserGuide() {
         <Step n="2">The coach will ask follow-up questions to understand your needs, then propose a full schedule with pieces, play/practice status, focus areas, and a weekly focus theme.</Step>
         <Step n="3">Review the proposed schedule — you'll see a visual card showing each day's plan. Tap <strong>Apply Schedule</strong> to fill your practice grid in one tap.</Step>
         <Step n="4">Continue the conversation to make adjustments, or tap <strong>New Chat</strong> to start fresh.</Step>
-        <Note>The Practice Coach only discusses piano practice and music. Your conversation is saved so you can return to it later. Admins can customize the coach's practice philosophy in Settings.</Note>
+        <Step n="5">Tap the <strong>🎤 microphone</strong> button to speak instead of type — your speech is transcribed and sent. The coach's reply is read aloud automatically.</Step>
+        <Step n="6">Tap <strong>🔊</strong> on any coach message to hear it read aloud again.</Step>
+        <Note>The Practice Coach only discusses piano practice and music. Your conversation is saved so you can return to it later. Voice features use your device's built-in speech capabilities — no extra cost. Admins can customize the coach's practice philosophy in Settings.</Note>
       </Section>
 
       <Section title="Activities">
@@ -303,6 +305,7 @@ function ReleaseNotes() {
         'Practice Coach — AI-powered practice planning assistant. Describe your goals and it proposes a full weekly schedule with focus areas. Uses Claude Sonnet.',
         'Weekly Focus — set an overarching practice theme for the week (e.g., counting aloud, sight reading) at the top of the practice schedule',
         'Practice Philosophy — admin-editable instructions in Settings that guide the Practice Coach\'s recommendations',
+        'Voice mode for Practice Coach — tap the microphone to speak instead of type. Coach responses are read aloud automatically when using voice. Tap 🔊 on any message to replay.',
       ]
     },
     {
