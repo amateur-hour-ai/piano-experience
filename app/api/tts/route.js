@@ -31,6 +31,7 @@ export async function POST(request) {
         model: 'tts-1',
         input: truncated,
         voice: 'nova',
+        speed: 1.15,
         response_format: 'mp3',
       }),
     })
