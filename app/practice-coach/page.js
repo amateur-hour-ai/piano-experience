@@ -88,6 +88,15 @@ export default function PracticeCoach() {
     setApplyingProposal(true)
 
     try {
+      // Validate piece_ids are real UUIDs (Claude sometimes hallucinates IDs)
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+      const invalidEntries = (proposal.schedule || []).filter(e => !uuidRegex.test(e.piece_id))
+      if (invalidEntries.length > 0) {
+        addToast('Schedule has invalid piece references — please ask the coach to try again', 'error')
+        setApplyingProposal(false)
+        return
+      }
+
       // Fetch current grid to avoid overwriting completed statuses
       const dates = [...new Set((proposal.schedule || []).map(e => e.date))].sort()
       const gridRes = await fetch(`/api/practice-grid?profile=${encodeURIComponent(activeProfile)}&start=${dates[0]}&end=${dates[dates.length - 1]}`).then(r => r.json())
@@ -120,8 +129,8 @@ export default function PracticeCoach() {
         addToast(`${skipped} completed cell${skipped > 1 ? 's' : ''} preserved`, 'info')
       }
 
-      // Apply focus updates
-      for (const update of (proposal.focus_updates || [])) {
+      // Apply focus updates (skip any with invalid UUIDs)
+      for (const update of (proposal.focus_updates || []).filter(u => uuidRegex.test(u.piece_id))) {
         await fetch('/api/practice-grid', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

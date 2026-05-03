@@ -39,7 +39,7 @@ const TOOLS = [
   },
   {
     name: 'propose_schedule',
-    description: 'Propose a practice schedule for the student to review. Include which pieces to play or practice on which days, focus area updates for each piece, and an overall weekly focus. The student will see a visual preview and must approve before it is applied. Call this only when you have gathered enough information from the student.',
+    description: 'Propose a practice schedule for the student to review. CRITICAL: piece_id values MUST be the exact UUID strings returned by get_pieces (e.g., "a1b2c3d4-e5f6-7890-abcd-ef1234567890"). Do NOT invent or abbreviate piece IDs. Include which pieces to play or practice on which days, focus area updates for each piece, and an overall weekly focus. The student will see a visual preview and must approve before it is applied. Call this only when you have gathered enough information from the student.',
     input_schema: {
       type: 'object',
       properties: {
@@ -79,7 +79,13 @@ const TOOLS = [
 ]
 
 function buildSystemPrompt(practicePhilosophy) {
-  let prompt = `You are a friendly, knowledgeable piano practice coach. Your job is to help piano students plan their weekly practice schedule.
+  const todayStr = getLocalDate(0)
+  const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'America/Chicago' })
+
+  let prompt = `You are a friendly, knowledgeable piano practice coach.
+
+## Today's Date
+Today is ${todayName} (${todayStr}). Always use this as your reference for scheduling. Only propose dates from today forward. Your job is to help piano students plan their weekly practice schedule.
 
 ## Your Approach
 - Be warm, encouraging, and conversational
@@ -112,7 +118,7 @@ Don't ask all questions at once — have a natural conversation. 2-3 questions a
 ## Important Rules
 - You can ONLY discuss topics related to piano practice, music, repertoire, and the student's schedule
 - If asked about unrelated topics, politely say: "I'm your practice coach — I can only help with piano practice and music! What would you like to work on this week?"
-- Always use the get_pieces tool at the start to learn about the student's repertoire
+- Always use the get_pieces tool at the start to learn about the student's repertoire. The tool returns each piece's UUID — you MUST use these exact UUIDs (not made-up IDs) when calling propose_schedule.
 - Always propose a schedule using the propose_schedule tool — never just describe it in text
 - When the student approves the schedule, confirm it has been applied
 - Only propose schedule entries for future dates and today. Do NOT propose changes for past dates.
