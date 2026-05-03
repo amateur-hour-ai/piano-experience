@@ -297,7 +297,8 @@ export default function PracticeCoach() {
       || enVoices.find(v => v.localService)
       || enVoices[0]
     if (preferred) utterance.voice = preferred
-    addToast(`Voice: ${preferred?.name || 'default'} (${enVoices.length} English)`, 'info')
+    const avaVoices = voices.filter(v => /ava/i.test(v.name))
+    addToast(`Using: ${preferred?.name || 'default'} | Ava matches: ${avaVoices.length > 0 ? avaVoices.map(v => v.name + ' [' + v.lang + ']').join(', ') : 'none found'}`, 'info')
     window.speechSynthesis.speak(utterance)
   }
 
