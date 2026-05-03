@@ -102,21 +102,48 @@ export default function PracticeCoach() {
         return
       }
 
-      // Fetch current grid to avoid overwriting completed statuses
-      const dates = [...new Set((proposal.schedule || []).map(e => e.date))].sort()
-      const gridRes = await fetch(`/api/practice-grid?profile=${encodeURIComponent(activeProfile)}&start=${dates[0]}&end=${dates[dates.length - 1]}`).then(r => r.json())
+      // Fetch current grid to find what needs clearing and what to preserve
+      const proposedDates = [...new Set((proposal.schedule || []).map(e => e.date))].sort()
+      // Get a wider range — from earliest proposed date to 14 days out, to catch stale entries
+      const today = new Date()
+      const twoWeeksOut = new Date(today)
+      twoWeeksOut.setDate(twoWeeksOut.getDate() + 14)
+      const rangeStart = proposedDates[0] || toLocalDateString(today)
+      const rangeEnd = toLocalDateString(twoWeeksOut)
+      const gridRes = await fetch(`/api/practice-grid?profile=${encodeURIComponent(activeProfile)}&start=${rangeStart}&end=${rangeEnd}`).then(r => r.json())
+
       const currentGrid = {}
       for (const g of (gridRes.grid || [])) {
         currentGrid[`${g.piece_id}_${g.date}`] = g.status
       }
 
-      // Apply each schedule entry — skip cells where practice is already completed
+      // Build a set of proposed cells for quick lookup
+      const proposedCells = new Set((proposal.schedule || []).map(e => `${e.piece_id}_${e.date}`))
+
+      // Clear stale planned entries that aren't in the new proposal
+      for (const g of (gridRes.grid || [])) {
+        if ((g.status === 'plan_play' || g.status === 'plan_practice') && !proposedCells.has(`${g.piece_id}_${g.date}`)) {
+          await fetch('/api/practice-grid', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'toggle_to',
+              piece_id: g.piece_id,
+              date: g.date,
+              newStatus: null,
+              profileEmail: isOwnProfile ? undefined : activeProfile,
+            })
+          })
+        }
+      }
+
+      // Apply each new schedule entry — skip cells where practice is already completed
       let skipped = 0
       for (const entry of (proposal.schedule || [])) {
         const currentStatus = currentGrid[`${entry.piece_id}_${entry.date}`]
         if (currentStatus === 'played' || currentStatus === 'practiced') {
           skipped++
-          continue // Don't overwrite completed work
+          continue
         }
         await fetch('/api/practice-grid', {
           method: 'POST',

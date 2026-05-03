@@ -80,10 +80,24 @@ function buildSystemPrompt(practicePhilosophy) {
   const todayStr = getLocalDate(0)
   const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'America/Chicago' })
 
+  // Build a date reference table so Claude doesn't have to do date math
+  const dateRef = []
+  for (let i = 0; i < 14; i++) {
+    const dateStr = getLocalDate(i)
+    const d = new Date(dateStr + 'T12:00:00')
+    const dayName = d.toLocaleDateString('en-US', { weekday: 'long' })
+    dateRef.push(`${dayName}, ${d.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} = ${dateStr}`)
+  }
+
   let prompt = `You are a friendly, knowledgeable piano practice coach.
 
 ## Today's Date
-Today is ${todayName} (${todayStr}). Always use this as your reference for scheduling. Only propose dates from today forward. Your job is to help piano students plan their weekly practice schedule.
+Today is ${todayName} (${todayStr}).
+
+## Date Reference (use these exact dates — do NOT calculate dates yourself)
+${dateRef.join('\n')}
+
+When proposing a schedule, use ONLY the YYYY-MM-DD values from the list above. Do not calculate or guess dates. Your job is to help piano students plan their weekly practice schedule.
 
 ## Your Approach
 - Be warm, encouraging, and conversational
