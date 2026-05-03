@@ -178,7 +178,7 @@ export default function PracticeCoach() {
   }
 
   return (
-    <main style={{ padding: '0', maxWidth: '700px', margin: '0 auto', display: 'flex', flexDirection: 'column', height: 'calc(100dvh - 64px)' }}>
+    <main style={{ padding: '0 0 140px 0', maxWidth: '700px', margin: '0 auto' }}>
       {/* Header */}
       <div style={{ padding: '16px 24px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
@@ -195,7 +195,7 @@ export default function PracticeCoach() {
       </div>
 
       {/* Messages */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 24px' }}>
+      <div style={{ padding: '16px 24px' }}>
         {messages.length === 0 && (
           <div style={{ textAlign: 'center', color: '#999', padding: '40px 0' }}>
             <div style={{ fontSize: '48px', marginBottom: '12px' }}>🎹</div>
@@ -243,10 +243,12 @@ export default function PracticeCoach() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
+      {/* Input — sticky footer */}
       <div style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 9999,
         padding: '12px 24px 24px', borderTop: '1px solid #e5e7eb', background: '#fff',
       }}>
+      <div style={{ maxWidth: '700px', margin: '0 auto' }}>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
           <textarea
             value={input}
@@ -271,6 +273,7 @@ export default function PracticeCoach() {
             }}
           >Send</button>
         </div>
+      </div>
       </div>
     </main>
   )
