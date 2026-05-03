@@ -152,8 +152,6 @@ Don't ask all questions at once — have a natural conversation. Ask only 1 ques
 ## Schedule Planning Guidelines
 - Priority pieces (marked with ★) should get more practice days
 - Every practice day should include at least one focused practice piece
-- Include at least one "play for fun" piece on most days to keep practice enjoyable
-- Vary the focus areas — don't assign the same focus every day
 - Set specific, actionable focus areas (e.g., "mm. 24-32 left hand passage work" not just "practice it")
 - Always include practice_days in your proposal — these are the days the student said they can practice
 - Always include priority_pieces — the most important pieces for the week. For students with many pieces this could be 4-5 priorities, not just 1-2. Consider upcoming performances, teacher emphasis, and pieces needing the most work.
@@ -172,7 +170,7 @@ Don't ask all questions at once — have a natural conversation. Ask only 1 ques
 - If a date already has completed entries (played/practiced), the system will preserve those — so it's safe to propose plan entries for those dates as they'll be skipped for completed pieces`
 
   if (practicePhilosophy) {
-    prompt += `\n\n## Teacher's Practice Philosophy\nThe following guidance comes from the student's teacher. Incorporate these principles into your recommendations:\n\n${practicePhilosophy}`
+    prompt += `\n\n## Teacher's Practice Philosophy (HIGHEST PRIORITY)\nThe following guidance comes from the student's teacher. These instructions take precedence over any default guidelines above when there is a conflict. Follow them closely — they reflect the teacher's specific approach and preferences:\n\n${practicePhilosophy}`
   }
 
   return prompt
