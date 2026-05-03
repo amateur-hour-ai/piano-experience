@@ -114,7 +114,9 @@ Don't ask all questions at once — have a natural conversation. 2-3 questions a
 - If asked about unrelated topics, politely say: "I'm your practice coach — I can only help with piano practice and music! What would you like to work on this week?"
 - Always use the get_pieces tool at the start to learn about the student's repertoire
 - Always propose a schedule using the propose_schedule tool — never just describe it in text
-- When the student approves the schedule, confirm it has been applied`
+- When the student approves the schedule, confirm it has been applied
+- Only propose schedule entries for future dates and today. Do NOT propose changes for past dates.
+- If a date already has completed entries (played/practiced), the system will preserve those — so it's safe to propose plan entries for those dates as they'll be skipped for completed pieces`
 
   if (practicePhilosophy) {
     prompt += `\n\n## Teacher's Practice Philosophy\nThe following guidance comes from the student's teacher. Incorporate these principles into your recommendations:\n\n${practicePhilosophy}`

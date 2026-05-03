@@ -87,8 +87,22 @@ export default function PracticeCoach() {
     setApplyingProposal(true)
 
     try {
-      // Apply each schedule entry
+      // Fetch current grid to avoid overwriting completed statuses
+      const dates = [...new Set((proposal.schedule || []).map(e => e.date))].sort()
+      const gridRes = await fetch(`/api/practice-grid?profile=${encodeURIComponent(activeProfile)}&start=${dates[0]}&end=${dates[dates.length - 1]}`).then(r => r.json())
+      const currentGrid = {}
+      for (const g of (gridRes.grid || [])) {
+        currentGrid[`${g.piece_id}_${g.date}`] = g.status
+      }
+
+      // Apply each schedule entry — skip cells where practice is already completed
+      let skipped = 0
       for (const entry of (proposal.schedule || [])) {
+        const currentStatus = currentGrid[`${entry.piece_id}_${entry.date}`]
+        if (currentStatus === 'played' || currentStatus === 'practiced') {
+          skipped++
+          continue // Don't overwrite completed work
+        }
         await fetch('/api/practice-grid', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -100,6 +114,9 @@ export default function PracticeCoach() {
             profileEmail: isOwnProfile ? undefined : activeProfile,
           })
         })
+      }
+      if (skipped > 0) {
+        addToast(`${skipped} completed cell${skipped > 1 ? 's' : ''} preserved`, 'info')
       }
 
       // Apply focus updates
