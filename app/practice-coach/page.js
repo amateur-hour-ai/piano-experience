@@ -61,7 +61,8 @@ export default function PracticeCoach() {
           messages: updatedMessages.map(m => ({ role: m.role, content: m.content })),
           profileEmail: isOwnProfile ? undefined : activeProfile,
           conversationId,
-        })
+        }),
+        signal: AbortSignal.timeout(60000),
       })
 
       if (!res.ok) {
@@ -246,17 +247,18 @@ export default function PracticeCoach() {
       <div style={{
         padding: '12px 24px 24px', borderTop: '1px solid #e5e7eb', background: '#fff',
       }}>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <input
-            type="text"
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
+          <textarea
             value={input}
-            onChange={e => setInput(e.target.value)}
+            onChange={e => { setInput(e.target.value); e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px' }}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input) } }}
             placeholder="Tell me about your practice goals..."
             disabled={sending}
+            rows={1}
             style={{
-              flex: 1, padding: '12px 16px', border: '1px solid #d1d5db', borderRadius: '24px',
-              fontSize: '14px', boxSizing: 'border-box', outline: 'none',
+              flex: 1, padding: '12px 16px', border: '1px solid #d1d5db', borderRadius: '20px',
+              fontSize: '14px', boxSizing: 'border-box', outline: 'none', resize: 'none',
+              lineHeight: '1.4', maxHeight: '120px', overflow: 'auto',
             }}
           />
           <button
