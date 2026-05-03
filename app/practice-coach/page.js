@@ -274,16 +274,18 @@ export default function PracticeCoach() {
     stopSpeaking()
 
     try {
-      // Lazy-load Kokoro TTS on first use
+      // Lazy-load Kokoro TTS from CDN on first use
       if (!ttsRef.current) {
         setTtsLoading(true)
-        addToast('Loading voice model...', 'info')
-        const { KokoroTTS } = await import('kokoro-js')
+        addToast('Loading voice model (first time only)...', 'info')
+        const module = await import(/* webpackIgnore: true */ 'https://cdn.jsdelivr.net/npm/kokoro-js@1/dist/kokoro.web.js')
+        const KokoroTTS = module.KokoroTTS || module.default?.KokoroTTS
         ttsRef.current = await KokoroTTS.from_pretrained(
           'onnx-community/Kokoro-82M-v1.0-ONNX',
           { dtype: 'q8', device: 'wasm' }
         )
         setTtsLoading(false)
+        addToast('Voice model ready!', 'success')
       }
 
       const result = await ttsRef.current.generate(text, { voice: 'af_sky' })
