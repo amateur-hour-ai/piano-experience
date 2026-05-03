@@ -22,10 +22,9 @@ export default function PracticeCoach() {
   const [applyingProposal, setApplyingProposal] = useState(false)
   const [listening, setListening] = useState(false)
   const [voiceMode, setVoiceMode] = useState(false)
-  const [ttsLoading, setTtsLoading] = useState(false)
+  const [speaking, setSpeaking] = useState(false)
   const messagesEndRef = useRef(null)
   const recognitionRef = useRef(null)
-  const ttsRef = useRef(null)
   const currentAudioRef = useRef(null)
 
   // Check for speech recognition support
@@ -272,46 +271,33 @@ export default function PracticeCoach() {
   async function speakText(text) {
     if (!text) return
     stopSpeaking()
+    setSpeaking(true)
 
     try {
-      // Lazy-load Kokoro TTS on first use via script tag
-      if (!ttsRef.current) {
-        setTtsLoading(true)
-        addToast('Loading voice model (first time only)...', 'info')
+      const res = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+        signal: AbortSignal.timeout(30000),
+      })
 
-        // Load the kokoro.web.js bundle via dynamic script if not already loaded
-        if (!window._kokoroModule) {
-          window._kokoroModule = await new Promise((resolve, reject) => {
-            const script = document.createElement('script')
-            script.type = 'module'
-            script.textContent = `
-              import { KokoroTTS } from "https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/dist/kokoro.web.js";
-              window._KokoroTTS = KokoroTTS;
-              window.dispatchEvent(new Event('kokoro-loaded'));
-            `
-            window.addEventListener('kokoro-loaded', () => resolve(true), { once: true })
-            setTimeout(() => reject(new Error('Kokoro load timeout')), 30000)
-            document.head.appendChild(script)
-          })
-        }
-
-        ttsRef.current = await window._KokoroTTS.from_pretrained(
-          'onnx-community/Kokoro-82M-v1.0-ONNX',
-          { dtype: 'q8', device: 'wasm' }
-        )
-        setTtsLoading(false)
-        addToast('Voice model ready!', 'success')
+      if (!res.ok) {
+        addToast('Voice playback failed', 'error')
+        setSpeaking(false)
+        return
       }
 
-      const result = await ttsRef.current.generate(text, { voice: 'af_sky' })
-      if (result?.audio) {
-        currentAudioRef.current = result.audio
-        result.audio.play()
-      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const audio = new Audio(url)
+      currentAudioRef.current = audio
+      audio.onended = () => { setSpeaking(false); URL.revokeObjectURL(url) }
+      audio.onerror = () => { setSpeaking(false); URL.revokeObjectURL(url) }
+      audio.play()
     } catch (err) {
-      setTtsLoading(false)
       console.error('TTS error:', err)
       addToast('Voice playback failed', 'error')
+      setSpeaking(false)
     }
   }
 
@@ -323,6 +309,7 @@ export default function PracticeCoach() {
       } catch {}
       currentAudioRef.current = null
     }
+    setSpeaking(false)
   }
 
   if (userLoading || loadingConversation) return <div style={{ padding: '24px', textAlign: 'center', color: '#666' }}>Loading...</div>
