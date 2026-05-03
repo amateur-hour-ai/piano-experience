@@ -144,6 +144,25 @@ function UserGuide() {
         <Note>You can also edit focus areas from the piece detail page. The Home page shows today's planned pieces and your practice streak.</Note>
       </Section>
 
+      <Section title="Weekly Focus">
+        <p style={{ fontSize: '15px', lineHeight: '1.7', color: '#333', marginBottom: '16px' }}>
+          At the top of the Practice Schedule page, you'll see a <strong>Focus this week</strong> field. This is your overarching practice theme for the week — for example, "counting aloud" or "sight reading."
+        </p>
+        <Step n="1">Tap the focus text to edit it. Set a new theme each week based on your teacher's guidance.</Step>
+        <Step n="2">The weekly focus also appears on the Practice Summary page and can be set by the Practice Coach.</Step>
+      </Section>
+
+      <Section title="Practice Coach">
+        <p style={{ fontSize: '15px', lineHeight: '1.7', color: '#333', marginBottom: '16px' }}>
+          The <strong>Practice Coach</strong> is an AI-powered assistant that helps you plan your weekly practice schedule through conversation.
+        </p>
+        <Step n="1">Open <strong>Practice Coach</strong> from the menu and describe your goals: upcoming performances, what you want to focus on, which days you can practice.</Step>
+        <Step n="2">The coach will ask follow-up questions to understand your needs, then propose a full schedule with pieces, play/practice status, focus areas, and a weekly focus theme.</Step>
+        <Step n="3">Review the proposed schedule — you'll see a visual card showing each day's plan. Tap <strong>Apply Schedule</strong> to fill your practice grid in one tap.</Step>
+        <Step n="4">Continue the conversation to make adjustments, or tap <strong>New Chat</strong> to start fresh.</Step>
+        <Note>The Practice Coach only discusses piano practice and music. Your conversation is saved so you can return to it later. Admins can customize the coach's practice philosophy in Settings.</Note>
+      </Section>
+
       <Section title="Activities">
         <p style={{ fontSize: '15px', lineHeight: '1.7', color: '#333', marginBottom: '16px' }}>
           Below the practice grid on the Schedule page, you'll find an <strong>Activities</strong> section for tracking non-piece tasks — like listening assignments, written reflections, or anything your teacher assigns (or you come up with on your own).
@@ -281,6 +300,9 @@ function ReleaseNotes() {
         'Tap to complete on Home — tap the status icon on any piece during practice to mark it played or practiced. Tap again to undo.',
         'Played icon — replaced growing heart emoji with a clean pink ♥ for universal device support',
         'Print Summary — one-page printable practice summary for any profile, great for bringing to lessons',
+        'Practice Coach — AI-powered practice planning assistant. Describe your goals and it proposes a full weekly schedule with focus areas. Uses Claude Sonnet.',
+        'Weekly Focus — set an overarching practice theme for the week (e.g., counting aloud, sight reading) at the top of the practice schedule',
+        'Practice Philosophy — admin-editable instructions in Settings that guide the Practice Coach\'s recommendations',
       ]
     },
     {

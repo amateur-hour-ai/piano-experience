@@ -7,13 +7,17 @@ import { useActiveProfile } from '@/lib/useActiveProfile'
 import { useToast } from '@/app/ToastProvider'
 
 export default function Settings() {
-  const { user, loading: userLoading } = useCurrentUser()
+  const { user, loading: userLoading, isAdmin } = useCurrentUser()
   const { activeProfile, isOwnProfile, availableProfiles, profileDisplayName } = useActiveProfile()
   const { addToast } = useToast()
   const [userName, setUserName] = useState('')
   const [editingName, setEditingName] = useState(false)
   const [nameDraft, setNameDraft] = useState('')
   const [savingName, setSavingName] = useState(false)
+  const [philosophy, setPhilosophy] = useState('')
+  const [editingPhilosophy, setEditingPhilosophy] = useState(false)
+  const [philosophyDraft, setPhilosophyDraft] = useState('')
+  const [savingPhilosophy, setSavingPhilosophy] = useState(false)
   const [weeklyEmail, setWeeklyEmail] = useState(false)
   const [emailDay, setEmailDay] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -29,6 +33,7 @@ export default function Settings() {
           setWeeklyEmail(data.settings.weekly_email_enabled === true)
           setEmailDay(data.settings.weekly_email_day)
           setUserName(data.settings.name || '')
+          setPhilosophy(data.settings.practice_philosophy || '')
         }
       } catch {}
       setLoading(false)
@@ -53,6 +58,24 @@ export default function Settings() {
       addToast('Failed to update name', 'error')
     }
     setSavingName(false)
+  }
+
+  async function savePhilosophy() {
+    setSavingPhilosophy(true)
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ practice_philosophy: philosophyDraft })
+      })
+      if (res.ok) {
+        setPhilosophy(philosophyDraft)
+        setEditingPhilosophy(false)
+        addToast('Practice philosophy updated', 'success')
+      }
+    } catch {
+      addToast('Failed to save', 'error')
+    }
+    setSavingPhilosophy(false)
   }
 
   async function toggleWeeklyEmail() {
@@ -323,6 +346,45 @@ export default function Settings() {
           ))}
         </div>
       </div>
+
+      {/* Practice Coach Philosophy — admin only */}
+      {isAdmin && (
+        <div style={{ background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e5e7eb', marginBottom: '24px' }}>
+          <h2 style={{ fontSize: '18px', color: '#2563eb', marginBottom: '8px' }}>Practice Coach Philosophy</h2>
+          <p style={{ fontSize: '13px', color: '#666', marginBottom: '16px' }}>
+            These instructions guide the Practice Coach AI when helping students plan their practice. Include your teaching philosophy, practice principles, and any specific guidance.
+          </p>
+          {editingPhilosophy ? (
+            <div>
+              <textarea value={philosophyDraft} onChange={e => setPhilosophyDraft(e.target.value)}
+                rows={8} placeholder="e.g., Always have students count aloud for the first pass of a new piece. Balance technique work with repertoire. Prioritize pieces with upcoming performances..."
+                style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', resize: 'vertical', boxSizing: 'border-box', lineHeight: '1.6' }} />
+              <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                <button onClick={savePhilosophy} disabled={savingPhilosophy} style={{
+                  padding: '8px 16px', background: '#2563eb', color: '#fff', border: 'none',
+                  borderRadius: '8px', fontSize: '13px', cursor: 'pointer',
+                }}>{savingPhilosophy ? 'Saving...' : 'Save'}</button>
+                <button onClick={() => setEditingPhilosophy(false)} style={{
+                  padding: '8px 16px', background: '#f9fafb', color: '#666', border: '1px solid #d1d5db',
+                  borderRadius: '8px', fontSize: '13px', cursor: 'pointer',
+                }}>Cancel</button>
+              </div>
+            </div>
+          ) : (
+            <div>
+              {philosophy ? (
+                <div style={{ fontSize: '14px', color: '#333', whiteSpace: 'pre-wrap', lineHeight: '1.6', marginBottom: '12px' }}>{philosophy}</div>
+              ) : (
+                <div style={{ fontSize: '14px', color: '#999', fontStyle: 'italic', marginBottom: '12px' }}>No practice philosophy set yet.</div>
+              )}
+              <button onClick={() => { setPhilosophyDraft(philosophy); setEditingPhilosophy(true) }} style={{
+                padding: '8px 16px', background: '#f9fafb', color: '#666', border: '1px solid #d1d5db',
+                borderRadius: '8px', fontSize: '13px', cursor: 'pointer',
+              }}>{philosophy ? 'Edit' : 'Add Philosophy'}</button>
+            </div>
+          )}
+        </div>
+      )}
     </main>
   )
 }

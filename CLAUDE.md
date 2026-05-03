@@ -40,8 +40,8 @@ Users can grant view or edit access to other users. RLS enforces the Supabase an
 ## CRITICAL: Async Data Timing
 When one hook depends on another's data (e.g., sorting pieces by category order), the dependent operation must RE-RUN when the source data loads. Store raw data separately, use useEffect to re-process when dependencies arrive. Never assume a hook's data is available during another hook's initial render.
 
-## Database Tables (17)
-- `user_profiles` — id, email, approved
+## Database Tables (18)
+- `user_profiles` — id, email, name, approved, weekly_focus, experimentation_focus, practice_philosophy
 - `pieces` — id, user_id (email), title, composer, book details, music details, ai_summary, composer_bio, current_focus, is_priority, personal_rating, archived, category_id
 - `piece_images`, `piece_notes`, `piece_goals`, `tempo_log`, `interesting_facts`
 - `categories` — id, user_id (null=system default), name, sort_order
@@ -52,6 +52,7 @@ When one hook depends on another's data (e.g., sorting pieces by category order)
 - `practice_strategies` — user_email (null=standard), heading, bullets[]
 - `theme_of_week`, `experience_log` (with piece_ids[]), `activity_log`
 - `activities` — user_email, description, reflection, completed_date (non-piece tasks on schedule page)
+- `planner_conversations` — user_email, profile_email, messages JSONB (Practice Coach chat history)
 
 ## Key Patterns
 - **Admin email:** michael.rosenthal@gmail.com

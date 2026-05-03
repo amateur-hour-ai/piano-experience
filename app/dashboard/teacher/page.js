@@ -43,6 +43,7 @@ function buildProfileData(email, accessLevel, activePieces, gridRes, activitiesR
     pieceStats,
     expStats,
     experimentationFocus: gridRes.experimentationFocus || '',
+    weeklyFocus: gridRes.weeklyFocus || '',
     activities: activitiesRes.activities || [],
   }
 }
@@ -80,7 +81,7 @@ export default function TeacherDashboard() {
       const ownResult = buildProfileData(user.email, 'own', piecesRes.pieces || [], gridRes, activitiesRes)
       results.push(ownResult)
     } catch {
-      results.push({ email: user.email, accessLevel: 'own', piecesCount: 0, daysActive: 0, pieces: [], pieceStats: {}, expStats: { played: 0, practiced: 0 }, experimentationFocus: '', activities: [] })
+      results.push({ email: user.email, accessLevel: 'own', piecesCount: 0, daysActive: 0, pieces: [], pieceStats: {}, expStats: { played: 0, practiced: 0 }, experimentationFocus: '', weeklyFocus: '', activities: [] })
     }
 
     // Load shared profiles
@@ -96,7 +97,7 @@ export default function TeacherDashboard() {
         const result = buildProfileData(profile.email, profile.accessLevel, (piecesRes.pieces || []).filter(p => !p.archived), gridRes, activitiesRes)
         results.push(result)
       } catch {
-        results.push({ email: profile.email, accessLevel: profile.accessLevel, piecesCount: 0, daysActive: 0, pieces: [], pieceStats: {}, expStats: { played: 0, practiced: 0 }, experimentationFocus: '', activities: [] })
+        results.push({ email: profile.email, accessLevel: profile.accessLevel, piecesCount: 0, daysActive: 0, pieces: [], pieceStats: {}, expStats: { played: 0, practiced: 0 }, experimentationFocus: '', weeklyFocus: '', activities: [] })
       }
     }
     setStudents(results)
@@ -163,6 +164,7 @@ export default function TeacherDashboard() {
         <div class="stat"><div class="stat-val" style="color:#2563eb">${s.piecesCount}</div><div class="stat-label">Active Pieces</div></div>
         <div class="stat"><div class="stat-val" style="color:#059669">${s.daysActive}/${dayRange}</div><div class="stat-label">Days Active</div></div>
       </div>
+      ${s.weeklyFocus ? `<div style="background:#eff6ff;border-radius:8px;padding:8px 14px;margin-bottom:12px;font-size:13px"><strong style="color:#2563eb">Focus this week:</strong> ${s.weeklyFocus}</div>` : ''}
       ${s.pieces.length > 0 ? `<table>
         <thead><tr><th>Piece</th><th>Focus</th><th style="text-align:center">💕</th><th style="text-align:center"><span style="color:#ec4899">♥</span></th></tr></thead>
         <tbody>${pieceRows}${expHtml}</tbody>
@@ -242,6 +244,13 @@ export default function TeacherDashboard() {
                 <div style={{ fontSize: '12px', color: '#666' }}>Days Active (last {dayRange})</div>
               </div>
             </div>
+
+            {/* Weekly Focus */}
+            {s.weeklyFocus && (
+              <div style={{ background: '#eff6ff', borderRadius: '8px', padding: '10px 14px', marginBottom: '16px', fontSize: '14px' }}>
+                <span style={{ fontWeight: '600', color: '#2563eb' }}>Focus this week:</span> {s.weeklyFocus}
+              </div>
+            )}
 
             {/* Per-piece cards */}
             {s.pieces.length > 0 && (

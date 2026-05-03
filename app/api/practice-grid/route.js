@@ -48,10 +48,11 @@ export async function GET(request) {
 
   // Also fetch experimentation focus from user_profiles
   const { data: profileData } = await supabase.from('user_profiles')
-    .select('experimentation_focus').eq('email', profileEmail).limit(1)
+    .select('experimentation_focus, weekly_focus').eq('email', profileEmail).limit(1)
   const experimentationFocus = profileData?.[0]?.experimentation_focus || ''
+  const weeklyFocus = profileData?.[0]?.weekly_focus || ''
 
-  return Response.json({ grid: data || [], practiceDays: (practiceDays || []).map(d => d.date), experimentationFocus })
+  return Response.json({ grid: data || [], practiceDays: (practiceDays || []).map(d => d.date), experimentationFocus, weeklyFocus })
 }
 
 export async function POST(request) {
@@ -120,6 +121,13 @@ export async function POST(request) {
   if (action === 'toggle_priority') {
     const { piece_id, is_priority } = body
     const { error } = await supabase.from('pieces').update({ is_priority }).eq('id', piece_id)
+    if (error) return Response.json({ error: error.message }, { status: 500 })
+    return Response.json({ success: true })
+  }
+
+  if (action === 'update_weekly_focus') {
+    const { weekly_focus } = body
+    const { error } = await supabase.from('user_profiles').update({ weekly_focus }).eq('email', profileEmail)
     if (error) return Response.json({ error: error.message }, { status: 500 })
     return Response.json({ success: true })
   }

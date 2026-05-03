@@ -33,6 +33,7 @@ export default function NavBar() {
         { href: '/', label: 'Home' },
         { href: '/pieces', label: isOwnProfile ? 'My Pieces' : 'Pieces' },
         { href: '/schedule', label: 'Practice Schedule' },
+        { href: '/practice-coach', label: 'Practice Coach' },
         { href: '/dashboard/teacher', label: 'Practice Summary' },
       ]
     },

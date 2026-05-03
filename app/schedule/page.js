@@ -25,6 +25,9 @@ export default function PracticeSchedule() {
   const [loading, setLoading] = useState(true)
   const [editingFocus, setEditingFocus] = useState(null) // piece id being edited
   const [focusDraft, setFocusDraft] = useState('')
+  const [weeklyFocus, setWeeklyFocus] = useState('')
+  const [editingWeeklyFocus, setEditingWeeklyFocus] = useState(false)
+  const [weeklyFocusDraft, setWeeklyFocusDraft] = useState('')
   const scrollRef = useRef(null)
   // Activities state
   const [activities, setActivities] = useState([])
@@ -134,6 +137,9 @@ export default function PracticeSchedule() {
         if (gridRes.experimentationFocus !== undefined) {
           setExpFocus(gridRes.experimentationFocus || '')
           try { localStorage.setItem('exp_focus_' + activeProfile, gridRes.experimentationFocus || '') } catch {}
+        }
+        if (gridRes.weeklyFocus !== undefined) {
+          setWeeklyFocus(gridRes.weeklyFocus || '')
         }
 
         // Load activities
@@ -267,6 +273,23 @@ export default function PracticeSchedule() {
       })
     } catch {
       await queueMutation({ url: '/api/practice-grid', method: 'POST', body, description: 'Toggle priority' })
+    }
+  }
+
+  async function saveWeeklyFocus() {
+    setWeeklyFocus(weeklyFocusDraft)
+    setEditingWeeklyFocus(false)
+
+    const body = { action: 'update_weekly_focus', weekly_focus: weeklyFocusDraft, profileEmail: isOwnProfile ? undefined : activeProfile }
+    if (!isOnline) {
+      await queueMutation({ url: '/api/practice-grid', method: 'POST', body, description: 'Update weekly focus' })
+      addToast('Weekly focus saved offline', 'info')
+      return
+    }
+    try {
+      await fetch('/api/practice-grid', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    } catch {
+      await queueMutation({ url: '/api/practice-grid', method: 'POST', body, description: 'Update weekly focus' })
     }
   }
 
@@ -412,6 +435,28 @@ export default function PracticeSchedule() {
         <p style={{ color: '#666', fontSize: '14px', marginBottom: '16px' }}>
           Tap a cell: empty → ♪ plan to play → 🎶 plan to practice → <span style={{ color: '#ec4899' }}>♥</span> played → 💕 practiced → empty
         </p>
+
+        {/* Weekly Focus */}
+        <div style={{ background: '#eff6ff', borderRadius: '10px', padding: '12px 16px', marginBottom: '16px', display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+          <span style={{ fontSize: '14px', fontWeight: '600', color: '#2563eb', whiteSpace: 'nowrap' }}>Focus this week:</span>
+          {editingWeeklyFocus ? (
+            <div style={{ flex: 1 }}>
+              <input type="text" value={weeklyFocusDraft} onChange={e => setWeeklyFocusDraft(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') saveWeeklyFocus(); if (e.key === 'Escape') setEditingWeeklyFocus(false) }}
+                autoFocus placeholder="e.g., counting aloud, sight reading..."
+                style={{ width: '100%', padding: '4px 8px', border: '1px solid #93c5fd', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }} />
+              <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
+                <button onClick={saveWeeklyFocus} style={{ padding: '2px 10px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '4px', fontSize: '12px', cursor: 'pointer' }}>Save</button>
+                <button onClick={() => setEditingWeeklyFocus(false)} style={{ padding: '2px 10px', background: '#fff', color: '#666', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '12px', cursor: 'pointer' }}>Cancel</button>
+              </div>
+            </div>
+          ) : (
+            <span onClick={() => { if (canEdit) { setWeeklyFocusDraft(weeklyFocus); setEditingWeeklyFocus(true) } }}
+              style={{ fontSize: '14px', color: weeklyFocus ? '#1a1a1a' : '#93c5fd', cursor: canEdit ? 'pointer' : 'default', fontStyle: weeklyFocus ? 'normal' : 'italic' }}>
+              {weeklyFocus || (canEdit ? 'tap to set' : 'not set')}
+            </span>
+          )}
+        </div>
       </div>
 
       {pieces.length === 0 ? (
