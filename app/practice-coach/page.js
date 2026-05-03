@@ -22,23 +22,14 @@ export default function PracticeCoach() {
   const [applyingProposal, setApplyingProposal] = useState(false)
   const [listening, setListening] = useState(false)
   const [voiceMode, setVoiceMode] = useState(false)
-  const [voicesLoaded, setVoicesLoaded] = useState(false)
+  const [ttsLoading, setTtsLoading] = useState(false)
   const messagesEndRef = useRef(null)
   const recognitionRef = useRef(null)
+  const ttsRef = useRef(null)
+  const currentAudioRef = useRef(null)
 
   // Check for speech recognition support
   const hasSpeechRecognition = typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition)
-
-  // Preload TTS voices (they load asynchronously in most browsers)
-  useEffect(() => {
-    if (typeof window === 'undefined' || !window.speechSynthesis) return
-    const loadVoices = () => {
-      const voices = window.speechSynthesis.getVoices()
-      if (voices.length > 0) setVoicesLoaded(true)
-    }
-    loadVoices()
-    window.speechSynthesis.onvoiceschanged = loadVoices
-  }, [])
 
   useEffect(() => {
     if (userLoading || !user || !activeProfile) return
@@ -278,33 +269,42 @@ export default function PracticeCoach() {
     }
   }
 
-  function speakText(text) {
-    if (!text || typeof window === 'undefined' || !window.speechSynthesis) return
-    window.speechSynthesis.cancel()
-    const utterance = new SpeechSynthesisUtterance(text)
-    utterance.rate = 1.0
-    utterance.pitch = 1.0
-    // Pick the best available voice — prefer premium/enhanced downloads
-    const voices = window.speechSynthesis.getVoices()
-    const enVoices = voices.filter(v => v.lang.startsWith('en'))
-    // Prefer Ava (premium download) over Samantha (default)
-    const preferred = enVoices.find(v => /ava/i.test(v.name) && /premium/i.test(v.name))
-      || enVoices.find(v => /ava/i.test(v.name) && /enhanced/i.test(v.name))
-      || enVoices.find(v => /ava/i.test(v.name))
-      || enVoices.find(v => /samantha/i.test(v.name) && /enhanced/i.test(v.name))
-      || enVoices.find(v => /samantha/i.test(v.name) && /premium/i.test(v.name))
-      || enVoices.find(v => /samantha/i.test(v.name))
-      || enVoices.find(v => v.localService)
-      || enVoices[0]
-    if (preferred) utterance.voice = preferred
-    const avaVoices = voices.filter(v => /ava/i.test(v.name))
-    addToast(`Using: ${preferred?.name || 'default'} | Ava matches: ${avaVoices.length > 0 ? avaVoices.map(v => v.name + ' [' + v.lang + ']').join(', ') : 'none found'}`, 'info')
-    window.speechSynthesis.speak(utterance)
+  async function speakText(text) {
+    if (!text) return
+    stopSpeaking()
+
+    try {
+      // Lazy-load Kokoro TTS on first use
+      if (!ttsRef.current) {
+        setTtsLoading(true)
+        addToast('Loading voice model...', 'info')
+        const { KokoroTTS } = await import('kokoro-js')
+        ttsRef.current = await KokoroTTS.from_pretrained(
+          'onnx-community/Kokoro-82M-v1.0-ONNX',
+          { dtype: 'q8', device: 'wasm' }
+        )
+        setTtsLoading(false)
+      }
+
+      const result = await ttsRef.current.generate(text, { voice: 'af_sky' })
+      if (result?.audio) {
+        currentAudioRef.current = result.audio
+        result.audio.play()
+      }
+    } catch (err) {
+      setTtsLoading(false)
+      console.error('TTS error:', err)
+      addToast('Voice playback failed', 'error')
+    }
   }
 
   function stopSpeaking() {
-    if (typeof window !== 'undefined' && window.speechSynthesis) {
-      window.speechSynthesis.cancel()
+    if (currentAudioRef.current) {
+      try {
+        currentAudioRef.current.pause()
+        currentAudioRef.current.currentTime = 0
+      } catch {}
+      currentAudioRef.current = null
     }
   }
 
