@@ -146,7 +146,10 @@ async function handleToolCall(toolName, toolInput, profileEmail, supabase) {
       .eq('archived', false)
       .is('deleted_at', null)
       .order('title')
-    return data || []
+    return {
+      pieces: data || [],
+      IMPORTANT: 'When calling propose_schedule, you MUST use the exact "id" values from this list as piece_id. Do NOT generate or modify UUIDs.'
+    }
   }
 
   if (toolName === 'get_current_schedule') {

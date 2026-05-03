@@ -88,11 +88,16 @@ export default function PracticeCoach() {
     setApplyingProposal(true)
 
     try {
-      // Validate piece_ids are real UUIDs (Claude sometimes hallucinates IDs)
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-      const invalidEntries = (proposal.schedule || []).filter(e => !uuidRegex.test(e.piece_id))
+      // Fetch real piece IDs to validate against (Claude sometimes hallucinates UUIDs)
+      const piecesUrl = isOwnProfile
+        ? `/api/profile-data?type=pieces&email=${encodeURIComponent(activeProfile)}`
+        : `/api/profile/${encodeURIComponent(activeProfile)}/pieces`
+      const piecesRes = await fetch(piecesUrl, { signal: AbortSignal.timeout(10000) }).then(r => r.json())
+      const realPieceIds = new Set((piecesRes.pieces || []).map(p => p.id))
+
+      const invalidEntries = (proposal.schedule || []).filter(e => !realPieceIds.has(e.piece_id))
       if (invalidEntries.length > 0) {
-        addToast('Schedule has invalid piece references — please ask the coach to try again', 'error')
+        addToast(`Schedule references ${invalidEntries.length} unknown piece${invalidEntries.length > 1 ? 's' : ''} — please start a New Chat and try again`, 'error')
         setApplyingProposal(false)
         return
       }
@@ -129,8 +134,8 @@ export default function PracticeCoach() {
         addToast(`${skipped} completed cell${skipped > 1 ? 's' : ''} preserved`, 'info')
       }
 
-      // Apply focus updates (skip any with invalid UUIDs)
-      for (const update of (proposal.focus_updates || []).filter(u => uuidRegex.test(u.piece_id))) {
+      // Apply focus updates (skip any with unrecognized piece IDs)
+      for (const update of (proposal.focus_updates || []).filter(u => realPieceIds.has(u.piece_id))) {
         await fetch('/api/practice-grid', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
