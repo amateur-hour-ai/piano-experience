@@ -160,7 +160,7 @@ export default function PracticeCoach() {
   }
 
   return (
-    <main style={{ padding: '0', maxWidth: '700px', margin: '0 auto', display: 'flex', flexDirection: 'column', height: 'calc(100vh - 64px)' }}>
+    <main style={{ padding: '0', maxWidth: '700px', margin: '0 auto', display: 'flex', flexDirection: 'column', height: 'calc(100dvh - 64px)' }}>
       {/* Header */}
       <div style={{ padding: '16px 24px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>

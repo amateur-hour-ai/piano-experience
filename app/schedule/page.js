@@ -95,10 +95,12 @@ export default function PracticeSchedule() {
     if (cached?.userActivities?.length) {
       setActivities(cached.userActivities)
     }
-    // Load experimentation focus from localStorage cache
+    // Load experimentation focus and weekly focus from localStorage cache
     try {
       const cachedExpFocus = localStorage.getItem('exp_focus_' + activeProfile)
       if (cachedExpFocus) setExpFocus(cachedExpFocus)
+      const cachedWeeklyFocus = localStorage.getItem('weekly_focus_' + activeProfile)
+      if (cachedWeeklyFocus) setWeeklyFocus(cachedWeeklyFocus)
     } catch {}
 
     if (isOnline) {
@@ -140,6 +142,7 @@ export default function PracticeSchedule() {
         }
         if (gridRes.weeklyFocus !== undefined) {
           setWeeklyFocus(gridRes.weeklyFocus || '')
+          try { localStorage.setItem('weekly_focus_' + activeProfile, gridRes.weeklyFocus || '') } catch {}
         }
 
         // Load activities
@@ -279,6 +282,7 @@ export default function PracticeSchedule() {
   async function saveWeeklyFocus() {
     setWeeklyFocus(weeklyFocusDraft)
     setEditingWeeklyFocus(false)
+    try { localStorage.setItem('weekly_focus_' + activeProfile, weeklyFocusDraft) } catch {}
 
     const body = { action: 'update_weekly_focus', weekly_focus: weeklyFocusDraft, profileEmail: isOwnProfile ? undefined : activeProfile }
     if (!isOnline) {

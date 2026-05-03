@@ -123,10 +123,14 @@ Don't ask all questions at once — have a natural conversation. 2-3 questions a
   return prompt
 }
 
-async function handleToolCall(toolName, toolInput, profileEmail, supabase) {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
+function getLocalDate(offsetDays = 0) {
+  const now = new Date()
+  const local = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }))
+  local.setDate(local.getDate() + offsetDays)
+  return `${local.getFullYear()}-${String(local.getMonth() + 1).padStart(2, '0')}-${String(local.getDate()).padStart(2, '0')}`
+}
 
+async function handleToolCall(toolName, toolInput, profileEmail, supabase) {
   if (toolName === 'get_pieces') {
     const { data } = await supabase.from('pieces')
       .select('id, title, composer, current_focus, is_priority, personal_rating, category_id, categories(name)')
@@ -139,10 +143,8 @@ async function handleToolCall(toolName, toolInput, profileEmail, supabase) {
 
   if (toolName === 'get_current_schedule') {
     const daysAhead = toolInput.days_ahead || 7
-    const startDate = today.toISOString().split('T')[0]
-    const endDay = new Date(today)
-    endDay.setDate(endDay.getDate() + daysAhead - 1)
-    const endDate = endDay.toISOString().split('T')[0]
+    const startDate = getLocalDate(0)
+    const endDate = getLocalDate(daysAhead - 1)
 
     const { data } = await supabase.from('practice_grid')
       .select('piece_id, date, status')
@@ -170,10 +172,8 @@ async function handleToolCall(toolName, toolInput, profileEmail, supabase) {
   }
 
   if (toolName === 'get_practice_days') {
-    const startDate = today.toISOString().split('T')[0]
-    const endDay = new Date(today)
-    endDay.setDate(endDay.getDate() + 13)
-    const endDate = endDay.toISOString().split('T')[0]
+    const startDate = getLocalDate(0)
+    const endDate = getLocalDate(13)
 
     const { data } = await supabase.from('practice_days')
       .select('date')
@@ -212,7 +212,14 @@ export async function POST(request) {
   const practicePhilosophy = profileData?.[0]?.practice_philosophy || ''
 
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-  const systemPrompt = buildSystemPrompt(practicePhilosophy)
+  let systemPrompt = buildSystemPrompt(practicePhilosophy)
+
+  // If resuming a conversation, check if there were prior proposals and add context
+  const priorProposals = messages.filter(m => m.proposal)
+  if (priorProposals.length > 0) {
+    const lastProposal = priorProposals[priorProposals.length - 1].proposal
+    systemPrompt += `\n\n## Prior Context\nYou previously proposed a schedule in this conversation. The most recent proposal included: ${lastProposal.explanation || 'a practice schedule'}. If the student asks for adjustments, build on this context. You do NOT need to call get_pieces again unless the conversation topic changes significantly.`
+  }
 
   // Process messages with tool use loop
   let currentMessages = [...messages]
