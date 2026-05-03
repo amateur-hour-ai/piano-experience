@@ -50,10 +50,10 @@ const TOOLS = [
             type: 'object',
             properties: {
               piece_title: { type: 'string', description: 'Exact piece title as returned by get_pieces' },
-              date: { type: 'string', description: 'YYYY-MM-DD format' },
+              day: { type: 'string', description: 'Day name with optional week, e.g. "Sunday", "Wednesday", "Friday". For next week use "Monday next week", "Wednesday next week", etc.' },
               status: { type: 'string', enum: ['plan_play', 'plan_practice'], description: 'plan_play = casual playing for enjoyment, plan_practice = focused practice on technique/sections' }
             },
-            required: ['piece_title', 'date', 'status']
+            required: ['piece_title', 'day', 'status']
           }
         },
         focus_updates: {
@@ -97,7 +97,7 @@ Today is ${todayName} (${todayStr}).
 ## Date Reference (use these exact dates — do NOT calculate dates yourself)
 ${dateRef.join('\n')}
 
-When proposing a schedule, use ONLY the YYYY-MM-DD values from the list above. Do not calculate or guess dates. Your job is to help piano students plan their weekly practice schedule.
+When proposing a schedule, reference days by name (e.g., "Sunday", "Wednesday", "Friday"). For next week, add "next week" (e.g., "Monday next week"). The system will resolve day names to actual dates automatically. Do NOT use YYYY-MM-DD format in propose_schedule — use day names only. Your job is to help piano students plan their weekly practice schedule.
 
 ## Your Approach
 - Be warm, encouraging, and conversational
@@ -208,20 +208,49 @@ async function handleToolCall(toolName, toolInput, profileEmail, supabase) {
     const { data: allPieces } = await supabase.from('pieces')
       .select('id, title').eq('user_id', profileEmail).eq('archived', false).is('deleted_at', null)
     const titleToId = {}
-    const titleToTitle = {} // for normalized matching
+    const titleToTitle = {}
     for (const p of (allPieces || [])) {
       titleToId[p.title.toLowerCase().trim()] = p.id
       titleToTitle[p.title.toLowerCase().trim()] = p.title
     }
 
-    const resolvedSchedule = (toolInput.schedule || []).map(entry => {
-      const key = (entry.piece_title || '').toLowerCase().trim()
-      return {
-        ...entry,
-        piece_id: titleToId[key] || null,
-        piece_title: titleToTitle[key] || entry.piece_title,
+    // Build day-name to date mapping for next 14 days
+    const dayNameToDate = {}
+    const dayNameToDateNextWeek = {}
+    const todayDayIndex = new Date(getLocalDate(0) + 'T12:00:00').getDay()
+    for (let i = 0; i < 14; i++) {
+      const dateStr = getLocalDate(i)
+      const d = new Date(dateStr + 'T12:00:00')
+      const dayName = d.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase()
+      if (i < 7) {
+        dayNameToDate[dayName] = dateStr
+      } else {
+        dayNameToDateNextWeek[dayName] = dateStr
       }
-    }).filter(entry => entry.piece_id) // drop unresolved entries
+    }
+
+    function resolveDayToDate(dayStr) {
+      if (!dayStr) return null
+      const lower = dayStr.toLowerCase().trim()
+      // Check for "next week" suffix
+      if (lower.includes('next week')) {
+        const dayName = lower.replace('next week', '').trim()
+        return dayNameToDateNextWeek[dayName] || null
+      }
+      // Try direct day name match (this week)
+      return dayNameToDate[lower] || null
+    }
+
+    const resolvedSchedule = (toolInput.schedule || []).map(entry => {
+      const titleKey = (entry.piece_title || '').toLowerCase().trim()
+      const resolvedDate = resolveDayToDate(entry.day) || entry.date || null
+      return {
+        piece_id: titleToId[titleKey] || null,
+        piece_title: titleToTitle[titleKey] || entry.piece_title,
+        date: resolvedDate,
+        status: entry.status,
+      }
+    }).filter(entry => entry.piece_id && entry.date)
 
     const resolvedFocusUpdates = (toolInput.focus_updates || []).map(entry => {
       const key = (entry.piece_title || '').toLowerCase().trim()
