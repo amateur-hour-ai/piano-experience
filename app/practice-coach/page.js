@@ -22,11 +22,23 @@ export default function PracticeCoach() {
   const [applyingProposal, setApplyingProposal] = useState(false)
   const [listening, setListening] = useState(false)
   const [voiceMode, setVoiceMode] = useState(false)
+  const [voicesLoaded, setVoicesLoaded] = useState(false)
   const messagesEndRef = useRef(null)
   const recognitionRef = useRef(null)
 
   // Check for speech recognition support
   const hasSpeechRecognition = typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition)
+
+  // Preload TTS voices (they load asynchronously in most browsers)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return
+    const loadVoices = () => {
+      const voices = window.speechSynthesis.getVoices()
+      if (voices.length > 0) setVoicesLoaded(true)
+    }
+    loadVoices()
+    window.speechSynthesis.onvoiceschanged = loadVoices
+  }, [])
 
   useEffect(() => {
     if (userLoading || !user || !activeProfile) return
@@ -272,10 +284,14 @@ export default function PracticeCoach() {
     const utterance = new SpeechSynthesisUtterance(text)
     utterance.rate = 1.0
     utterance.pitch = 1.0
-    // Try to find a good voice
+    // Pick the best available voice — prefer enhanced/premium voices
     const voices = window.speechSynthesis.getVoices()
-    const preferred = voices.find(v => v.name.includes('Samantha')) // iOS default
-      || voices.find(v => v.lang.startsWith('en') && v.name.includes('Female'))
+    const preferred = voices.find(v => v.name.includes('Samantha') && v.name.includes('Enhanced'))
+      || voices.find(v => v.name.includes('Ava') && v.name.includes('Premium'))
+      || voices.find(v => v.name.includes('Zoe') && v.name.includes('Premium'))
+      || voices.find(v => v.name.includes('Samantha'))
+      || voices.find(v => v.name.includes('Ava'))
+      || voices.find(v => v.lang.startsWith('en') && !v.name.includes('Google') && v.localService)
       || voices.find(v => v.lang.startsWith('en'))
     if (preferred) utterance.voice = preferred
     window.speechSynthesis.speak(utterance)
