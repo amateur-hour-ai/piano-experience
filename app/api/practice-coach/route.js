@@ -68,6 +68,16 @@ const TOOLS = [
             required: ['piece_title', 'focus']
           }
         },
+        practice_days: {
+          type: 'array',
+          description: 'Days that should be marked as practice days (purple star on schedule). Use day names.',
+          items: { type: 'string', description: 'Day name, e.g. "Sunday", "Tuesday". For next week add "next week".' }
+        },
+        priority_pieces: {
+          type: 'array',
+          description: 'Piece titles that should be marked as priority (pink star). These are the most important pieces for the week.',
+          items: { type: 'string', description: 'Exact piece title as returned by get_pieces' }
+        },
         weekly_focus: { type: 'string', description: 'Overall focus theme for the week, e.g. "counting aloud", "sight reading", "dynamics"' },
         explanation: { type: 'string', description: 'Brief explanation of the schedule rationale for the student' }
       },
@@ -124,6 +134,8 @@ Don't ask all questions at once — have a natural conversation. 2-3 questions a
 - Include at least one "play for fun" piece on most days to keep practice enjoyable
 - Vary the focus areas — don't assign the same focus every day
 - Set specific, actionable focus areas (e.g., "mm. 24-32 left hand passage work" not just "practice it")
+- Always include practice_days in your proposal — these are the days the student said they can practice
+- Always include priority_pieces — the 1-2 most important pieces for the week (usually what has a performance coming up or what the teacher emphasized)
 - Consider the student's available days and time constraints
 - The weekly focus should reflect the overarching theme (e.g., "counting aloud", "dynamics", "sight reading")
 
@@ -261,10 +273,25 @@ async function handleToolCall(toolName, toolInput, profileEmail, supabase) {
       }
     }).filter(entry => entry.piece_id)
 
+    // Resolve practice days (day names → dates)
+    const resolvedPracticeDays = (toolInput.practice_days || [])
+      .map(day => resolveDayToDate(day))
+      .filter(Boolean)
+
+    // Resolve priority pieces (titles → IDs)
+    const resolvedPriorityPieces = (toolInput.priority_pieces || [])
+      .map(title => {
+        const key = (title || '').toLowerCase().trim()
+        return titleToId[key] ? { piece_id: titleToId[key], piece_title: titleToTitle[key] } : null
+      })
+      .filter(Boolean)
+
     return {
       type: 'proposal',
       schedule: resolvedSchedule,
       focus_updates: resolvedFocusUpdates,
+      practice_days: resolvedPracticeDays,
+      priority_pieces: resolvedPriorityPieces,
       weekly_focus: toolInput.weekly_focus,
       explanation: toolInput.explanation,
     }

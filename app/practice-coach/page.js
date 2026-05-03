@@ -203,6 +203,34 @@ export default function PracticeCoach() {
         })
       }
 
+      // Mark practice days (purple stars)
+      for (const date of (proposal.practice_days || [])) {
+        await fetch('/api/practice-grid', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'toggle_practice_day',
+            date,
+            isPlanned: false,
+            profileEmail: isOwnProfile ? undefined : activeProfile,
+          })
+        })
+      }
+
+      // Set priority pieces (pink stars)
+      for (const p of (proposal.priority_pieces || [])) {
+        await fetch('/api/practice-grid', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'toggle_priority',
+            piece_id: p.piece_id,
+            is_priority: true,
+            profileEmail: isOwnProfile ? undefined : activeProfile,
+          })
+        })
+      }
+
       setAppliedProposals(prev => new Set([...prev, JSON.stringify(proposal.schedule)]))
       addToast('Schedule applied!', 'success')
     } catch {
@@ -470,6 +498,20 @@ function ProposalCard({ proposal, onApply, applied, applying }) {
       {proposal.weekly_focus && (
         <div style={{ fontSize: '13px', color: '#666', marginBottom: '12px', padding: '8px 12px', background: '#eff6ff', borderRadius: '8px' }}>
           <strong>Weekly Focus:</strong> {proposal.weekly_focus}
+        </div>
+      )}
+
+      {/* Priority pieces */}
+      {proposal.priority_pieces?.length > 0 && (
+        <div style={{ fontSize: '13px', color: '#666', marginBottom: '8px' }}>
+          <span style={{ color: '#ec4899' }}>★</span> <strong>Priority:</strong> {proposal.priority_pieces.map(p => p.piece_title).join(', ')}
+        </div>
+      )}
+
+      {/* Practice days */}
+      {proposal.practice_days?.length > 0 && (
+        <div style={{ fontSize: '13px', color: '#666', marginBottom: '12px' }}>
+          <span style={{ color: '#9333ea' }}>★</span> <strong>Practice days:</strong> {proposal.practice_days.map(d => new Date(d + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })).join(', ')}
         </div>
       )}
 
