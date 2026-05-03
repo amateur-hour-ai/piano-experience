@@ -284,17 +284,20 @@ export default function PracticeCoach() {
     const utterance = new SpeechSynthesisUtterance(text)
     utterance.rate = 1.0
     utterance.pitch = 1.0
-    // Pick the best available voice — prefer enhanced/premium voices
+    // Pick the best available voice — prefer premium/enhanced downloads
     const voices = window.speechSynthesis.getVoices()
-    const preferred = voices.find(v => v.name.includes('Samantha') && v.name.includes('Enhanced'))
-      || voices.find(v => v.name.includes('Ava') && v.name.includes('Premium'))
-      || voices.find(v => v.name.includes('Zoe') && v.name.includes('Premium'))
-      || voices.find(v => v.name.includes('Samantha'))
-      || voices.find(v => v.name.includes('Ava'))
-      || voices.find(v => v.lang.startsWith('en') && !v.name.includes('Google') && v.localService)
-      || voices.find(v => v.lang.startsWith('en'))
+    const enVoices = voices.filter(v => v.lang.startsWith('en'))
+    // Prefer Ava (premium download) over Samantha (default)
+    const preferred = enVoices.find(v => /ava/i.test(v.name) && /premium/i.test(v.name))
+      || enVoices.find(v => /ava/i.test(v.name) && /enhanced/i.test(v.name))
+      || enVoices.find(v => /ava/i.test(v.name))
+      || enVoices.find(v => /samantha/i.test(v.name) && /enhanced/i.test(v.name))
+      || enVoices.find(v => /samantha/i.test(v.name) && /premium/i.test(v.name))
+      || enVoices.find(v => /samantha/i.test(v.name))
+      || enVoices.find(v => v.localService)
+      || enVoices[0]
     if (preferred) utterance.voice = preferred
-    addToast(`Voice: ${preferred?.name || 'default'} (${voices.length} available)`, 'info')
+    addToast(`Voice: ${preferred?.name || 'default'} (${enVoices.length} English)`, 'info')
     window.speechSynthesis.speak(utterance)
   }
 
