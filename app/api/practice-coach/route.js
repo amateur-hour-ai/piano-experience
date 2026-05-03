@@ -39,7 +39,7 @@ const TOOLS = [
   },
   {
     name: 'propose_schedule',
-    description: 'Propose a practice schedule for the student to review. CRITICAL: piece_id values MUST be the exact UUID strings returned by get_pieces (e.g., "a1b2c3d4-e5f6-7890-abcd-ef1234567890"). Do NOT invent or abbreviate piece IDs. Include which pieces to play or practice on which days, focus area updates for each piece, and an overall weekly focus. The student will see a visual preview and must approve before it is applied. Call this only when you have gathered enough information from the student.',
+    description: 'Propose a practice schedule for the student to review. Reference pieces by their exact title as returned by get_pieces. The system will resolve titles to database IDs automatically. Call this only when you have gathered enough information from the student.',
     input_schema: {
       type: 'object',
       properties: {
@@ -49,12 +49,11 @@ const TOOLS = [
           items: {
             type: 'object',
             properties: {
-              piece_id: { type: 'string' },
-              piece_title: { type: 'string' },
+              piece_title: { type: 'string', description: 'Exact piece title as returned by get_pieces' },
               date: { type: 'string', description: 'YYYY-MM-DD format' },
               status: { type: 'string', enum: ['plan_play', 'plan_practice'], description: 'plan_play = casual playing for enjoyment, plan_practice = focused practice on technique/sections' }
             },
-            required: ['piece_id', 'piece_title', 'date', 'status']
+            required: ['piece_title', 'date', 'status']
           }
         },
         focus_updates: {
@@ -63,11 +62,10 @@ const TOOLS = [
           items: {
             type: 'object',
             properties: {
-              piece_id: { type: 'string' },
-              piece_title: { type: 'string' },
+              piece_title: { type: 'string', description: 'Exact piece title as returned by get_pieces' },
               focus: { type: 'string', description: 'Specific focus area, e.g. "mm. 24-32 left hand passage work" or "dynamics in the coda"' }
             },
-            required: ['piece_id', 'piece_title', 'focus']
+            required: ['piece_title', 'focus']
           }
         },
         weekly_focus: { type: 'string', description: 'Overall focus theme for the week, e.g. "counting aloud", "sight reading", "dynamics"' },
@@ -118,7 +116,7 @@ Don't ask all questions at once — have a natural conversation. 2-3 questions a
 ## Important Rules
 - You can ONLY discuss topics related to piano practice, music, repertoire, and the student's schedule
 - If asked about unrelated topics, politely say: "I'm your practice coach — I can only help with piano practice and music! What would you like to work on this week?"
-- Always use the get_pieces tool at the start to learn about the student's repertoire. The tool returns each piece's UUID — you MUST use these exact UUIDs (not made-up IDs) when calling propose_schedule.
+- Always use the get_pieces tool at the start to learn about the student's repertoire. When calling propose_schedule, reference pieces by their exact title as returned by get_pieces.
 - Always propose a schedule using the propose_schedule tool — never just describe it in text
 - When the student approves the schedule, confirm it has been applied
 - Only propose schedule entries for future dates and today. Do NOT propose changes for past dates.
@@ -146,10 +144,7 @@ async function handleToolCall(toolName, toolInput, profileEmail, supabase) {
       .eq('archived', false)
       .is('deleted_at', null)
       .order('title')
-    return {
-      pieces: data || [],
-      IMPORTANT: 'When calling propose_schedule, you MUST use the exact "id" values from this list as piece_id. Do NOT generate or modify UUIDs.'
-    }
+    return { pieces: data || [] }
   }
 
   if (toolName === 'get_current_schedule') {
@@ -195,8 +190,41 @@ async function handleToolCall(toolName, toolInput, profileEmail, supabase) {
   }
 
   if (toolName === 'propose_schedule') {
-    // Don't execute anything — return the proposal for the UI to render
-    return { type: 'proposal', ...toolInput }
+    // Resolve piece titles to real UUIDs
+    const { data: allPieces } = await supabase.from('pieces')
+      .select('id, title').eq('user_id', profileEmail).eq('archived', false).is('deleted_at', null)
+    const titleToId = {}
+    const titleToTitle = {} // for normalized matching
+    for (const p of (allPieces || [])) {
+      titleToId[p.title.toLowerCase().trim()] = p.id
+      titleToTitle[p.title.toLowerCase().trim()] = p.title
+    }
+
+    const resolvedSchedule = (toolInput.schedule || []).map(entry => {
+      const key = (entry.piece_title || '').toLowerCase().trim()
+      return {
+        ...entry,
+        piece_id: titleToId[key] || null,
+        piece_title: titleToTitle[key] || entry.piece_title,
+      }
+    }).filter(entry => entry.piece_id) // drop unresolved entries
+
+    const resolvedFocusUpdates = (toolInput.focus_updates || []).map(entry => {
+      const key = (entry.piece_title || '').toLowerCase().trim()
+      return {
+        ...entry,
+        piece_id: titleToId[key] || null,
+        piece_title: titleToTitle[key] || entry.piece_title,
+      }
+    }).filter(entry => entry.piece_id)
+
+    return {
+      type: 'proposal',
+      schedule: resolvedSchedule,
+      focus_updates: resolvedFocusUpdates,
+      weekly_focus: toolInput.weekly_focus,
+      explanation: toolInput.explanation,
+    }
   }
 
   return { error: 'Unknown tool' }
