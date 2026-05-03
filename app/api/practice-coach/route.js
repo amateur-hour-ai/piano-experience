@@ -38,6 +38,27 @@ const TOOLS = [
     input_schema: { type: 'object', properties: {}, required: [] }
   },
   {
+    name: 'get_experience_log',
+    description: 'Get recent experience log entries (lesson records) for this student. Each entry has a date, what was covered, teacher feedback, and assignments. The most recent entry is the most important for understanding current priorities. Returns up to 5 most recent entries.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        limit: { type: 'number', description: 'Number of recent entries to fetch. Defaults to 3, max 5.' }
+      }
+    }
+  },
+  {
+    name: 'get_piece_notes',
+    description: 'Get recent practice and lesson notes for a specific piece. Notes include practice observations, lesson feedback, and general notes with timestamps. Useful for understanding what the student has been working on for a particular piece.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        piece_title: { type: 'string', description: 'Exact piece title as returned by get_pieces' }
+      },
+      required: ['piece_title']
+    }
+  },
+  {
     name: 'propose_schedule',
     description: 'Propose a practice schedule for the student to review. Reference pieces by their exact title as returned by get_pieces. The system will resolve titles to database IDs automatically. Call this only when you have gathered enough information from the student.',
     input_schema: {
@@ -143,6 +164,8 @@ Don't ask all questions at once — have a natural conversation. 2-3 questions a
 - You can ONLY discuss topics related to piano practice, music, repertoire, and the student's schedule
 - If asked about unrelated topics, politely say: "I'm your practice coach — I can only help with piano practice and music! What would you like to work on this week?"
 - Always use the get_pieces tool at the start to learn about the student's repertoire. When calling propose_schedule, reference pieces by their exact title as returned by get_pieces.
+- After getting pieces, use get_experience_log to read the most recent lesson notes — this is critical for understanding what the teacher wants the student to focus on.
+- If a student mentions struggling with a specific piece, use get_piece_notes to read their practice and lesson notes for that piece.
 - Always propose a schedule using the propose_schedule tool — never just describe it in text
 - When the student approves the schedule, confirm it has been applied
 - Only propose schedule entries for future dates and today. Do NOT propose changes for past dates.
@@ -213,6 +236,57 @@ async function handleToolCall(toolName, toolInput, profileEmail, supabase) {
       .gte('date', startDate)
       .lte('date', endDate)
     return (data || []).map(d => d.date)
+  }
+
+  if (toolName === 'get_experience_log') {
+    const limit = Math.min(toolInput.limit || 3, 5)
+    const { data } = await supabase.from('experience_log')
+      .select('date, summary, feedback, assignments, piece_ids')
+      .eq('user_email', profileEmail)
+      .is('deleted_at', null)
+      .order('date', { ascending: false })
+      .limit(limit)
+
+    // Resolve piece_ids to titles for context
+    const allPieceIds = new Set()
+    ;(data || []).forEach(e => (e.piece_ids || []).forEach(id => allPieceIds.add(id)))
+    let pieceTitles = {}
+    if (allPieceIds.size > 0) {
+      const { data: pieces } = await supabase.from('pieces').select('id, title').in('id', [...allPieceIds])
+      pieces?.forEach(p => { pieceTitles[p.id] = p.title })
+    }
+
+    return (data || []).map(e => ({
+      date: e.date,
+      what_was_covered: e.summary || '',
+      teacher_feedback: e.feedback || '',
+      assignments: e.assignments || '',
+      pieces_discussed: (e.piece_ids || []).map(id => pieceTitles[id] || 'Unknown').filter(t => t !== 'Unknown'),
+    }))
+  }
+
+  if (toolName === 'get_piece_notes') {
+    // Resolve title to piece ID
+    const { data: allPieces } = await supabase.from('pieces')
+      .select('id, title').eq('user_id', profileEmail).eq('archived', false).is('deleted_at', null)
+    const piece = (allPieces || []).find(p => p.title.toLowerCase().trim() === (toolInput.piece_title || '').toLowerCase().trim())
+    if (!piece) return { error: 'Piece not found', available_pieces: (allPieces || []).map(p => p.title) }
+
+    const { data } = await supabase.from('piece_notes')
+      .select('note_type, note, created_at')
+      .eq('piece_id', piece.id)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false })
+      .limit(10)
+
+    return {
+      piece_title: piece.title,
+      notes: (data || []).map(n => ({
+        type: n.note_type,
+        note: n.note,
+        date: new Date(n.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      }))
+    }
   }
 
   if (toolName === 'propose_schedule') {
@@ -335,7 +409,7 @@ export async function POST(request) {
   const responseChunks = []
 
   // We may need multiple rounds if the model calls tools
-  let maxRounds = 5
+  let maxRounds = 8
   while (maxRounds > 0) {
     maxRounds--
 
