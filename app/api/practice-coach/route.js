@@ -135,7 +135,7 @@ Don't ask all questions at once — have a natural conversation. 2-3 questions a
 - Vary the focus areas — don't assign the same focus every day
 - Set specific, actionable focus areas (e.g., "mm. 24-32 left hand passage work" not just "practice it")
 - Always include practice_days in your proposal — these are the days the student said they can practice
-- Always include priority_pieces — the 1-2 most important pieces for the week (usually what has a performance coming up or what the teacher emphasized)
+- Always include priority_pieces — the most important pieces for the week. For students with many pieces this could be 4-5 priorities, not just 1-2. Consider upcoming performances, teacher emphasis, and pieces needing the most work.
 - Consider the student's available days and time constraints
 - The weekly focus should reflect the overarching theme (e.g., "counting aloud", "dynamics", "sight reading")
 
