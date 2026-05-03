@@ -274,13 +274,28 @@ export default function PracticeCoach() {
     stopSpeaking()
 
     try {
-      // Lazy-load Kokoro TTS from CDN on first use
+      // Lazy-load Kokoro TTS on first use via script tag
       if (!ttsRef.current) {
         setTtsLoading(true)
         addToast('Loading voice model (first time only)...', 'info')
-        const module = await import(/* webpackIgnore: true */ 'https://cdn.jsdelivr.net/npm/kokoro-js@1/dist/kokoro.web.js')
-        const KokoroTTS = module.KokoroTTS || module.default?.KokoroTTS
-        ttsRef.current = await KokoroTTS.from_pretrained(
+
+        // Load the kokoro.web.js bundle via dynamic script if not already loaded
+        if (!window._kokoroModule) {
+          window._kokoroModule = await new Promise((resolve, reject) => {
+            const script = document.createElement('script')
+            script.type = 'module'
+            script.textContent = `
+              import { KokoroTTS } from "https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/dist/kokoro.web.js";
+              window._KokoroTTS = KokoroTTS;
+              window.dispatchEvent(new Event('kokoro-loaded'));
+            `
+            window.addEventListener('kokoro-loaded', () => resolve(true), { once: true })
+            setTimeout(() => reject(new Error('Kokoro load timeout')), 30000)
+            document.head.appendChild(script)
+          })
+        }
+
+        ttsRef.current = await window._KokoroTTS.from_pretrained(
           'onnx-community/Kokoro-82M-v1.0-ONNX',
           { dtype: 'q8', device: 'wasm' }
         )
