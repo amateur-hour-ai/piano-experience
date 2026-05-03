@@ -372,6 +372,90 @@ async function handleToolCall(toolName, toolInput, profileEmail, supabase) {
   return { error: 'Unknown tool' }
 }
 
+async function generateScheduleWithOpus(anthropic, sonnetInput, profileEmail, supabase, practicePhilosophy, conversationMessages) {
+  // Gather all context for Opus
+  const { data: pieces } = await supabase.from('pieces')
+    .select('id, title, composer, current_focus, is_priority, personal_rating, category_id, categories(name)')
+    .eq('user_id', profileEmail).eq('archived', false).is('deleted_at', null).order('title')
+
+  const { data: experiences } = await supabase.from('experience_log')
+    .select('date, summary, feedback, assignments, piece_ids')
+    .eq('user_email', profileEmail).is('deleted_at', null)
+    .order('date', { ascending: false }).limit(3)
+
+  // Build the date reference
+  const dateRef = []
+  for (let i = 0; i < 14; i++) {
+    const dateStr = getLocalDate(i)
+    const d = new Date(dateStr + 'T12:00:00')
+    const dayName = d.toLocaleDateString('en-US', { weekday: 'long' })
+    dateRef.push(`${dayName} = ${dateStr}`)
+  }
+
+  // Extract the conversation context (what the student said they want)
+  const conversationSummary = conversationMessages
+    .filter(m => typeof m.content === 'string')
+    .map(m => `${m.role}: ${m.content}`)
+    .slice(-10)
+    .join('\n')
+
+  const opusPrompt = `You are generating a practice schedule for a piano student. Analyze the information below carefully and produce an optimal schedule.
+
+## Pieces (${(pieces || []).length} active)
+${(pieces || []).map(p => `- "${p.title}" by ${p.composer || 'unknown'} | Category: ${p.categories?.name || 'Uncategorized'} | Focus: ${p.current_focus || 'none'} | Priority: ${p.is_priority ? 'YES' : 'no'} | Rating: ${p.personal_rating || 'unrated'}`).join('\n')}
+
+## Recent Experience Log
+${(experiences || []).length > 0 ? (experiences || []).map(e => `### ${e.date}\nCovered: ${e.summary || 'N/A'}\nTeacher feedback: ${e.feedback || 'N/A'}\nAssignments: ${e.assignments || 'N/A'}`).join('\n\n') : 'No recent lesson records.'}
+
+## Date Reference (use ONLY these day names)
+Today: ${getLocalDate(0)}
+${dateRef.join('\n')}
+
+## Conversation with Student
+${conversationSummary}
+
+## Sonnet's Initial Proposal (use as a starting point but improve it)
+${JSON.stringify(sonnetInput, null, 2)}
+
+${practicePhilosophy ? `## Teacher's Practice Philosophy (HIGHEST PRIORITY)\n${practicePhilosophy}` : ''}
+
+## Your Task
+Generate the best possible practice schedule. Return ONLY a valid JSON object with these fields:
+- schedule: array of {piece_title, day, status} where day is a day name like "Sunday", "Wednesday", etc. (add "next week" for days in the following week), and status is "plan_play" or "plan_practice"
+- focus_updates: array of {piece_title, focus} with specific, actionable focus areas
+- practice_days: array of day names that should be marked as practice days
+- priority_pieces: array of piece titles that should be marked as priority
+- weekly_focus: string with the overall theme for the week
+- explanation: string explaining the rationale
+
+Think carefully about:
+1. What the student told you they want
+2. What the teacher's experience log says they should work on
+3. The teacher's practice philosophy
+4. Balancing the student's available days across their pieces
+5. Setting specific, meaningful focus areas based on where each piece is
+
+Return ONLY the JSON object, no markdown, no explanation outside the JSON.`
+
+  try {
+    const opusResponse = await anthropic.messages.create({
+      model: 'claude-opus-4-20250514',
+      max_tokens: 4000,
+      messages: [{ role: 'user', content: opusPrompt }],
+    })
+
+    const text = opusResponse.content[0]?.text || ''
+    // Parse JSON from response (strip any markdown fencing if present)
+    const jsonStr = text.replace(/^```json?\s*/i, '').replace(/\s*```\s*$/, '').trim()
+    const parsed = JSON.parse(jsonStr)
+    return parsed
+  } catch (err) {
+    console.error('Opus schedule generation failed:', err)
+    // Fall back to Sonnet's original proposal
+    return sonnetInput
+  }
+}
+
 export async function POST(request) {
   const myEmail = await getAuthEmail()
   if (!myEmail) return Response.json({ error: 'Unauthorized' }, { status: 401 })
@@ -438,18 +522,29 @@ export async function POST(request) {
     const toolResults = []
     let proposal = null
     for (const toolUse of toolUseBlocks) {
-      const result = await handleToolCall(toolUse.name, toolUse.input, profileEmail, supabase)
+      if (toolUse.name === 'propose_schedule') {
+        // Hand off schedule generation to Opus for better reasoning
+        const opusProposal = await generateScheduleWithOpus(
+          anthropic, toolUse.input, profileEmail, supabase, practicePhilosophy, currentMessages
+        )
+        const resolved = await handleToolCall('propose_schedule', opusProposal, profileEmail, supabase)
+        if (resolved?.type === 'proposal') proposal = resolved
 
-      // If this is a proposal, extract it for the UI
-      if (result?.type === 'proposal') {
-        proposal = result
+        toolResults.push({
+          type: 'tool_result',
+          tool_use_id: toolUse.id,
+          content: JSON.stringify(resolved)
+        })
+      } else {
+        const result = await handleToolCall(toolUse.name, toolUse.input, profileEmail, supabase)
+        if (result?.type === 'proposal') proposal = result
+
+        toolResults.push({
+          type: 'tool_result',
+          tool_use_id: toolUse.id,
+          content: JSON.stringify(result)
+        })
       }
-
-      toolResults.push({
-        type: 'tool_result',
-        tool_use_id: toolUse.id,
-        content: JSON.stringify(result)
-      })
     }
 
     currentMessages.push({ role: 'user', content: toolResults })
