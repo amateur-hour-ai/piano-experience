@@ -431,12 +431,14 @@ EVERY active piece must appear in the schedule at least 1-2 times per week. Not 
 
 ## Schedule Building Algorithm
 1. List ALL active pieces (not just priorities)
-2. Assign priority pieces to 3-5 days each (as "plan_practice")
-3. Distribute ALL remaining pieces across the available days, 1-2 times each (as "plan_play" or "plan_practice" depending on what the student needs)
-4. Start each day with 1-2 technical pieces if the student has them
-5. Ensure every piece appears at least once in the schedule
-6. Set focus areas for priority pieces (specific, actionable)
-7. Verify: count unique pieces in your schedule — it MUST equal the total number of active pieces
+2. For each practice day, assign at most 2-3 pieces as "plan_practice" — the rest MUST be "plan_play". This is a hard limit from the teacher.
+3. Priority pieces should appear 3-5 times across the week, but NOT all as "plan_practice" every day — mix practice and play days for them too
+4. Distribute ALL remaining non-priority pieces across the available days, 1-2 times each as "plan_play"
+5. Start each day with 1-2 technical pieces if the student has them
+6. Ensure every single active piece appears at least once in the schedule
+7. Set focus areas for priority pieces (specific, actionable)
+8. Verify: count unique pieces in your schedule — it MUST equal the total number of active pieces
+9. Verify: no day has more than 2-3 pieces with status "plan_practice" — the rest must be "plan_play"
 
 Think carefully about:
 1. What the student told you they want
