@@ -23,6 +23,12 @@ export default function PracticeCoach() {
   const [listening, setListening] = useState(false)
   const [voiceMode, setVoiceMode] = useState(false)
   const [speaking, setSpeaking] = useState(false)
+  const [highQualityVoice, setHighQualityVoice] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('piano_exp_hq_voice') === 'true'
+    }
+    return false
+  })
   const messagesEndRef = useRef(null)
   const recognitionRef = useRef(null)
   const currentAudioRef = useRef(null)
@@ -301,43 +307,67 @@ export default function PracticeCoach() {
     stopSpeaking()
     setSpeaking(true)
 
-    try {
-      const res = await fetch('/api/tts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text }),
-        signal: AbortSignal.timeout(30000),
-      })
+    if (highQualityVoice) {
+      // OpenAI TTS — high quality, some latency
+      try {
+        const res = await fetch('/api/tts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text }),
+          signal: AbortSignal.timeout(30000),
+        })
 
-      if (!res.ok) {
+        if (!res.ok) {
+          addToast('Voice playback failed', 'error')
+          setSpeaking(false)
+          return
+        }
+
+        const blob = await res.blob()
+        const url = URL.createObjectURL(blob)
+        const audio = new Audio(url)
+        currentAudioRef.current = audio
+        audio.onended = () => { setSpeaking(false); URL.revokeObjectURL(url) }
+        audio.onerror = () => { setSpeaking(false); URL.revokeObjectURL(url) }
+        audio.play()
+      } catch (err) {
+        console.error('TTS error:', err)
         addToast('Voice playback failed', 'error')
         setSpeaking(false)
-        return
       }
-
-      const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-      const audio = new Audio(url)
-      currentAudioRef.current = audio
-      audio.onended = () => { setSpeaking(false); URL.revokeObjectURL(url) }
-      audio.onerror = () => { setSpeaking(false); URL.revokeObjectURL(url) }
-      audio.play()
-    } catch (err) {
-      console.error('TTS error:', err)
-      addToast('Voice playback failed', 'error')
-      setSpeaking(false)
+    } else {
+      // Browser TTS — instant, lower quality
+      if (typeof window === 'undefined' || !window.speechSynthesis) { setSpeaking(false); return }
+      const utterance = new SpeechSynthesisUtterance(text)
+      utterance.rate = 1.05
+      utterance.onend = () => setSpeaking(false)
+      utterance.onerror = () => setSpeaking(false)
+      currentAudioRef.current = { utterance }
+      window.speechSynthesis.speak(utterance)
     }
   }
 
   function stopSpeaking() {
     if (currentAudioRef.current) {
-      try {
-        currentAudioRef.current.pause()
-        currentAudioRef.current.currentTime = 0
-      } catch {}
+      if (currentAudioRef.current.utterance) {
+        // Browser TTS
+        window.speechSynthesis?.cancel()
+      } else {
+        // OpenAI audio
+        try {
+          currentAudioRef.current.pause()
+          currentAudioRef.current.currentTime = 0
+        } catch {}
+      }
       currentAudioRef.current = null
     }
     setSpeaking(false)
+  }
+
+  function toggleVoiceQuality() {
+    const newVal = !highQualityVoice
+    setHighQualityVoice(newVal)
+    try { localStorage.setItem('piano_exp_hq_voice', newVal.toString()) } catch {}
   }
 
   if (userLoading || loadingConversation) return <div style={{ padding: '24px', textAlign: 'center', color: '#666' }}>Loading...</div>
@@ -367,10 +397,17 @@ export default function PracticeCoach() {
             {!isOwnProfile && <span style={{ fontSize: '14px', color: '#666', fontWeight: '400', marginLeft: '8px' }}>for {profileDisplayName(activeProfile)}</span>}
           </h1>
         </div>
-        <button onClick={newConversation} style={{
-          padding: '6px 14px', background: '#f9fafb', color: '#666', border: '1px solid #d1d5db',
-          borderRadius: '8px', fontSize: '13px', cursor: 'pointer'
-        }}>New Chat</button>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <button onClick={toggleVoiceQuality} style={{
+            padding: '4px 10px', background: highQualityVoice ? '#2563eb' : '#f3f4f6',
+            color: highQualityVoice ? '#fff' : '#666', border: '1px solid #d1d5db',
+            borderRadius: '16px', fontSize: '11px', cursor: 'pointer', whiteSpace: 'nowrap',
+          }}>{highQualityVoice ? 'HQ Voice' : 'Fast Voice'}</button>
+          <button onClick={newConversation} style={{
+            padding: '6px 14px', background: '#f9fafb', color: '#666', border: '1px solid #d1d5db',
+            borderRadius: '8px', fontSize: '13px', cursor: 'pointer'
+          }}>New Chat</button>
+        </div>
       </div>
 
       {/* Messages */}
