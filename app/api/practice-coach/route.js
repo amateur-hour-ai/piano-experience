@@ -428,11 +428,23 @@ Generate the best possible practice schedule. Return ONLY a valid JSON object wi
 - weekly_focus: string with the overall theme for the week
 - explanation: string explaining the rationale
 
+## CRITICAL SCHEDULING RULE
+EVERY active piece must appear in the schedule at least 1-2 times per week. Not just priority pieces — ALL pieces. A student with 15 pieces and 5 practice days should have every single piece scheduled at least once. Priority pieces get more slots (3-5 times), but non-priority pieces still get 1-2 slots. Distribute pieces across days so each day has a manageable number. If there are many pieces, some days will have more entries. This is non-negotiable.
+
+## Schedule Building Algorithm
+1. List ALL active pieces (not just priorities)
+2. Assign priority pieces to 3-5 days each (as "plan_practice")
+3. Distribute ALL remaining pieces across the available days, 1-2 times each (as "plan_play" or "plan_practice" depending on what the student needs)
+4. Start each day with 1-2 technical pieces if the student has them
+5. Ensure every piece appears at least once in the schedule
+6. Set focus areas for priority pieces (specific, actionable)
+7. Verify: count unique pieces in your schedule — it MUST equal the total number of active pieces
+
 Think carefully about:
 1. What the student told you they want
 2. What the teacher's experience log says they should work on
-3. The teacher's practice philosophy
-4. Balancing the student's available days across their pieces
+3. The teacher's practice philosophy — follow it closely
+4. Every piece must be included, not just priorities
 5. Setting specific, meaningful focus areas based on where each piece is
 
 Return ONLY the JSON object, no markdown, no explanation outside the JSON.`
