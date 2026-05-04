@@ -308,7 +308,7 @@ export default function PracticeCoach() {
     setSpeaking(true)
 
     if (highQualityVoice) {
-      // OpenAI TTS — high quality, some latency
+      // OpenAI TTS — high quality, try streaming then fall back to blob
       try {
         const res = await fetch('/api/tts', {
           method: 'POST',
@@ -323,13 +323,50 @@ export default function PracticeCoach() {
           return
         }
 
-        const blob = await res.blob()
-        const url = URL.createObjectURL(blob)
-        const audio = new Audio(url)
-        currentAudioRef.current = audio
-        audio.onended = () => { setSpeaking(false); URL.revokeObjectURL(url) }
-        audio.onerror = () => { setSpeaking(false); URL.revokeObjectURL(url) }
-        audio.play()
+        // Try streaming via MediaSource (faster start, not supported everywhere)
+        const canStream = typeof MediaSource !== 'undefined' && MediaSource.isTypeSupported('audio/mpeg')
+        if (canStream) {
+          const mediaSource = new MediaSource()
+          const audio = new Audio()
+          audio.src = URL.createObjectURL(mediaSource)
+          currentAudioRef.current = audio
+
+          mediaSource.addEventListener('sourceopen', async () => {
+            try {
+              const sourceBuffer = mediaSource.addSourceBuffer('audio/mpeg')
+              const reader = res.body.getReader()
+              let started = false
+
+              while (true) {
+                const { done, value } = await reader.read()
+                if (done) break
+                if (sourceBuffer.updating) {
+                  await new Promise(r => sourceBuffer.addEventListener('updateend', r, { once: true }))
+                }
+                sourceBuffer.appendBuffer(value)
+                if (!started) { audio.play().catch(() => {}); started = true }
+              }
+
+              if (sourceBuffer.updating) {
+                await new Promise(r => sourceBuffer.addEventListener('updateend', r, { once: true }))
+              }
+              if (mediaSource.readyState === 'open') mediaSource.endOfStream()
+            } catch {
+              if (mediaSource.readyState === 'open') mediaSource.endOfStream()
+            }
+          })
+          audio.onended = () => setSpeaking(false)
+          audio.onerror = () => setSpeaking(false)
+        } else {
+          // Fallback: download full blob then play
+          const blob = await res.blob()
+          const url = URL.createObjectURL(blob)
+          const audio = new Audio(url)
+          currentAudioRef.current = audio
+          audio.onended = () => { setSpeaking(false); URL.revokeObjectURL(url) }
+          audio.onerror = () => { setSpeaking(false); URL.revokeObjectURL(url) }
+          audio.play()
+        }
       } catch (err) {
         console.error('TTS error:', err)
         addToast('Voice playback failed', 'error')
