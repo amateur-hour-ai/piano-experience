@@ -156,13 +156,14 @@ function UserGuide() {
         <p style={{ fontSize: '15px', lineHeight: '1.7', color: '#333', marginBottom: '16px' }}>
           The <strong>Practice Coach</strong> is an AI-powered assistant that helps you plan your weekly practice schedule through conversation.
         </p>
-        <Step n="1">Open <strong>Practice Coach</strong> from the menu and describe your goals: upcoming performances, what you want to focus on, which days you can practice.</Step>
-        <Step n="2">The coach will ask follow-up questions to understand your needs, then propose a full schedule with pieces, play/practice status, focus areas, and a weekly focus theme.</Step>
-        <Step n="3">Review the proposed schedule — you'll see a visual card showing each day's plan. Tap <strong>Apply Schedule</strong> to fill your practice grid in one tap.</Step>
+        <Step n="1">Open <strong>Practice Coach</strong> from the menu and tell it which days you can practice this week and any pieces you want to focus on.</Step>
+        <Step n="2">The coach reads your pieces, recent experience log, and practice notes to understand your current situation. It will ask follow-up questions.</Step>
+        <Step n="3">Review the proposed schedule — you'll see a visual card showing each day's plan, including practice days (★), priority pieces (★), focus areas, and a weekly focus theme. Tap <strong>Apply Schedule</strong> to fill your practice grid in one tap.</Step>
         <Step n="4">Continue the conversation to make adjustments, or tap <strong>New Chat</strong> to start fresh.</Step>
-        <Step n="5">Tap the <strong>🎤 microphone</strong> button to speak instead of type — your speech is transcribed and sent. The coach's reply is read aloud automatically.</Step>
-        <Step n="6">Tap <strong>🔊</strong> on any coach message to hear it read aloud again.</Step>
-        <Note>The Practice Coach only discusses piano practice and music. Your conversation is saved so you can return to it later. Voice responses use high-quality AI speech synthesis. Admins can customize the coach's practice philosophy in Settings.</Note>
+        <Step n="5">Tap the <strong>🎤 microphone</strong> button to speak instead of type — your speech is transcribed and sent.</Step>
+        <Step n="6">The coach's reply is read aloud automatically when using voice. Tap <strong>🔊</strong> on any message to replay it.</Step>
+        <Step n="7">Use the <strong>Fast Voice / HQ Voice</strong> toggle in the header to switch between instant browser voice and higher-quality AI voice.</Step>
+        <Note>The Practice Coach only discusses piano practice and music. Your conversation is saved so you can return to it later. The coach uses advanced AI for schedule generation to produce the best possible practice plan. Admins can customize the coach's practice philosophy in Settings.</Note>
       </Section>
 
       <Section title="Activities">
@@ -302,10 +303,14 @@ function ReleaseNotes() {
         'Tap to complete on Home — tap the status icon on any piece during practice to mark it played or practiced. Tap again to undo.',
         'Played icon — replaced growing heart emoji with a clean pink ♥ for universal device support',
         'Print Summary — one-page printable practice summary for any profile, great for bringing to lessons',
-        'Practice Coach — AI-powered practice planning assistant. Describe your goals and it proposes a full weekly schedule with focus areas. Uses Claude Sonnet.',
-        'Weekly Focus — set an overarching practice theme for the week (e.g., counting aloud, sight reading) at the top of the practice schedule',
+        'Practice Coach — AI-powered practice planning assistant. Describe your goals and it proposes a full weekly schedule with focus areas.',
+        'Practice Coach reads experience log and piece notes to inform schedule recommendations',
+        'Practice Coach uses advanced AI for schedule generation — smarter piece distribution and focus areas',
+        'Practice Coach sets practice days (purple ★) and priority pieces (pink ★) as part of proposals',
+        'Weekly Focus — set an overarching practice theme for the week at the top of the practice schedule',
         'Practice Philosophy — admin-editable instructions in Settings that guide the Practice Coach\'s recommendations',
-        'Voice mode for Practice Coach — tap the microphone to speak instead of type. Coach responses are read aloud using high-quality AI voice synthesis, consistent across all devices.',
+        'Voice input — tap the microphone to speak instead of type',
+        'Voice output — Fast Voice (instant, browser) / HQ Voice (natural, AI-generated) toggle',
       ]
     },
     {
