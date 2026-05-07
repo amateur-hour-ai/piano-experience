@@ -208,8 +208,9 @@ export default function Dashboard() {
 
       {/* Weekly Focus */}
       {weeklyFocus && (
-        <div style={{ background: '#eff6ff', borderRadius: '10px', padding: '12px 16px', marginBottom: '24px', fontSize: '14px' }}>
-          <span style={{ fontWeight: '600', color: '#2563eb' }}>Focus this week:</span> {weeklyFocus}
+        <div style={{ background: '#fff', borderRadius: '12px', padding: '16px 20px', marginBottom: '24px', border: '1px solid #e5e7eb' }}>
+          <div style={{ fontSize: '13px', color: '#999', marginBottom: '4px' }}>Focus This Week</div>
+          <div style={{ fontSize: '15px', fontWeight: '500', color: '#2563eb' }}>{weeklyFocus}</div>
         </div>
       )}
 
