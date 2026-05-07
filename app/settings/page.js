@@ -324,7 +324,7 @@ export default function Settings() {
       </div>
 
       {/* Data Export */}
-      <div style={{ background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e5e7eb' }}>
+      <div style={{ background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e5e7eb', marginBottom: '24px' }}>
         <h2 style={{ fontSize: '18px', color: '#2563eb', marginBottom: '16px' }}>Data Export</h2>
         <p style={{ fontSize: '13px', color: '#666', marginBottom: '16px' }}>Download all data as a printable document — pieces, notes, goals, practice history, experience log, and strategies.</p>
 
