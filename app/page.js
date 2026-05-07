@@ -19,7 +19,6 @@ export default function Dashboard() {
   const { addToast } = useToast()
   const { categories: sortedCategories } = useSortedCategories()
   const [pieces, setPieces] = useState([])
-  const [schedule, setSchedule] = useState([])
   const [practiceGrid, setPracticeGrid] = useState([])
   const [weeklyFocus, setWeeklyFocus] = useState('')
   const [theme, setTheme] = useState(null)
@@ -40,8 +39,6 @@ export default function Dashboard() {
         const cached = await getCachedProfileData(activeProfile)
         if (cached) {
           setPieces(cached.pieces || [])
-          setSchedule(cached.schedule || [])
-          setRecentActivity(cached.activities || [])
           setLoading(false)
         }
 
