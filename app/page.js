@@ -21,6 +21,7 @@ export default function Dashboard() {
   const [pieces, setPieces] = useState([])
   const [schedule, setSchedule] = useState([])
   const [practiceGrid, setPracticeGrid] = useState([])
+  const [weeklyFocus, setWeeklyFocus] = useState('')
   const [theme, setTheme] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -74,6 +75,7 @@ export default function Dashboard() {
             const [piecesRes, gridRes] = await Promise.race([dataPromise, timeoutPromise])
             setPieces(piecesRes.data || [])
             setPracticeGrid(gridRes.grid || [])
+            if (gridRes.weeklyFocus !== undefined) setWeeklyFocus(gridRes.weeklyFocus || '')
           } else {
             const dataPromise = Promise.all([
               fetch(`/api/profile/${encodeURIComponent(activeProfile)}/pieces`, { signal: AbortSignal.timeout(5000) }).then(r => r.json()),
@@ -82,6 +84,7 @@ export default function Dashboard() {
             const [piecesRes, gridRes] = await Promise.race([dataPromise, timeoutPromise])
             setPieces(piecesRes.pieces || [])
             setPracticeGrid(gridRes.grid || [])
+            if (gridRes.weeklyFocus !== undefined) setWeeklyFocus(gridRes.weeklyFocus || '')
           }
         } catch {
           // Network failed — cached data already displayed
@@ -205,6 +208,13 @@ export default function Dashboard() {
           href="/schedule"
         />
       </div>
+
+      {/* Weekly Focus */}
+      {weeklyFocus && (
+        <div style={{ background: '#eff6ff', borderRadius: '10px', padding: '12px 16px', marginBottom: '24px', fontSize: '14px' }}>
+          <span style={{ fontWeight: '600', color: '#2563eb' }}>Focus this week:</span> {weeklyFocus}
+        </div>
+      )}
 
       {/* Today's Practice */}
       <section style={{ marginBottom: '32px' }}>
